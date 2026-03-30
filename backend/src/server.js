@@ -227,6 +227,13 @@ const insertPending = db.prepare(
   `INSERT INTO pending_requests (name_ar, phone, category_slug, message) VALUES (@name_ar, @phone, @category_slug, @message)`
 );
 
+function queueFeedbackEmail(message) {
+  if (!mailTransporter) return;
+  mailTransporter.sendMail(message).catch((err) => {
+    console.error("feedback email error:", err);
+  });
+}
+
 app.post("/api/feedback", async (req, res) => {
   const { type = "", organization_name = "", hotline_number = "", message = "" } = req.body || {};
 
@@ -238,14 +245,12 @@ app.post("/api/feedback", async (req, res) => {
 
       insertPending.run({ name_ar: name, phone: hotline, category_slug: null, message: "" });
 
-      if (mailTransporter) {
-        await mailTransporter.sendMail({
-          from: process.env.MAIL_FROM || process.env.SMTP_USER,
-          to: feedbackReceiver,
-          subject: "New Hotline Request",
-          text: `Please add this hotline:\n\nName: ${name}\nHotline: ${hotline}`
-        });
-      }
+      queueFeedbackEmail({
+        from: process.env.MAIL_FROM || process.env.SMTP_USER,
+        to: feedbackReceiver,
+        subject: "New Hotline Request",
+        text: `Please add this hotline:\n\nName: ${name}\nHotline: ${hotline}`
+      });
 
       return res.status(201).json({ ok: true });
     }
@@ -256,21 +261,19 @@ app.post("/api/feedback", async (req, res) => {
 
       insertPending.run({ name_ar: "suggestion", phone: "", category_slug: null, message: msg });
 
-      if (mailTransporter) {
-        await mailTransporter.sendMail({
-          from: process.env.MAIL_FROM || process.env.SMTP_USER,
-          to: feedbackReceiver,
-          subject: "Hotline App Suggestion",
-          text: `User suggestion:\n\n${msg}`
-        });
-      }
+      queueFeedbackEmail({
+        from: process.env.MAIL_FROM || process.env.SMTP_USER,
+        to: feedbackReceiver,
+        subject: "Hotline App Suggestion",
+        text: `User suggestion:\n\n${msg}`
+      });
 
       return res.status(201).json({ ok: true });
     }
 
     res.status(400).json({ error: "Unsupported type" });
   } catch (err) {
-    console.error("feedback email error:", err);
+    console.error("feedback request error:", err);
     res.status(500).json({ error: "Failed to send feedback" });
   }
 });

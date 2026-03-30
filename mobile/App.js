@@ -277,7 +277,7 @@ export default function App() {
       setLoading(false);
 
       const controller = new AbortController();
-      const timeoutId = setTimeout(() => controller.abort(), 5000);
+      const timeoutId = setTimeout(() => controller.abort(), 20000);
       try {
         const res = await fetch(`${API_BASE_URL}/api/contacts?limit=3000`, {
           signal: controller.signal
@@ -618,7 +618,7 @@ export default function App() {
 
   const sendFeedback = async (payload) => {
     const controller = new AbortController();
-    const timeoutId = setTimeout(() => controller.abort(), 8000);
+    const timeoutId = setTimeout(() => controller.abort(), 65000);
     try {
       const res = await fetch(`${API_BASE_URL}/api/feedback`, {
         method: "POST",
@@ -632,7 +632,7 @@ export default function App() {
       }
     } catch (err) {
       if (err?.name === "AbortError" || /Network request failed/i.test(String(err?.message || ""))) {
-        throw new Error("Cannot reach the server now. Please make sure the backend is running and your phone is on the same network.");
+        throw new Error("Server is taking too long to respond. If you are using Render free tier, wait a few seconds and try again.");
       }
       throw err;
     } finally {
