@@ -1,0 +1,293 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Hotlines Admin</title>
+  <style>
+    body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; background: #0f172a; color: #e2e8f0; margin: 0; padding: 16px; }
+    .panel { background: rgba(255,255,255,0.06); border: 1px solid rgba(255,255,255,0.08); border-radius: 14px; padding: 16px; margin-bottom: 16px; backdrop-filter: blur(8px); }
+    input, select, button, textarea { border-radius: 10px; border: 1px solid #334155; padding: 10px; font-size: 14px; background: rgba(255,255,255,0.08); color: #e2e8f0; }
+    button { cursor: pointer; border: 1px solid #475569; background: linear-gradient(135deg,#6366f1,#4f46e5); color: #fff; font-weight: 700; }
+    button.ghost { background: transparent; border: 1px solid #475569; }
+    table { width: 100%; border-collapse: collapse; margin-top: 12px; }
+    th, td { padding: 8px 10px; border-bottom: 1px solid rgba(255,255,255,0.08); }
+    th { text-align: left; color: #cbd5e1; }
+    .row { display: flex; gap: 8px; flex-wrap: wrap; }
+    .row > * { flex: 1 1 220px; }
+    .actions { display: flex; gap: 8px; }
+    .pill { padding: 6px 10px; border-radius: 999px; border: 1px solid #334155; background: rgba(255,255,255,0.06); }
+    .badge { padding: 4px 8px; border-radius: 8px; background: rgba(99,102,241,0.2); color: #cbd5e1; font-size: 12px; }
+  </style>
+</head>
+<body>
+  <div class="panel">
+    <h2>Auth</h2>
+    <div class="row">
+      <input id="user" placeholder="Username" />
+      <input id="pass" placeholder="Password" type="password" />
+      <button id="saveAuth">Save</button>
+      <button class="ghost" id="clearAuth">Clear</button>
+    </div>
+    <p id="authStatus" class="pill">Not set</p>
+  </div>
+
+  <div class="panel">
+    <h2>New contact</h2>
+    <div class="row">
+      <input id="c-name" placeholder="Name" />
+      <input id="c-phone" placeholder="Phone" />
+      <select id="c-category"></select>
+      <input id="c-gov" placeholder="Governorate code (optional)" />
+      <select id="c-nonphone">
+        <option value="false">Phone</option>
+        <option value="true">Non-phone</option>
+      </select>
+    </div>
+    <textarea id="c-notes" rows="2" placeholder="Notes (optional)"></textarea>
+    <div class="row">
+      <button id="addBtn">Add</button>
+      <span id="addMsg" class="badge"></span>
+    </div>
+  </div>
+
+  <div class="panel">
+    <h2>Contacts</h2>
+    <div class="row">
+      <input id="q" placeholder="Search" />
+      <select id="q-cat"></select>
+      <button id="loadBtn">Reload</button>
+    </div>
+    <table>
+      <thead>
+        <tr><th>ID</th><th>Name</th><th>Phone</th><th>Category</th><th>Gov</th><th>Non-phone</th><th>Actions</th></tr>
+      </thead>
+      <tbody id="rows"></tbody>
+    </table>
+    <div id="listMsg" class="badge"></div>
+  </div>
+
+  <div class="panel">
+    <h2>Pending requests</h2>
+    <div class="row">
+      <button id="loadReqBtn">Reload</button>
+      <select id="req-filter">
+        <option value="0">Pending</option>
+        <option value="1">Handled</option>
+      </select>
+    </div>
+    <table>
+      <thead>
+        <tr><th>ID</th><th>Name</th><th>Phone</th><th>Category</th><th>Message</th><th>Actions</th></tr>
+      </thead>
+      <tbody id="reqRows"></tbody>
+    </table>
+    <div id="reqMsg" class="badge"></div>
+  </div>
+
+  <script>
+    const api = (path) => `${location.origin}/api${path}`;
+    let auth = { u: "", p: "" };
+    const setAuthHeader = () => auth.u && auth.p ? { Authorization: "Basic " + btoa(`${auth.u}:${auth.p}`) } : {};
+
+    const userEl = document.getElementById("user");
+    const passEl = document.getElementById("pass");
+    const authStatus = document.getElementById("authStatus");
+    document.getElementById("saveAuth").onclick = () => {
+      auth = { u: userEl.value.trim(), p: passEl.value.trim() };
+      localStorage.setItem("adminAuth", JSON.stringify(auth));
+      authStatus.textContent = "Saved";
+    };
+    document.getElementById("clearAuth").onclick = () => {
+      auth = { u: "", p: "" };
+      localStorage.removeItem("adminAuth");
+      authStatus.textContent = "Cleared";
+    };
+    const saved = localStorage.getItem("adminAuth");
+    if (saved) { auth = JSON.parse(saved); userEl.value = auth.u; passEl.value = auth.p; authStatus.textContent = "Loaded"; }
+
+    const catSelect = document.getElementById("c-category");
+    const filterCat = document.getElementById("q-cat");
+    const loadCats = async () => {
+      const res = await fetch(api("/admin/categories"), { headers: { ...setAuthHeader() } });
+      if (!res.ok) throw new Error("Auth or server error");
+      const data = await res.json();
+      catSelect.innerHTML = ""; filterCat.innerHTML = '<option value=\"\">All</option>';
+      data.forEach(c => {
+        const o1 = document.createElement("option"); o1.value = c.slug; o1.textContent = c.name_ar; catSelect.appendChild(o1);
+        const o2 = document.createElement("option"); o2.value = c.slug; o2.textContent = c.name_ar; filterCat.appendChild(o2);
+      });
+    };
+
+    const rowsEl = document.getElementById("rows");
+    const listMsg = document.getElementById("listMsg");
+    const loadContacts = async () => {
+      listMsg.textContent = "Loading...";
+      const params = new URLSearchParams();
+      const q = document.getElementById("q").value.trim();
+      if (q) params.append("q", q);
+      const qc = filterCat.value;
+      if (qc) params.append("category", qc);
+      const res = await fetch(api(`/admin/contacts?${params.toString()}`), { headers: { ...setAuthHeader() } });
+      if (!res.ok) { listMsg.textContent = "Auth or server error"; return; }
+      const data = await res.json();
+    rowsEl.innerHTML = "";
+      data.forEach(item => {
+        const tr = document.createElement("tr");
+        tr.innerHTML = `
+          <td>${item.id}</td>
+          <td><input data-id="${item.id}" data-field="name_ar" value="${item.name_ar || ""}"/></td>
+          <td><input data-id="${item.id}" data-field="phone" value="${item.phone || ""}"/></td>
+          <td>
+            <input data-id="${item.id}" data-field="category_slug" value="${item.category_slug || ""}" />
+            <div class="badge">${item.category_name_ar}</div>
+          </td>
+          <td><input data-id="${item.id}" data-field="governorate_code" value="${item.governorate_code || ""}" /></td>
+          <td>
+            <select data-id="${item.id}" data-field="is_non_phone">
+              <option value="false" ${item.is_non_phone ? "" : "selected"}>Phone</option>
+              <option value="true" ${item.is_non_phone ? "selected" : ""}>Non-phone</option>
+            </select>
+          </td>
+          <td class="actions">
+            <button data-id="${item.id}" data-action="save">Save</button>
+            <button class="ghost" data-id="${item.id}" data-action="delete">Delete</button>
+          </td>`;
+        rowsEl.appendChild(tr);
+      });
+      listMsg.textContent = `Loaded ${data.length} items`;
+    };
+
+    rowsEl.onclick = async (e) => {
+      const btn = e.target.closest("button");
+      if (!btn) return;
+      const id = btn.dataset.id;
+      if (btn.dataset.action === "delete") {
+        await fetch(api(`/admin/contacts/${id}`), { method: "DELETE", headers: { ...setAuthHeader() } });
+        loadContacts();
+      }
+      if (btn.dataset.action === "save") {
+        const getVal = (field) => rowsEl.querySelector(`[data-id="${id}"][data-field="${field}"]`).value.trim();
+        await fetch(api(`/admin/contacts/${id}`), {
+          method: "PUT",
+          headers: { "Content-Type": "application/json", ...setAuthHeader() },
+          body: JSON.stringify({
+            name_ar: getVal("name_ar"),
+            phone: getVal("phone"),
+            category_slug: getVal("category_slug"),
+            governorate_code: getVal("governorate_code"),
+            is_non_phone: rowsEl.querySelector(`[data-id="${id}"][data-field="is_non_phone"]`).value === "true",
+            notes: ""
+          })
+        });
+        loadContacts();
+      }
+    };
+
+    document.getElementById("loadBtn").onclick = loadContacts;
+    document.getElementById("addBtn").onclick = async () => {
+      const name = document.getElementById("c-name").value.trim();
+      const phone = document.getElementById("c-phone").value.trim();
+      const cat = catSelect.value;
+      const gov = document.getElementById("c-gov").value.trim();
+      const nonPhone = document.getElementById("c-nonphone").value === "true";
+      const notes = document.getElementById("c-notes").value.trim();
+      const addMsg = document.getElementById("addMsg");
+      if (!name || !phone || !cat) {
+        addMsg.textContent = "Name, phone, category are required";
+        return;
+      }
+      const res = await fetch(api("/admin/contacts"), {
+        method: "POST",
+        headers: { "Content-Type": "application/json", ...setAuthHeader() },
+        body: JSON.stringify({
+          name_ar: name,
+          phone,
+          category_slug: cat,
+          governorate_code: gov,
+          is_non_phone: nonPhone,
+          notes
+        })
+      });
+      addMsg.textContent = res.ok ? "Added" : "Error";
+      if (res.ok) {
+        document.getElementById("c-name").value = "";
+        document.getElementById("c-phone").value = "";
+        document.getElementById("c-gov").value = "";
+        document.getElementById("c-notes").value = "";
+        loadContacts();
+      }
+    };
+
+    // initialize
+    loadCats().then(loadContacts).catch(() => { listMsg.textContent = "Auth required"; });
+
+    // Requests panel
+    const reqRows = document.getElementById("reqRows");
+    const reqMsg = document.getElementById("reqMsg");
+    const loadRequests = async () => {
+      reqMsg.textContent = "Loading...";
+      const handled = document.getElementById("req-filter").value;
+      const res = await fetch(api(`/admin/requests?handled=${handled}`), { headers: { ...setAuthHeader() } });
+      if (!res.ok) { reqMsg.textContent = "Auth or server error"; return; }
+      const data = await res.json();
+      reqRows.innerHTML = "";
+      data.forEach(item => {
+        const tr = document.createElement("tr");
+        tr.innerHTML = `
+          <td>${item.id}</td>
+          <td>${item.name_ar || ""}</td>
+          <td>${item.phone || ""}</td>
+          <td><input data-req="${item.id}" data-field="category_slug" value="${item.category_slug || ""}" /></td>
+          <td>${item.message || ""}</td>
+          <td class="actions">
+            ${item.handled ? "" : '<button data-req="' + item.id + '" data-action="add">Add</button>'}
+            ${item.handled ? "" : '<button class="ghost" data-req="' + item.id + '" data-action="resolve">Mark done</button>'}
+          </td>
+        `;
+        reqRows.appendChild(tr);
+      });
+      reqMsg.textContent = `Loaded ${data.length} requests`;
+    };
+    document.getElementById("loadReqBtn").onclick = loadRequests;
+    document.getElementById("req-filter").onchange = loadRequests;
+
+    reqRows.onclick = async (e) => {
+      const btn = e.target.closest("button");
+      if (!btn) return;
+      const id = btn.dataset.req;
+      const action = btn.dataset.action;
+      if (action === "resolve") {
+        await fetch(api(`/admin/requests/${id}/resolve`), { method: "POST", headers: { ...setAuthHeader() } });
+        loadRequests();
+        return;
+      }
+      if (action === "add") {
+        const cat = reqRows.querySelector(`[data-req="${id}"][data-field="category_slug"]`).value.trim();
+        if (!cat) { reqMsg.textContent = "Need category slug"; return; }
+        const row = btn.closest("tr");
+        const name = row.children[1].textContent.trim();
+        const phone = row.children[2].textContent.trim();
+        await fetch(api("/admin/contacts"), {
+          method: "POST",
+          headers: { "Content-Type": "application/json", ...setAuthHeader() },
+          body: JSON.stringify({
+            name_ar: name,
+            phone,
+            category_slug: cat,
+            governorate_code: "",
+            is_non_phone: false,
+            notes: ""
+          })
+        });
+        await fetch(api(`/admin/requests/${id}/resolve`), { method: "POST", headers: { ...setAuthHeader() } });
+        loadRequests();
+        loadContacts();
+      }
+    };
+
+    // load requests on start
+    loadRequests().catch(() => { reqMsg.textContent = "Auth required"; });
+  </script>
+</body>
+</html>

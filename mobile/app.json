@@ -1,0 +1,43 @@
+{
+  "expo": {
+    "name": "Hotline App",
+    "slug": "hotline-egypt",
+    "version": "1.0.0",
+    "orientation": "portrait",
+    "userInterfaceStyle": "light",
+    "icon": "./assets/icon.png",
+    "assetBundlePatterns": [
+      "**/*"
+    ],
+    "scheme": "hotlineapp",
+    "runtimeVersion": {
+      "policy": "appVersion"
+    },
+    "updates": {
+      "fallbackToCacheTimeout": 0
+    },
+    "plugins": [],
+    "ios": {
+      "supportsTablet": true,
+      "bundleIdentifier": "com.hotline.egypt",
+      "buildNumber": "1.0.0"
+    },
+    "android": {
+      "package": "com.hotline.egypt",
+      "versionCode": 1,
+      "adaptiveIcon": {
+        "foregroundImage": "./assets/adaptive-icon.png",
+        "backgroundColor": "#f7e8f3"
+      }
+    },
+    "splash": {
+      "image": "./assets/splash.png",
+      "backgroundColor": "#0f0618",
+      "resizeMode": "contain"
+    },
+    "extra": {
+      "appName": "Hotline App",
+      "apiBaseUrl": "@env:EXPO_PUBLIC_API_URL"
+    }
+  }
+}

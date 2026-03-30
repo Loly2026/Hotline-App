@@ -1,0 +1,25 @@
+{
+  "name": "hotline-backend",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "seed": "node src/seed.js",
+    "import:csv": "node src/import-csv.js",
+    "import:hotlinesegypt": "node src/import-hotlinesegypt.js",
+    "report:coverage": "node src/report-coverage.js",
+    "clean:hotlines": "node src/clean-hotlines-data.js",
+    "start": "node src/server.js",
+    "dev": "node src/server.js",
+    "import:user-hotlines": "node src/import-user-hotlines.js data/user-hotlines.txt",
+    "import:curated": "node src/import-curated.js"
+  },
+  "dependencies": {
+    "better-sqlite3": "^11.8.1",
+    "cors": "^2.8.5",
+    "dotenv": "^17.2.1",
+    "expo": "^55.0.6",
+    "express": "^4.21.2",
+    "nodemailer": "^6.9.16"
+  }
+}

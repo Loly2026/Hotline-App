@@ -1,0 +1,54 @@
+<!doctype html>
+<html lang="ar" dir="rtl">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Hotline | دليل الأرقام السريعة</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;600;700;800&display=swap"
+      rel="stylesheet"
+    />
+    <link rel="stylesheet" href="styles.css" />
+  </head>
+  <body>
+    <div class="bg-shape bg-one" aria-hidden="true"></div>
+    <div class="bg-shape bg-two" aria-hidden="true"></div>
+
+    <header class="hero">
+      <div class="brand">Hotline</div>
+      <h1>دليل الأرقام السريعة للخدمات اليومية</h1>
+      <p>
+        ابحث في أرقام الطوارئ، المستشفيات، البنوك، شركات المحمول، الصيانة، والخدمات العامة
+        حسب المحافظة والفئة.
+      </p>
+    </header>
+
+    <main class="container">
+      <section class="controls" aria-label="عناصر البحث والتصفية">
+        <label class="control-label" for="searchInput">ابحث باسم الجهة أو الرقم</label>
+        <input id="searchInput" type="text" placeholder="مثال: أورانج، الإسعاف، بنك مصر" />
+
+        <label class="control-label" for="categorySelect">الفئة</label>
+        <select id="categorySelect">
+          <option value="">كل الفئات</option>
+        </select>
+
+        <label class="control-label" for="governorateSelect">المحافظة</label>
+        <select id="governorateSelect">
+          <option value="">كل المحافظات</option>
+        </select>
+      </section>
+
+      <section>
+        <div id="stats" class="stats"></div>
+        <div id="cards" class="cards" aria-live="polite"></div>
+      </section>
+    </main>
+
+    <footer class="footer">Hotline Egypt - نسخة مترابطة مع قاعدة البيانات.</footer>
+
+    <script src="app.js"></script>
+  </body>
+</html>

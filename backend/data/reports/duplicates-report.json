@@ -1,0 +1,41 @@
+{
+  "exactGroups": [
+    {
+      "category_id": 7,
+      "category_name": "صيدليات",
+      "normalized_name": "صيدليات خليل",
+      "items": [
+        {
+          "id": 110,
+          "name_ar": "صيدليات خليل (الإسكندرية)",
+          "phone": "16182",
+          "category_id": 7,
+          "category_name": "صيدليات"
+        },
+        {
+          "id": 462,
+          "name_ar": "صيدليات خليل (فرع القاهرة)",
+          "phone": "16182",
+          "category_id": 7,
+          "category_name": "صيدليات"
+        }
+      ]
+    }
+  ],
+  "nearPairs": [
+    {
+      "category_id": 42,
+      "category_name": "حلويات ومخابز (إضافي)",
+      "a": {
+        "id": 422,
+        "name_ar": "بسبوسة (Basbousa)",
+        "phone": "16281"
+      },
+      "b": {
+        "id": 423,
+        "name_ar": "كنافة وبسبوسة",
+        "phone": "16952"
+      }
+    }
+  ]
+}

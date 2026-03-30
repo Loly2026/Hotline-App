@@ -1,0 +1,141 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Hotline Admin</title>
+  <link rel="stylesheet" href="admin.css" />
+</head>
+<body>
+  <header class="top">
+    <div class="brand">Hotline Admin</div>
+    <div class="status" id="status">Offline</div>
+  </header>
+
+  <section class="panel login" id="login-panel">
+    <h3>Connect</h3>
+    <label>API Base URL (default current origin)
+      <input id="api-base" type="text" placeholder="http://localhost:4001" />
+    </label>
+    <label>Username
+      <input id="username" type="text" placeholder="admin" />
+    </label>
+    <label>Password
+      <input id="password" type="password" placeholder="••••" />
+    </label>
+    <button id="connect-btn">Connect</button>
+    <div class="hint">Uses Basic Auth to call /api/admin/* endpoints.</div>
+  </section>
+
+  <section class="panel" id="contacts-panel" hidden>
+    <div class="panel-head">
+      <h3>Contacts</h3>
+      <div class="actions">
+        <input id="search" type="search" placeholder="Search name/phone/category" />
+        <button id="refresh-btn">Refresh</button>
+      </div>
+    </div>
+    <div class="filters">
+      <label>Category
+        <select id="cat-filter"><option value="">All</option></select>
+      </label>
+    </div>
+    <div class="table-wrapper">
+      <table id="contacts-table">
+        <thead><tr><th>ID</th><th>Name (AR)</th><th>Phone</th><th>Category</th><th>Gov</th><th>Non-phone</th><th></th></tr></thead>
+        <tbody></tbody>
+      </table>
+    </div>
+  </section>
+
+  <section class="panel" id="add-panel" hidden>
+    <h3>Add Contact</h3>
+    <form id="add-form">
+      <div class="grid">
+        <label>Name (AR)<input required name="name_ar" /></label>
+        <label>Phone<input name="phone" /></label>
+        <label>Category
+          <select required name="category_slug" id="cat-select"></select>
+        </label>
+        <label>Governorate code (optional)<input name="governorate_code" placeholder="eg CAI" /></label>
+        <label>Address<textarea name="address"></textarea></label>
+        <label>Notes<textarea name="notes"></textarea></label>
+        <label class="checkbox"><input type="checkbox" name="is_non_phone" /> Non-phone</label>
+      </div>
+      <button type="submit">Add</button>
+    </form>
+  </section>
+
+  <section class="panel" id="pending-panel" hidden>
+    <div class="panel-head">
+      <h3>Pending Requests</h3>
+      <button id="refresh-req">Refresh</button>
+    </div>
+    <div class="table-wrapper">
+      <table id="pending-table">
+        <thead><tr><th>ID</th><th>Name</th><th>Phone</th><th>Category</th><th>Message</th><th>Created</th><th></th></tr></thead>
+        <tbody></tbody>
+      </table>
+    </div>
+  </section>
+
+  <div class="modal" id="edit-modal" hidden>
+    <div class="modal-card">
+      <div class="modal-head">
+        <h3>Edit Contact</h3>
+        <button class="small" id="close-edit">×</button>
+      </div>
+      <form id="edit-form">
+        <input type="hidden" name="id" id="edit-id" />
+        <div class="grid">
+          <label>Name (AR)<input required name="name_ar" id="edit-name" /></label>
+          <label>Phone<input name="phone" id="edit-phone" /></label>
+          <label>Category
+            <select required name="category_slug" id="edit-cat"></select>
+          </label>
+          <label>Governorate code (optional)<input name="governorate_code" id="edit-gov" placeholder="eg CAI" /></label>
+          <label>Address<textarea name="address" id="edit-address"></textarea></label>
+          <label>Notes<textarea name="notes" id="edit-notes"></textarea></label>
+          <label class="checkbox"><input type="checkbox" name="is_non_phone" id="edit-nonphone" /> Non-phone</label>
+        </div>
+        <div class="actions right">
+          <button type="button" class="small" id="cancel-edit">Cancel</button>
+          <button type="submit">Save</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <div class="modal" id="pending-modal" hidden>
+    <div class="modal-card">
+      <div class="modal-head">
+        <h3>Edit Pending Request</h3>
+        <button class="small" id="close-pending">×</button>
+      </div>
+      <form id="pending-form">
+        <input type="hidden" name="id" id="pending-id" />
+        <div class="grid">
+          <label>Name (AR)<input name="name_ar" id="pending-name" /></label>
+          <label>Phone<input name="phone" id="pending-phone" /></label>
+          <label>Category
+            <select name="category_slug" id="pending-cat">
+              <option value="">Select category</option>
+            </select>
+          </label>
+          <label>Governorate code (optional)<input name="governorate_code" id="pending-gov" placeholder="eg CAI" /></label>
+          <label>Address<textarea name="address" id="pending-address"></textarea></label>
+          <label>Notes / Message<textarea name="notes" id="pending-notes"></textarea></label>
+          <label class="checkbox"><input type="checkbox" name="is_non_phone" id="pending-nonphone" /> Non-phone</label>
+        </div>
+        <div class="actions right">
+          <button type="button" class="small" id="delete-pending">Delete request</button>
+          <button type="button" class="small" id="resolve-pending">Mark done</button>
+          <button type="submit">Add to Contacts</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <script src="admin.js"></script>
+</body>
+</html>

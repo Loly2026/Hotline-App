@@ -1,0 +1,31 @@
+export const governorates = [
+  { code: "C", name_ar: "القاهرة" },
+  { code: "ALX", name_ar: "الإسكندرية" },
+  { code: "PTS", name_ar: "بورسعيد" },
+  { code: "SUE", name_ar: "السويس" },
+  { code: "DAM", name_ar: "دمياط" },
+  { code: "DK", name_ar: "الدقهلية" },
+  { code: "SHR", name_ar: "الشرقية" },
+  { code: "KB", name_ar: "القليوبية" },
+  { code: "KFS", name_ar: "كفر الشيخ" },
+  { code: "GH", name_ar: "الغربية" },
+  { code: "MNF", name_ar: "المنوفية" },
+  { code: "BH", name_ar: "البحيرة" },
+  { code: "IS", name_ar: "الإسماعيلية" },
+  { code: "GZ", name_ar: "الجيزة" },
+  { code: "BNS", name_ar: "بني سويف" },
+  { code: "FYM", name_ar: "الفيوم" },
+  { code: "MNY", name_ar: "المنيا" },
+  { code: "ASY", name_ar: "أسيوط" },
+  { code: "SOH", name_ar: "سوهاج" },
+  { code: "QEN", name_ar: "قنا" },
+  { code: "LX", name_ar: "الأقصر" },
+  { code: "ASN", name_ar: "أسوان" },
+  { code: "RSEA", name_ar: "البحر الأحمر" },
+  { code: "WV", name_ar: "الوادي الجديد" },
+  { code: "MT", name_ar: "مطروح" },
+  { code: "NS", name_ar: "شمال سيناء" },
+  { code: "SS", name_ar: "جنوب سيناء" }
+];
+
+export const categories = [];
