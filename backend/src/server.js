@@ -124,6 +124,9 @@ app.get("/api/contacts/popular", (req, res) => {
         c.source_url,
         c.last_verified,
         c.is_non_phone,
+        c.is_featured,
+        c.is_verified,
+        c.priority_rank,
         cat.slug AS category_slug,
         cat.name_ar AS category_name_ar,
         g.code AS governorate_code,
@@ -206,6 +209,9 @@ app.get("/api/contacts", (req, res) => {
       c.source_url,
       c.last_verified,
       c.is_non_phone,
+      c.is_featured,
+      c.is_verified,
+      c.priority_rank,
       cat.slug AS category_slug,
       cat.name_ar AS category_name_ar,
       g.code AS governorate_code,
@@ -215,7 +221,7 @@ app.get("/api/contacts", (req, res) => {
     JOIN categories cat ON c.category_id = cat.id
     LEFT JOIN governorates g ON c.governorate_id = g.id
     ${whereSql}
-    ORDER BY is_national DESC, c.name_ar ASC
+    ORDER BY c.is_featured DESC, c.priority_rank DESC, c.is_verified DESC, is_national DESC, c.name_ar ASC
     LIMIT @limit OFFSET @offset
   `;
 
@@ -285,8 +291,8 @@ const selectPendingById = db.prepare("SELECT id, name_ar, phone, category_slug, 
 const markPendingHandled = db.prepare("UPDATE pending_requests SET handled = 1 WHERE id = ?");
 const deletePendingStmt = db.prepare("DELETE FROM pending_requests WHERE id = ?");
 const insertContactStmt = db.prepare(
-  `INSERT INTO contacts (name_ar, phone, address, notes, is_non_phone, category_id, governorate_id)
-   VALUES (@name_ar, @phone, @address, @notes, @is_non_phone, @category_id, @governorate_id)`
+  `INSERT INTO contacts (name_ar, phone, address, notes, is_non_phone, is_featured, is_verified, priority_rank, category_id, governorate_id)
+   VALUES (@name_ar, @phone, @address, @notes, @is_non_phone, @is_featured, @is_verified, @priority_rank, @category_id, @governorate_id)`
 );
 
 app.get("/api/admin/categories", adminAuth, (_req, res) => {
@@ -320,6 +326,9 @@ app.get("/api/admin/contacts", adminAuth, (req, res) => {
         c.address,
         c.notes,
         c.is_non_phone,
+        c.is_featured,
+        c.is_verified,
+        c.priority_rank,
         cat.slug AS category_slug,
         cat.name_ar AS category_name_ar,
         g.code AS governorate_code,
@@ -328,7 +337,7 @@ app.get("/api/admin/contacts", adminAuth, (req, res) => {
       JOIN categories cat ON c.category_id = cat.id
       LEFT JOIN governorates g ON c.governorate_id = g.id
       ${whereSql}
-      ORDER BY c.id DESC
+      ORDER BY c.is_featured DESC, c.priority_rank DESC, c.is_verified DESC, c.id DESC
       LIMIT @limit OFFSET @offset
     `
     )
@@ -337,7 +346,18 @@ app.get("/api/admin/contacts", adminAuth, (req, res) => {
 });
 
 app.post("/api/admin/contacts", adminAuth, (req, res) => {
-  const { name_ar = "", phone = "", category_slug = "", governorate_code = "", is_non_phone = false, address = "", notes = "" } =
+  const {
+    name_ar = "",
+    phone = "",
+    category_slug = "",
+    governorate_code = "",
+    is_non_phone = false,
+    is_featured = false,
+    is_verified = false,
+    priority_rank = 0,
+    address = "",
+    notes = ""
+  } =
     req.body || {};
   const catIdRow = selectCategoryId.get(String(category_slug).trim());
   if (!catIdRow) return res.status(400).json({ error: "Invalid category_slug" });
@@ -348,6 +368,9 @@ app.post("/api/admin/contacts", adminAuth, (req, res) => {
     address: String(address || "").trim(),
     notes: String(notes || "").trim(),
     is_non_phone: !!is_non_phone ? 1 : 0,
+    is_featured: !!is_featured ? 1 : 0,
+    is_verified: !!is_verified ? 1 : 0,
+    priority_rank: Math.max(Number.parseInt(priority_rank, 10) || 0, 0),
     category_id: catIdRow.id,
     governorate_id: govRow ? govRow.id : null
   });
@@ -357,7 +380,18 @@ app.post("/api/admin/contacts", adminAuth, (req, res) => {
 app.put("/api/admin/contacts/:id", adminAuth, (req, res) => {
   const contactId = Number.parseInt(req.params.id, 10);
   if (!Number.isInteger(contactId) || contactId <= 0) return res.status(400).json({ error: "Invalid id" });
-  const { name_ar = "", phone = "", category_slug = "", governorate_code = "", is_non_phone = false, address = "", notes = "" } =
+  const {
+    name_ar = "",
+    phone = "",
+    category_slug = "",
+    governorate_code = "",
+    is_non_phone = false,
+    is_featured = false,
+    is_verified = false,
+    priority_rank = 0,
+    address = "",
+    notes = ""
+  } =
     req.body || {};
   const catIdRow = selectCategoryId.get(String(category_slug).trim());
   if (!catIdRow) return res.status(400).json({ error: "Invalid category_slug" });
@@ -368,7 +402,8 @@ app.put("/api/admin/contacts/:id", adminAuth, (req, res) => {
   db.prepare(
     `UPDATE contacts
      SET name_ar=@name_ar, phone=@phone, address=@address, notes=@notes,
-         is_non_phone=@is_non_phone, category_id=@category_id, governorate_id=@governorate_id
+         is_non_phone=@is_non_phone, is_featured=@is_featured, is_verified=@is_verified,
+         priority_rank=@priority_rank, category_id=@category_id, governorate_id=@governorate_id
      WHERE id=@id`
   ).run({
     id: contactId,
@@ -377,6 +412,9 @@ app.put("/api/admin/contacts/:id", adminAuth, (req, res) => {
     address: String(address || "").trim(),
     notes: String(notes || "").trim(),
     is_non_phone: !!is_non_phone ? 1 : 0,
+    is_featured: !!is_featured ? 1 : 0,
+    is_verified: !!is_verified ? 1 : 0,
+    priority_rank: Math.max(Number.parseInt(priority_rank, 10) || 0, 0),
     category_id: catIdRow.id,
     governorate_id: govRow ? govRow.id : null
   });
@@ -458,6 +496,9 @@ app.post("/api/admin/requests/:id/approve", adminAuth, (req, res) => {
     category_slug = pending.category_slug || "",
     governorate_code = "",
     is_non_phone = false,
+    is_featured = false,
+    is_verified = false,
+    priority_rank = 0,
     address = "",
     notes = pending.message || ""
   } = req.body || {};
@@ -472,6 +513,9 @@ app.post("/api/admin/requests/:id/approve", adminAuth, (req, res) => {
     address: String(address || "").trim(),
     notes: String(notes || "").trim(),
     is_non_phone: !!is_non_phone ? 1 : 0,
+    is_featured: !!is_featured ? 1 : 0,
+    is_verified: !!is_verified ? 1 : 0,
+    priority_rank: Math.max(Number.parseInt(priority_rank, 10) || 0, 0),
     category_id: catIdRow.id,
     governorate_id: govRow ? govRow.id : null
   });

@@ -92,7 +92,7 @@ const GROUP_BY_KEY = GROUPS.reduce((acc, group) => {
 
 const ICONS = {
   gov: { set: "ion", name: "alert-circle", color: "#d0004f" },
-  health: { set: "ion", name: "medkit", color: "#e91e63" },
+  health: { set: "ion", name: "medical", color: "#e91e63" },
   food: { set: "ion", name: "fast-food", color: "#ff9800" },
   finance: { set: "ion", name: "cash", color: "#0ea5e9" },
   mobility: { set: "ion", name: "car-sport", color: "#22c55e" },
@@ -142,6 +142,20 @@ function resolveGroupForCategory(contact) {
   return detectGroup(contact?.category_name_ar);
 }
 
+function sortContacts(items) {
+  return [...items].sort((a, b) => {
+    const featuredDiff = Number(b?.is_featured || 0) - Number(a?.is_featured || 0);
+    if (featuredDiff) return featuredDiff;
+    const priorityDiff = Number(b?.priority_rank || 0) - Number(a?.priority_rank || 0);
+    if (priorityDiff) return priorityDiff;
+    const verifiedDiff = Number(b?.is_verified || 0) - Number(a?.is_verified || 0);
+    if (verifiedDiff) return verifiedDiff;
+    const nationalDiff = Number(b?.is_national || 0) - Number(a?.is_national || 0);
+    if (nationalDiff) return nationalDiff;
+    return String(a?.name_ar || "").localeCompare(String(b?.name_ar || ""), "ar");
+  });
+}
+
 export default function App() {
   const scrollRef = useRef(null);
   const phoneAnim = useRef(new Animated.Value(0)).current;
@@ -157,6 +171,7 @@ export default function App() {
   const [addModalVisible, setAddModalVisible] = useState(false);
   const [contactModalVisible, setContactModalVisible] = useState(false);
   const [aboutModalVisible, setAboutModalVisible] = useState(false);
+  const [businessModalVisible, setBusinessModalVisible] = useState(false);
   const [newHotlineName, setNewHotlineName] = useState("");
   const [newHotlinePhone, setNewHotlinePhone] = useState("");
   const [contactMessage, setContactMessage] = useState("");
@@ -263,7 +278,7 @@ export default function App() {
           const rawCache = await FileSystem.readAsStringAsync(CONTACTS_CACHE_PATH);
           const parsedCache = JSON.parse(rawCache);
           if (Array.isArray(parsedCache) && parsedCache.length > 0) {
-            setAllContacts(parsedCache);
+            setAllContacts(sortContacts(parsedCache));
             setError("");
             seededFromLocal = true;
           }
@@ -273,7 +288,7 @@ export default function App() {
       }
 
       if (!seededFromLocal) {
-        setAllContacts(FALLBACK_CONTACTS);
+        setAllContacts(sortContacts(FALLBACK_CONTACTS));
         setError("يتم عرض نسخة محلية من البيانات حالياً.");
       }
 
@@ -287,9 +302,9 @@ export default function App() {
         });
         const data = await res.json();
         if (Array.isArray(data) && data.length > 0) {
-          setAllContacts(data);
+          setAllContacts(sortContacts(data));
           setError("");
-          await FileSystem.writeAsStringAsync(CONTACTS_CACHE_PATH, JSON.stringify(data));
+          await FileSystem.writeAsStringAsync(CONTACTS_CACHE_PATH, JSON.stringify(sortContacts(data)));
         } else {
           setError("يتم عرض آخر نسخة محفوظة من البيانات حالياً.");
         }
@@ -351,7 +366,7 @@ export default function App() {
       (item, index, arr) => arr.findIndex((entry) => entry.id === item.id) === index
     );
 
-    return merged.slice(0, 5);
+    return sortContacts(merged).slice(0, 5);
   }, [query, allContacts]);
 
   const typoSuggestion = useMemo(() => {
@@ -528,6 +543,22 @@ export default function App() {
     setShowIntro(false);
   };
 
+  const renderContactBadges = (item, compact = false) => {
+    const badges = [];
+    if (item?.is_featured) badges.push({ key: "featured", label: "Featured", style: styles.featuredBadge, text: styles.featuredBadgeText });
+    if (item?.is_verified) badges.push({ key: "verified", label: "Verified", style: styles.verifiedBadge, text: styles.verifiedBadgeText });
+    if (!badges.length) return null;
+    return (
+      <View style={[styles.contactBadgeRow, compact && styles.contactBadgeRowCompact]}>
+        {badges.map((badge) => (
+          <View key={badge.key} style={[styles.contactBadge, badge.style]}>
+            <Text style={[styles.contactBadgeText, badge.text]}>{badge.label}</Text>
+          </View>
+        ))}
+      </View>
+    );
+  };
+
   const dismissSuggestHint = async () => {
     setShowSuggestHint(false);
     setSuggestHintReady(false);
@@ -650,7 +681,7 @@ export default function App() {
       handleHomePress();
       return;
     }
-    setAboutModalVisible(true);
+    setBusinessModalVisible(true);
   };
 
   const sendFeedback = async (payload) => {
@@ -718,6 +749,14 @@ export default function App() {
     }
   };
 
+  const openBusinessInquiry = (plan = "Premium") => {
+    setBusinessModalVisible(false);
+    setContactMessage(
+      `Hello, I’m interested in the ${plan} business plan for my listing.\n\nمرحباً، أنا مهتم بباقة ${plan} لنشاطي داخل التطبيق وأريد معرفة التفاصيل.`
+    );
+    setContactModalVisible(true);
+  };
+
   if (!introLoaded) {
     return (
       <SafeAreaView style={[styles.container, { justifyContent: "center", alignItems: "center" }]}>
@@ -774,7 +813,11 @@ export default function App() {
             <Pressable style={styles.heroBackBtn} onPress={closeDetailView}>
               <Text style={styles.heroBackText}>Back</Text>
             </Pressable>
-          ) : null}
+          ) : (
+            <Pressable style={styles.heroInfoBtn} onPress={() => setAboutModalVisible(true)}>
+              <Ionicons name="information-circle" size={22} color="#ffffff" />
+            </Pressable>
+          )}
         </View>
 
         <View style={styles.searchShell}>
@@ -824,6 +867,7 @@ export default function App() {
               <TouchableOpacity key={p.id} style={styles.suggestItem} onPress={() => handlePredictionPress(p)}>
                 <View style={styles.suggestMeta}>
                   <Text style={styles.suggestText}>{p.name_ar}</Text>
+                  {renderContactBadges(p, true)}
                   <Text style={styles.suggestCategoryPreview}>{p.category_name_ar}</Text>
                   <View style={styles.suggestBottomRow}>
                     <TouchableOpacity style={styles.suggestPhoneBadge} onPress={() => callNumber(p)} disabled={!!p.is_non_phone}>
@@ -847,6 +891,7 @@ export default function App() {
         {quickResult ? (
           <View style={styles.quickResultCard}>
             <Text style={styles.quickResultTitle}>{quickResult.name_ar}</Text>
+            {renderContactBadges(quickResult)}
             <Text style={styles.quickResultSub}>{quickResult.category_name_ar}</Text>
             {quickResult.is_non_phone ? (
               <Text style={styles.nonPhone}>غير هاتفي / عبر التطبيق</Text>
@@ -929,11 +974,17 @@ export default function App() {
                                 onLayout={(e) => scrollToContactCard(item.id, e.nativeEvent.layout.y)}
                                 style={[
                                   styles.hotlineCard,
-                                  { backgroundColor: palette.card, shadowColor: palette.accent }
+                                  {
+                                    backgroundColor: item.is_featured ? palette.cardActive || palette.card : palette.card,
+                                    shadowColor: palette.accent,
+                                    borderColor: item.is_featured ? `${palette.accent}55` : "rgba(255,255,255,0.55)"
+                                  },
+                                  item.is_featured && styles.hotlineCardFeatured
                                 ]}
                               >
                                 <View style={styles.hotlineBody}>
                                   <Text style={styles.hotlineName}>{item.name_ar}</Text>
+                                  {renderContactBadges(item)}
                                   <Text style={styles.hotlineSub}>{item.category_name_ar}</Text>
                                   {item.is_non_phone ? (
                                     <Text style={styles.nonPhone}>غير هاتفي / عبر التطبيق</Text>
@@ -966,14 +1017,17 @@ export default function App() {
 
       <LinearGradient colors={["#6c47f5", "#b30f7f"]} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={styles.bottomBar}>
         <TouchableOpacity style={styles.bottomItem} onPress={onPrimaryNavPress}>
-          <View style={styles.bottomVisualSlot}>
+          <View style={[styles.bottomVisualSlot, styles.bottomSideVisualSlot]}>
             {detailGroup || activeCategorySlug || quickResult ? (
               <Text style={styles.bottomIcon}>🏠</Text>
             ) : (
-              <Ionicons name="information-circle" size={36} color="#ffffff" />
+              <Ionicons name="rocket-outline" size={30} color="#ffffff" />
             )}
           </View>
-          <Text style={styles.bottomText}>{detailGroup || activeCategorySlug || quickResult ? "Home" : "About Us"}</Text>
+          <Text style={[styles.bottomText, styles.bottomSideText]}>{detailGroup || activeCategorySlug || quickResult ? "Home" : "Business Plans"}</Text>
+          {!detailGroup && !activeCategorySlug && !quickResult ? (
+            <Text style={styles.bottomSubText}>Advertise</Text>
+          ) : null}
         </TouchableOpacity>
         <TouchableOpacity style={[styles.bottomItem, styles.bottomCenterItem]} onPress={() => setAddModalVisible(true)}>
           <View style={styles.bottomVisualSlot}>
@@ -982,13 +1036,13 @@ export default function App() {
               <Ionicons name="sparkles" size={22} color="#9a0f6f" />
             </View>
           </View>
-          <Text style={styles.bottomCenterText}>Suggest</Text>
+          <Text style={styles.bottomCenterText}>Add Number</Text>
         </TouchableOpacity>
         <TouchableOpacity style={styles.bottomItem} onPress={() => setContactModalVisible(true)}>
-          <View style={styles.bottomVisualSlot}>
-            <Text style={styles.bottomIcon}>💬</Text>
+          <View style={[styles.bottomVisualSlot, styles.bottomSideVisualSlot]}>
+            <Ionicons name="chatbubble-ellipses-outline" size={30} color="#ffffff" />
           </View>
-          <Text style={styles.bottomText}>Contact us</Text>
+          <Text style={[styles.bottomText, styles.bottomSideText]}>Contact us</Text>
         </TouchableOpacity>
       </LinearGradient>
 
@@ -1099,6 +1153,105 @@ export default function App() {
         </KeyboardAvoidingView>
       </Modal>
 
+      <Modal transparent visible={businessModalVisible} animationType="fade" onRequestClose={() => setBusinessModalVisible(false)}>
+        <View style={styles.modalBackdrop}>
+          <View style={[styles.modalCard, styles.aboutCard]}>
+            <View style={styles.aboutHero}>
+              <View style={styles.aboutHeroBadge}>
+                  <Ionicons name="megaphone" size={24} color="#ffffff" />
+              </View>
+                <Text style={styles.modalTitle}>Business Plans</Text>
+                <Text style={styles.modalSubTitle}>Plans for businesses that want stronger visibility inside the app.</Text>
+            </View>
+            <ScrollView showsVerticalScrollIndicator={false}>
+              <View style={[styles.aboutSection, styles.businessSection]}>
+                <View style={styles.businessHeaderRow}>
+                  <View style={styles.businessBadge}>
+                    <Ionicons name="briefcase" size={18} color="#9a0f6f" />
+                  </View>
+                  <Text style={styles.aboutHeading}>For Business</Text>
+                </View>
+                <Text style={[styles.aboutBody, styles.aboutBodyAr]}>
+                  إذا كنت تمثل مطعماً أو مستشفى أو شركة خدمة، يمكنك طلب ظهور مميز داخل التطبيق لزيادة الوصول والثقة.
+                </Text>
+                <Text style={styles.aboutBody}>
+                  Businesses can request featured placement, verified status, and higher visibility inside search and category results.
+                </Text>
+
+                <View style={styles.businessFeatureList}>
+                  <View style={styles.businessFeatureItem}>
+                    <Ionicons name="star" size={15} color="#d97706" />
+                    <Text style={styles.businessFeatureText}>Featured placement</Text>
+                  </View>
+                  <View style={styles.businessFeatureItem}>
+                    <Ionicons name="shield-checkmark" size={15} color="#15803d" />
+                    <Text style={styles.businessFeatureText}>Verified badge</Text>
+                  </View>
+                  <View style={styles.businessFeatureItem}>
+                    <Ionicons name="trending-up" size={15} color="#7c3aed" />
+                    <Text style={styles.businessFeatureText}>Priority ranking</Text>
+                  </View>
+                </View>
+
+                <View style={styles.planCardList}>
+                  <View style={styles.planCard}>
+                    <View style={styles.planCardTop}>
+                      <View style={[styles.planIconBadge, styles.planIconVerified]}>
+                        <Ionicons name="shield-checkmark" size={18} color="#15803d" />
+                      </View>
+                      <Text style={styles.planTitle}>Verified</Text>
+                    </View>
+                    <Text style={styles.planPrice}>250 EGP / month</Text>
+                    <Text style={styles.planBody}>Trusted badge for your business and stronger customer confidence.</Text>
+                    <TouchableOpacity style={styles.planBtn} onPress={() => openBusinessInquiry("Verified")}>
+                      <Text style={styles.planBtnText}>Request this plan</Text>
+                    </TouchableOpacity>
+                  </View>
+
+                  <View style={styles.planCard}>
+                    <View style={styles.planCardTop}>
+                      <View style={[styles.planIconBadge, styles.planIconFeatured]}>
+                        <Ionicons name="star" size={18} color="#d97706" />
+                      </View>
+                      <Text style={styles.planTitle}>Featured</Text>
+                    </View>
+                    <Text style={styles.planPrice}>400 EGP / month</Text>
+                    <Text style={styles.planBody}>Higher visibility inside categories and better placement in search results.</Text>
+                    <TouchableOpacity style={styles.planBtn} onPress={() => openBusinessInquiry("Featured")}>
+                      <Text style={styles.planBtnText}>Request this plan</Text>
+                    </TouchableOpacity>
+                  </View>
+
+                  <View style={[styles.planCard, styles.planCardPremium]}>
+                    <View style={styles.planCardTop}>
+                      <View style={[styles.planIconBadge, styles.planIconPremium]}>
+                        <Ionicons name="sparkles" size={18} color="#7c3aed" />
+                      </View>
+                      <Text style={styles.planTitle}>Premium</Text>
+                    </View>
+                    <Text style={styles.planPrice}>800 EGP / month</Text>
+                    <Text style={styles.planBody}>Featured + Verified + top priority for the strongest exposure in the app.</Text>
+                    <TouchableOpacity style={[styles.planBtn, styles.planBtnPremium]} onPress={() => openBusinessInquiry("Premium")}>
+                      <Text style={styles.planBtnText}>Request this plan</Text>
+                    </TouchableOpacity>
+                  </View>
+                </View>
+
+                <TouchableOpacity style={styles.businessCta} onPress={openBusinessInquiry}>
+                  <Text style={styles.businessCtaText}>Advertise with us</Text>
+                </TouchableOpacity>
+              </View>
+
+            </ScrollView>
+            <View style={styles.modalActions}>
+              <TouchableOpacity style={styles.modalBtnPrimary} onPress={() => setBusinessModalVisible(false)}>
+                <Text style={styles.modalBtnPrimaryText}>Close</Text>
+              </TouchableOpacity>
+            </View>
+          </View>
+        </View>
+      </Modal>
+
       <Modal transparent visible={aboutModalVisible} animationType="fade" onRequestClose={() => setAboutModalVisible(false)}>
         <View style={styles.modalBackdrop}>
           <View style={[styles.modalCard, styles.aboutCard]}>
@@ -1186,12 +1339,12 @@ export default function App() {
             <View style={styles.hintBadge}>
               <Ionicons name="sparkles" size={20} color="#b30f7f" />
             </View>
-            <Text style={styles.hintTitle}>إضافة رقم جديد</Text>
+            <Text style={styles.hintTitle}>الخدمات السريعة</Text>
             <Text style={[styles.hintBody, styles.aboutBodyAr]}>
-              من هنا تقدر تضيف رقم جديد للتطبيق بسهولة.
+              البار السفلي يساعدك على: الوصول إلى Business Plans لمعرفة الباقات، استخدام Add Number لإضافة رقم جديد، و Contact us لإرسال اقتراح أو ملاحظة.
             </Text>
             <Text style={styles.hintBody}>
-              You can suggest a new hotline from here.
+              Use the bottom bar for quick actions: Business Plans, Add Number, and Contact us.
             </Text>
             <TouchableOpacity style={styles.hintBtn} onPress={dismissSuggestHint}>
               <Text style={styles.hintBtnText}>Got it</Text>
@@ -1413,6 +1566,41 @@ const styles = StyleSheet.create({
     color: "#1f2937",
     fontWeight: "800",
     fontSize: 16
+  },
+  contactBadgeRow: {
+    flexDirection: "row",
+    flexWrap: "wrap",
+    gap: 6,
+    marginTop: 6,
+    marginBottom: 2
+  },
+  contactBadgeRowCompact: {
+    marginTop: 5,
+    marginBottom: 0
+  },
+  contactBadge: {
+    paddingHorizontal: 9,
+    paddingVertical: 4,
+    borderRadius: 999,
+    borderWidth: 1
+  },
+  contactBadgeText: {
+    fontSize: 11,
+    fontWeight: "800"
+  },
+  featuredBadge: {
+    backgroundColor: "rgba(255,215,0,0.16)",
+    borderColor: "rgba(245,158,11,0.34)"
+  },
+  featuredBadgeText: {
+    color: "#b45309"
+  },
+  verifiedBadge: {
+    backgroundColor: "rgba(34,197,94,0.12)",
+    borderColor: "rgba(34,197,94,0.3)"
+  },
+  verifiedBadgeText: {
+    color: "#15803d"
   },
   suggestMeta: {
     flex: 1
@@ -1744,6 +1932,21 @@ const styles = StyleSheet.create({
     color: "#1f2937",
     fontWeight: "800"
   },
+  heroInfoBtn: {
+    width: 38,
+    height: 38,
+    borderRadius: 19,
+    backgroundColor: "rgba(255,255,255,0.16)",
+    borderWidth: 1,
+    borderColor: "rgba(255,255,255,0.28)",
+    alignItems: "center",
+    justifyContent: "center",
+    shadowColor: "#56093f",
+    shadowOpacity: 0.18,
+    shadowRadius: 10,
+    shadowOffset: { width: 0, height: 6 },
+    elevation: 4
+  },
   loader: {
     marginVertical: 10
   },
@@ -1756,11 +1959,16 @@ const styles = StyleSheet.create({
     padding: 16,
     flexDirection: "row",
     marginBottom: 12,
-    borderWidth: 0,
+    borderWidth: 1,
     shadowOpacity: 0.18,
     shadowRadius: 14,
     shadowOffset: { width: 0, height: 10 },
     elevation: 6
+  },
+  hotlineCardFeatured: {
+    shadowOpacity: 0.24,
+    shadowRadius: 18,
+    elevation: 8
   },
   hotlineBody: {
     flex: 1
@@ -1810,12 +2018,13 @@ const styles = StyleSheet.create({
     position: "absolute",
     left: 14,
     right: 14,
-    bottom: 14,
-    height: 86,
+    bottom: 0,
+    height: 104,
     borderRadius: 26,
     flexDirection: "row",
     justifyContent: "space-around",
     alignItems: "center",
+    paddingBottom: 10,
     shadowColor: "#000",
     shadowOpacity: 0.2,
     shadowRadius: 14,
@@ -1839,6 +2048,9 @@ const styles = StyleSheet.create({
     justifyContent: "center",
     marginBottom: 2,
     position: "relative"
+  },
+  bottomSideVisualSlot: {
+    marginBottom: 8
   },
   bottomCenterBadge: {
     width: 64,
@@ -1869,7 +2081,7 @@ const styles = StyleSheet.create({
     color: "#fff",
     fontSize: 14,
     fontWeight: "800",
-    marginTop: 0
+    marginTop: 5
   },
   bottomIcon: {
     fontSize: 36,
@@ -1880,6 +2092,15 @@ const styles = StyleSheet.create({
     fontSize: 16,
     fontWeight: "700",
     marginTop: -8
+  },
+  bottomSideText: {
+    marginTop: -14
+  },
+  bottomSubText: {
+    color: "#ffd0f0",
+    fontSize: 10,
+    fontWeight: "700",
+    marginTop: 1
   },
   modalBackdrop: {
     flex: 1,
@@ -1974,6 +2195,133 @@ const styles = StyleSheet.create({
   aboutBodyAr: {
     textAlign: "right",
     writingDirection: "rtl"
+  },
+  businessSection: {
+    backgroundColor: "rgba(255,245,251,0.96)",
+    borderColor: "rgba(240,190,225,0.95)"
+  },
+  businessHeaderRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 10,
+    marginBottom: 6
+  },
+  businessBadge: {
+    width: 36,
+    height: 36,
+    borderRadius: 18,
+    backgroundColor: "rgba(255,255,255,0.9)",
+    borderWidth: 1,
+    borderColor: "rgba(233,170,214,0.75)",
+    alignItems: "center",
+    justifyContent: "center"
+  },
+  businessFeatureList: {
+    gap: 8,
+    marginTop: 2,
+    marginBottom: 14
+  },
+  planCardList: {
+    gap: 10,
+    marginBottom: 14
+  },
+  planCard: {
+    backgroundColor: "rgba(255,255,255,0.88)",
+    borderRadius: 18,
+    padding: 14,
+    borderWidth: 1,
+    borderColor: "rgba(236,205,227,0.85)"
+  },
+  planCardPremium: {
+    backgroundColor: "rgba(248,242,255,0.95)",
+    borderColor: "rgba(206,186,255,0.9)"
+  },
+  planCardTop: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 10,
+    marginBottom: 8
+  },
+  planIconBadge: {
+    width: 34,
+    height: 34,
+    borderRadius: 17,
+    alignItems: "center",
+    justifyContent: "center",
+    borderWidth: 1
+  },
+  planIconVerified: {
+    backgroundColor: "rgba(220,252,231,0.9)",
+    borderColor: "rgba(134,239,172,0.8)"
+  },
+  planIconFeatured: {
+    backgroundColor: "rgba(254,243,199,0.92)",
+    borderColor: "rgba(252,211,77,0.85)"
+  },
+  planIconPremium: {
+    backgroundColor: "rgba(243,232,255,0.95)",
+    borderColor: "rgba(196,181,253,0.9)"
+  },
+  planTitle: {
+    color: "#111827",
+    fontSize: 17,
+    fontWeight: "800"
+  },
+  planPrice: {
+    color: "#9a0f6f",
+    fontSize: 14,
+    fontWeight: "800",
+    marginBottom: 6
+  },
+  planBody: {
+    color: "#4b5563",
+    fontSize: 13,
+    lineHeight: 21,
+    marginBottom: 10
+  },
+  planBtn: {
+    alignSelf: "flex-start",
+    backgroundColor: "#ffffff",
+    borderWidth: 1,
+    borderColor: "rgba(196,181,253,0.9)",
+    borderRadius: 999,
+    paddingHorizontal: 14,
+    paddingVertical: 9
+  },
+  planBtnPremium: {
+    backgroundColor: "rgba(255,255,255,0.9)"
+  },
+  planBtnText: {
+    color: "#7c3aed",
+    fontSize: 13,
+    fontWeight: "800"
+  },
+  businessFeatureItem: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 8
+  },
+  businessFeatureText: {
+    color: "#374151",
+    fontSize: 14,
+    fontWeight: "700"
+  },
+  businessCta: {
+    backgroundColor: "#b30f7f",
+    borderRadius: 16,
+    paddingVertical: 14,
+    alignItems: "center",
+    justifyContent: "center",
+    shadowColor: "#b30f7f",
+    shadowOpacity: 0.24,
+    shadowRadius: 12,
+    shadowOffset: { width: 0, height: 8 },
+    elevation: 6
+  },
+  businessCtaText: {
+    color: "#ffffff",
+    fontSize: 15,
+    fontWeight: "800"
   },
   sheetCard: {
     paddingHorizontal: 14,

@@ -22,6 +22,9 @@
   const editGov = document.getElementById("edit-gov");
   const editAddress = document.getElementById("edit-address");
   const editNotes = document.getElementById("edit-notes");
+  const editPriority = document.getElementById("edit-priority");
+  const editFeatured = document.getElementById("edit-featured");
+  const editVerified = document.getElementById("edit-verified");
   const editNonPhone = document.getElementById("edit-nonphone");
   const pendingModal = document.getElementById("pending-modal");
   const pendingForm = document.getElementById("pending-form");
@@ -32,6 +35,9 @@
   const pendingGov = document.getElementById("pending-gov");
   const pendingAddress = document.getElementById("pending-address");
   const pendingNotes = document.getElementById("pending-notes");
+  const pendingPriority = document.getElementById("pending-priority");
+  const pendingFeatured = document.getElementById("pending-featured");
+  const pendingVerified = document.getElementById("pending-verified");
   const pendingNonPhone = document.getElementById("pending-nonphone");
 
   let apiBase = window.location.origin;
@@ -87,6 +93,9 @@
           <td>${row.phone || "-"}</td>
           <td>${row.category_name_ar}</td>
           <td>${row.governorate_code || "-"}</td>
+          <td>${row.is_featured ? "⭐" : "-"}</td>
+          <td>${row.is_verified ? "✔️" : "-"}</td>
+          <td>${row.priority_rank || 0}</td>
           <td>${row.is_non_phone ? "✅" : ""}</td>
           <td>
             <button class="small" data-edit='${JSON.stringify(row)}'>Edit</button>
@@ -150,6 +159,9 @@
     const fd = new FormData(form);
     const payload = Object.fromEntries(fd.entries());
     payload.is_non_phone = fd.get("is_non_phone") === "on";
+    payload.is_featured = fd.get("is_featured") === "on";
+    payload.is_verified = fd.get("is_verified") === "on";
+    payload.priority_rank = Number.parseInt(fd.get("priority_rank"), 10) || 0;
     const res = await authFetch("/api/admin/contacts", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
@@ -243,6 +255,9 @@
     editGov.value = row.governorate_code || "";
     editAddress.value = row.address || "";
     editNotes.value = row.notes || "";
+    editPriority.value = row.priority_rank || 0;
+    editFeatured.checked = !!row.is_featured;
+    editVerified.checked = !!row.is_verified;
     editNonPhone.checked = !!row.is_non_phone;
     if (row.category_slug && categoriesCache.length) {
       editCat.value = row.category_slug;
@@ -262,6 +277,9 @@
     pendingGov.value = "";
     pendingAddress.value = "";
     pendingNotes.value = row.message || "";
+    pendingPriority.value = row.priority_rank || 0;
+    pendingFeatured.checked = !!row.is_featured;
+    pendingVerified.checked = !!row.is_verified;
     pendingNonPhone.checked = false;
     pendingModal.hidden = false;
   }
@@ -305,6 +323,9 @@
     const id = fd.get("id");
     const payload = Object.fromEntries(fd.entries());
     payload.is_non_phone = fd.get("is_non_phone") === "on";
+    payload.is_featured = fd.get("is_featured") === "on";
+    payload.is_verified = fd.get("is_verified") === "on";
+    payload.priority_rank = Number.parseInt(fd.get("priority_rank"), 10) || 0;
     delete payload.id;
     try {
       await authFetch(`/api/admin/contacts/${id}`, {
@@ -326,6 +347,9 @@
     const fd = new FormData(pendingForm);
     const payload = Object.fromEntries(fd.entries());
     payload.is_non_phone = fd.get("is_non_phone") === "on";
+    payload.is_featured = fd.get("is_featured") === "on";
+    payload.is_verified = fd.get("is_verified") === "on";
+    payload.priority_rank = Number.parseInt(fd.get("priority_rank"), 10) || 0;
     try {
       await authFetch(`/api/admin/requests/${payload.id}`, {
         method: "PUT",

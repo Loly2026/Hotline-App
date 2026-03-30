@@ -73,4 +73,19 @@ export function initSchema() {
     db.exec("ALTER TABLE contacts ADD COLUMN is_non_phone INTEGER NOT NULL DEFAULT 0;");
     db.exec("CREATE INDEX IF NOT EXISTS idx_contacts_non_phone ON contacts (is_non_phone);");
   }
+  const hasIsFeatured = contactColumns.some((c) => c.name === "is_featured");
+  if (!hasIsFeatured) {
+    db.exec("ALTER TABLE contacts ADD COLUMN is_featured INTEGER NOT NULL DEFAULT 0;");
+    db.exec("CREATE INDEX IF NOT EXISTS idx_contacts_featured ON contacts (is_featured);");
+  }
+  const hasIsVerified = contactColumns.some((c) => c.name === "is_verified");
+  if (!hasIsVerified) {
+    db.exec("ALTER TABLE contacts ADD COLUMN is_verified INTEGER NOT NULL DEFAULT 0;");
+    db.exec("CREATE INDEX IF NOT EXISTS idx_contacts_verified ON contacts (is_verified);");
+  }
+  const hasPriorityRank = contactColumns.some((c) => c.name === "priority_rank");
+  if (!hasPriorityRank) {
+    db.exec("ALTER TABLE contacts ADD COLUMN priority_rank INTEGER NOT NULL DEFAULT 0;");
+    db.exec("CREATE INDEX IF NOT EXISTS idx_contacts_priority_rank ON contacts (priority_rank);");
+  }
 }

@@ -42,7 +42,7 @@
     </div>
     <div class="table-wrapper">
       <table id="contacts-table">
-        <thead><tr><th>ID</th><th>Name (AR)</th><th>Phone</th><th>Category</th><th>Gov</th><th>Non-phone</th><th></th></tr></thead>
+        <thead><tr><th>ID</th><th>Name (AR)</th><th>Phone</th><th>Category</th><th>Gov</th><th>Featured</th><th>Verified</th><th>Priority</th><th>Non-phone</th><th></th></tr></thead>
         <tbody></tbody>
       </table>
     </div>
@@ -60,6 +60,9 @@
         <label>Governorate code (optional)<input name="governorate_code" placeholder="eg CAI" /></label>
         <label>Address<textarea name="address"></textarea></label>
         <label>Notes<textarea name="notes"></textarea></label>
+        <label>Priority rank<input type="number" min="0" name="priority_rank" value="0" /></label>
+        <label class="checkbox"><input type="checkbox" name="is_featured" /> Featured</label>
+        <label class="checkbox"><input type="checkbox" name="is_verified" /> Verified</label>
         <label class="checkbox"><input type="checkbox" name="is_non_phone" /> Non-phone</label>
       </div>
       <button type="submit">Add</button>
@@ -96,6 +99,9 @@
           <label>Governorate code (optional)<input name="governorate_code" id="edit-gov" placeholder="eg CAI" /></label>
           <label>Address<textarea name="address" id="edit-address"></textarea></label>
           <label>Notes<textarea name="notes" id="edit-notes"></textarea></label>
+          <label>Priority rank<input type="number" min="0" name="priority_rank" id="edit-priority" value="0" /></label>
+          <label class="checkbox"><input type="checkbox" name="is_featured" id="edit-featured" /> Featured</label>
+          <label class="checkbox"><input type="checkbox" name="is_verified" id="edit-verified" /> Verified</label>
           <label class="checkbox"><input type="checkbox" name="is_non_phone" id="edit-nonphone" /> Non-phone</label>
         </div>
         <div class="actions right">
@@ -125,6 +131,9 @@
           <label>Governorate code (optional)<input name="governorate_code" id="pending-gov" placeholder="eg CAI" /></label>
           <label>Address<textarea name="address" id="pending-address"></textarea></label>
           <label>Notes / Message<textarea name="notes" id="pending-notes"></textarea></label>
+          <label>Priority rank<input type="number" min="0" name="priority_rank" id="pending-priority" value="0" /></label>
+          <label class="checkbox"><input type="checkbox" name="is_featured" id="pending-featured" /> Featured</label>
+          <label class="checkbox"><input type="checkbox" name="is_verified" id="pending-verified" /> Verified</label>
           <label class="checkbox"><input type="checkbox" name="is_non_phone" id="pending-nonphone" /> Non-phone</label>
         </div>
         <div class="actions right">
