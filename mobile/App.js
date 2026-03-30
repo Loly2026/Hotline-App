@@ -146,12 +146,14 @@ export default function App() {
   const scrollRef = useRef(null);
   const phoneAnim = useRef(new Animated.Value(0)).current;
   const swipeBackX = useRef(new Animated.Value(0)).current;
+  const searchResultsAnim = useRef(new Animated.Value(0)).current;
   const [allContacts, setAllContacts] = useState([]);
   const [query, setQuery] = useState("");
   const [activeGroup, setActiveGroup] = useState("all");
   const [activeCategorySlug, setActiveCategorySlug] = useState("");
   const [quickResult, setQuickResult] = useState(null);
   const [resultsAnchorY, setResultsAnchorY] = useState(0);
+  const [pendingScrollContactId, setPendingScrollContactId] = useState(null);
   const [addModalVisible, setAddModalVisible] = useState(false);
   const [contactModalVisible, setContactModalVisible] = useState(false);
   const [aboutModalVisible, setAboutModalVisible] = useState(false);
@@ -178,6 +180,7 @@ export default function App() {
     setActiveCategorySlug("");
     setDetailCategory("");
     setQuickResult(null);
+    setPendingScrollContactId(null);
     lastDetail.current = { group: "", category: "" };
   };
 
@@ -339,9 +342,17 @@ export default function App() {
 
   const predictions = useMemo(() => {
     const q = normalizeText(query);
-    if (!q || q.length < 2) return [];
-    return nameTerms.filter((t) => normalizeText(t).includes(q)).slice(0, 5);
-  }, [query, nameTerms]);
+    const raw = query.trim();
+    if ((!q || q.length < 2) && raw.length < 2) return [];
+
+    const byName = allContacts.filter((c) => q && normalizeText(c.name_ar).includes(q));
+    const byPhone = allContacts.filter((c) => raw && String(c.phone || "").includes(raw));
+    const merged = [...byName, ...byPhone].filter(
+      (item, index, arr) => arr.findIndex((entry) => entry.id === item.id) === index
+    );
+
+    return merged.slice(0, 5);
+  }, [query, allContacts]);
 
   const typoSuggestion = useMemo(() => {
     const q = normalizeText(query);
@@ -477,6 +488,15 @@ export default function App() {
   }, [addModalVisible, addSheetAnim, addSheetDrag]);
 
   useEffect(() => {
+    Animated.timing(searchResultsAnim, {
+      toValue: predictions.length ? 1 : 0,
+      duration: predictions.length ? 220 : 140,
+      easing: predictions.length ? Easing.out(Easing.cubic) : Easing.in(Easing.cubic),
+      useNativeDriver: true
+    }).start();
+  }, [predictions.length, searchResultsAnim]);
+
+  useEffect(() => {
     const loop = Animated.loop(
       Animated.sequence([
         Animated.timing(phoneAnim, {
@@ -526,6 +546,15 @@ export default function App() {
     }
   };
 
+  const scrollToContactCard = (contactId, localY) => {
+    if (!contactId || contactId !== pendingScrollContactId) return;
+    const absoluteY = Math.max(resultsAnchorY + localY - 28, 0);
+    requestAnimationFrame(() => {
+      scrollRef.current?.scrollTo({ y: absoluteY, animated: true });
+      setTimeout(() => setPendingScrollContactId(null), 220);
+    });
+  };
+
   const renderCategory = ({ item }) => {
     const selected = activeGroup === item.key;
     const iconMeta = ICONS[item.key] || {};
@@ -571,21 +600,28 @@ export default function App() {
   };
 
   const handlePredictionPress = (value) => {
-    setQuery(value);
-    const q = normalizeText(value);
+    const pickedValue = typeof value === "string" ? value : value?.name_ar || "";
+    setQuery(pickedValue);
+    const q = normalizeText(pickedValue);
+    const rawPhone = typeof value === "object" ? String(value.phone || "").trim() : "";
     const match =
+      (typeof value === "object" && value?.id ? allContacts.find((c) => c.id === value.id) : null) ||
       allContacts.find((c) => normalizeText(c.name_ar) === q) ||
+      allContacts.find((c) => rawPhone && String(c.phone || "").trim() === rawPhone) ||
       allContacts.find((c) => normalizeText(c.name_ar).includes(q));
 
     if (match) {
       const matchedSlug = typeof match.category_slug === "string" ? match.category_slug : "";
       const groupKey = resolveGroupForCategory(match);
-      setQuickResult(match);
+      setQuickResult(null);
       setActiveGroup(groupKey);
       setDetailGroup(groupKey);
       setActiveCategorySlug(matchedSlug);
       setDetailCategory(matchedSlug);
-      scrollRef.current?.scrollTo({ y: 0, animated: true });
+      setPendingScrollContactId(match.id || null);
+      setTimeout(() => {
+        scrollToResults();
+      }, 180);
     } else {
       setQuickResult(null);
     }
@@ -605,6 +641,7 @@ export default function App() {
     setDetailGroup("");
     setDetailCategory("");
     setQuickResult(null);
+    setPendingScrollContactId(null);
     scrollRef.current?.scrollTo({ y: 0, animated: true });
   };
 
@@ -692,6 +729,9 @@ export default function App() {
   return (
     <SafeAreaView style={styles.container}>
       <StatusBar style="light" />
+      <View style={styles.appGlowTop} pointerEvents="none" />
+      <View style={styles.appGlowBottom} pointerEvents="none" />
+      <View style={styles.appGlowMid} pointerEvents="none" />
 
       <View style={styles.hero}>
         <View style={styles.heroBlob1} />
@@ -737,7 +777,8 @@ export default function App() {
           ) : null}
         </View>
 
-        <View style={styles.searchBar}>
+        <View style={styles.searchShell}>
+          <View style={styles.searchBar}>
           {query.trim() && isArabicInput ? (
             <TouchableOpacity style={[styles.clearSearchBtn, styles.clearSearchBtnLeft]} onPress={clearSearch}>
               <Text style={styles.clearSearchText}>×</Text>
@@ -758,19 +799,43 @@ export default function App() {
           <View style={styles.searchIconBadge}>
             <Text style={styles.searchIcon}>🔎</Text>
           </View>
+          </View>
+          <Text style={styles.searchCaption}>Search by name or hotline number</Text>
         </View>
       </View>
 
       <ScrollView ref={scrollRef} contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
         {predictions.length ? (
+          <Animated.View
+            style={{
+              transform: [
+                {
+                  translateY: searchResultsAnim.interpolate({
+                    inputRange: [0, 1],
+                    outputRange: [-10, 0]
+                  })
+                }
+              ],
+              opacity: searchResultsAnim
+            }}
+          >
           <View style={styles.suggestBox}>
             {predictions.map((p) => (
-              <TouchableOpacity key={p} style={styles.suggestItem} onPress={() => handlePredictionPress(p)}>
-                <Text style={styles.suggestText}>{p}</Text>
-                <Text style={styles.suggestHint}>Tap to view</Text>
+              <TouchableOpacity key={p.id} style={styles.suggestItem} onPress={() => handlePredictionPress(p)}>
+                <View style={styles.suggestMeta}>
+                  <Text style={styles.suggestText}>{p.name_ar}</Text>
+                  <Text style={styles.suggestCategoryPreview}>{p.category_name_ar}</Text>
+                  <View style={styles.suggestBottomRow}>
+                    <TouchableOpacity style={styles.suggestPhoneBadge} onPress={() => callNumber(p)} disabled={!!p.is_non_phone}>
+                      <Text style={styles.suggestPhonePreview}>{p.phone || "--"}</Text>
+                    </TouchableOpacity>
+                    <Text style={styles.suggestHint}>Tap to view</Text>
+                  </View>
+                </View>
               </TouchableOpacity>
             ))}
           </View>
+          </Animated.View>
         ) : null}
 
         {!predictions.length && typoSuggestion ? (
@@ -861,6 +926,7 @@ export default function App() {
                             return (
                               <View
                                 key={item.id}
+                                onLayout={(e) => scrollToContactCard(item.id, e.nativeEvent.layout.y)}
                                 style={[
                                   styles.hotlineCard,
                                   { backgroundColor: palette.card, shadowColor: palette.accent }
@@ -999,10 +1065,17 @@ export default function App() {
       <Modal transparent visible={contactModalVisible} animationType="fade" onRequestClose={() => setContactModalVisible(false)}>
         <KeyboardAvoidingView style={styles.flexOne} behavior={Platform.OS === "ios" ? "padding" : "height"}>
           <View style={styles.modalBackdrop}>
-            <View style={styles.modalCard}>
+            <View style={[styles.modalCard, styles.suggestCard, styles.contactCard]}>
+              <View style={styles.sheetGlow} />
+              <View style={styles.sheetGlowSecondary} />
               <ScrollView keyboardShouldPersistTaps="handled" showsVerticalScrollIndicator={false}>
-                <Text style={styles.modalTitle}>Contact us</Text>
-                <Text style={styles.modalSubTitle}>Suggestions</Text>
+                <View style={styles.suggestHero}>
+                  <View style={[styles.suggestHeroBadge, styles.contactHeroBadge]}>
+                    <Ionicons name="chatbubble-ellipses" size={22} color="#9a0f6f" />
+                  </View>
+                  <Text style={styles.modalTitle}>Contact us</Text>
+                  <Text style={styles.modalSubTitle}>Share a suggestion or tell us what to improve.</Text>
+                </View>
                 <TextInput
                   style={[styles.modalInput, styles.modalTextArea]}
                   placeholder="Write your suggestion"
@@ -1142,6 +1215,33 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: "#f7e8f3"
   },
+  appGlowTop: {
+    position: "absolute",
+    top: 180,
+    right: -60,
+    width: 220,
+    height: 220,
+    borderRadius: 110,
+    backgroundColor: "rgba(226, 120, 197, 0.07)"
+  },
+  appGlowBottom: {
+    position: "absolute",
+    bottom: 120,
+    left: -70,
+    width: 240,
+    height: 240,
+    borderRadius: 120,
+    backgroundColor: "rgba(145, 110, 255, 0.05)"
+  },
+  appGlowMid: {
+    position: "absolute",
+    top: 520,
+    left: 140,
+    width: 170,
+    height: 170,
+    borderRadius: 85,
+    backgroundColor: "rgba(255,255,255,0.08)"
+  },
   hero: {
     backgroundColor: "#b30f7f",
     borderBottomLeftRadius: 36,
@@ -1217,28 +1317,42 @@ const styles = StyleSheet.create({
     color: "#dfe4ff",
     fontSize: 30
   },
+  searchShell: {
+    marginTop: 2
+  },
   searchBar: {
-    backgroundColor: "rgba(255,255,255,0.8)",
-    borderWidth: 1,
-    borderColor: "rgba(255,255,255,0.9)",
-    borderRadius: 22,
-    height: 70,
+    backgroundColor: "rgba(255,255,255,0.82)",
+    borderWidth: 1.2,
+    borderColor: "rgba(255,255,255,0.92)",
+    borderRadius: 26,
+    minHeight: 74,
     flexDirection: "row",
     alignItems: "center",
-    paddingHorizontal: 18
+    paddingHorizontal: 18,
+    shadowColor: "#80105f",
+    shadowOpacity: 0.16,
+    shadowRadius: 18,
+    shadowOffset: { width: 0, height: 10 },
+    elevation: 8
   },
   searchInput: {
     flex: 1,
     color: "#111827",
-    fontSize: 18
+    fontSize: 19,
+    fontWeight: "600"
   },
   searchIconBadge: {
-    width: 34,
-    height: 34,
-    borderRadius: 17,
-    backgroundColor: "rgba(255,255,255,0.42)",
+    width: 42,
+    height: 42,
+    borderRadius: 21,
+    backgroundColor: "rgba(255,255,255,0.58)",
     alignItems: "center",
-    justifyContent: "center"
+    justifyContent: "center",
+    shadowColor: "#ffffff",
+    shadowOpacity: 0.35,
+    shadowRadius: 10,
+    shadowOffset: { width: 0, height: 4 },
+    elevation: 3
   },
   clearSearchBtn: {
     width: 30,
@@ -1262,7 +1376,14 @@ const styles = StyleSheet.create({
     fontWeight: "700"
   },
   searchIcon: {
-    fontSize: 18
+    fontSize: 22
+  },
+  searchCaption: {
+    color: "rgba(255,255,255,0.85)",
+    fontSize: 12,
+    fontWeight: "600",
+    marginTop: 8,
+    marginLeft: 8
   },
   content: {
     paddingHorizontal: 16,
@@ -1270,35 +1391,67 @@ const styles = StyleSheet.create({
     paddingBottom: 116
   },
   suggestBox: {
-    backgroundColor: "rgba(255,255,255,0.48)",
-    borderRadius: 14,
+    backgroundColor: "rgba(255,255,255,0.82)",
+    borderRadius: 20,
     borderWidth: 1,
-    borderColor: "rgba(255,255,255,0.6)",
+    borderColor: "rgba(255,255,255,0.88)",
     marginBottom: 12,
     overflow: "hidden",
-    shadowColor: "#1a1f36",
-    shadowOpacity: 0.08,
-    shadowRadius: 10,
-    shadowOffset: { width: 0, height: 6 },
-    elevation: 3
+    shadowColor: "#8d5a9d",
+    shadowOpacity: 0.12,
+    shadowRadius: 16,
+    shadowOffset: { width: 0, height: 9 },
+    elevation: 5
   },
   suggestItem: {
     paddingHorizontal: 14,
-    paddingVertical: 10,
+    paddingVertical: 12,
     borderBottomWidth: 1,
-    borderBottomColor: "#eef2f8",
-    flexDirection: "row",
-    justifyContent: "space-between",
-    alignItems: "center"
+    borderBottomColor: "rgba(232,226,240,0.8)"
   },
   suggestText: {
     color: "#1f2937",
-    fontWeight: "600"
+    fontWeight: "800",
+    fontSize: 16
+  },
+  suggestMeta: {
+    flex: 1
+  },
+  suggestCategoryPreview: {
+    color: "#6b7280",
+    fontSize: 12,
+    marginTop: 4
+  },
+  suggestBottomRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    marginTop: 10,
+    gap: 10
+  },
+  suggestPhoneBadge: {
+    backgroundColor: "#f6ebff",
+    borderRadius: 14,
+    paddingHorizontal: 13,
+    paddingVertical: 7,
+    borderWidth: 1,
+    borderColor: "#ead8ff",
+    shadowColor: "#d8b4fe",
+    shadowOpacity: 0.2,
+    shadowRadius: 8,
+    shadowOffset: { width: 0, height: 5 },
+    elevation: 2
+  },
+  suggestPhonePreview: {
+    color: "#6d28d9",
+    fontSize: 16,
+    fontWeight: "800"
   },
   suggestHint: {
-    color: "#5d67e8",
+    color: "#7c3aed",
     fontSize: 12,
-    fontWeight: "700"
+    fontWeight: "700",
+    opacity: 0.85
   },
   typoBox: {
     backgroundColor: "rgba(255,255,255,0.42)",
@@ -1313,26 +1466,27 @@ const styles = StyleSheet.create({
     fontWeight: "700"
   },
   quickResultCard: {
-    backgroundColor: "rgba(255,255,255,0.5)",
-    borderRadius: 14,
+    backgroundColor: "rgba(255,255,255,0.72)",
+    borderRadius: 20,
     borderWidth: 1,
-    borderColor: "rgba(255,255,255,0.65)",
-    padding: 12,
+    borderColor: "rgba(255,255,255,0.82)",
+    padding: 14,
     marginBottom: 12,
     shadowColor: "#1a1f36",
-    shadowOpacity: 0.08,
-    shadowRadius: 10,
-    shadowOffset: { width: 0, height: 6 },
-    elevation: 3
+    shadowOpacity: 0.1,
+    shadowRadius: 14,
+    shadowOffset: { width: 0, height: 8 },
+    elevation: 4
   },
   quickResultTitle: {
     color: "#1f2937",
-    fontSize: 16,
+    fontSize: 18,
     fontWeight: "800"
   },
   quickResultSub: {
     color: "#4b5563",
-    marginTop: 3
+    marginTop: 4,
+    fontSize: 13
   },
   headRow: {
     flexDirection: "row",
@@ -1863,6 +2017,12 @@ const styles = StyleSheet.create({
   suggestCard: {
     paddingTop: 18
   },
+  contactCard: {
+    overflow: "hidden",
+    borderRadius: 28,
+    backgroundColor: "rgba(255,255,255,0.94)",
+    borderColor: "rgba(255,255,255,0.82)"
+  },
   suggestHero: {
     alignItems: "center",
     marginBottom: 12
@@ -1875,6 +2035,9 @@ const styles = StyleSheet.create({
     alignItems: "center",
     justifyContent: "center",
     marginBottom: 10
+  },
+  contactHeroBadge: {
+    backgroundColor: "#fce7f3"
   },
   modalTitle: {
     color: "#111827",

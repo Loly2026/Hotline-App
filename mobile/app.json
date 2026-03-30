@@ -10,9 +10,7 @@
       "**/*"
     ],
     "scheme": "hotlineapp",
-    "runtimeVersion": {
-      "policy": "appVersion"
-    },
+    "runtimeVersion": "1.0.0",
     "updates": {
       "fallbackToCacheTimeout": 0
     },
@@ -20,7 +18,10 @@
     "ios": {
       "supportsTablet": true,
       "bundleIdentifier": "com.hotline.egypt",
-      "buildNumber": "1.0.0"
+      "buildNumber": "1.0.0",
+      "infoPlist": {
+        "ITSAppUsesNonExemptEncryption": false
+      }
     },
     "android": {
       "package": "com.hotline.egypt",
@@ -37,7 +38,10 @@
     },
     "extra": {
       "appName": "Hotline App",
-      "apiBaseUrl": "@env:EXPO_PUBLIC_API_URL"
+      "apiBaseUrl": "@env:EXPO_PUBLIC_API_URL",
+      "eas": {
+        "projectId": "ad40b21c-50ba-4e75-81ed-b21f3df612d6"
+      }
     }
   }
 }
