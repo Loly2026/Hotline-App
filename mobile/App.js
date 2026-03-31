@@ -1305,12 +1305,16 @@ export default function App() {
                       <View style={[styles.planIconBadge, styles.planIconVerified]}>
                         <Ionicons name="shield-checkmark" size={18} color="#15803d" />
                       </View>
-                      <Text style={styles.planTitle}>Verified</Text>
+                      <View style={styles.planTitleWrap}>
+                        <Text style={styles.planTitle}>Verified</Text>
+                        <Text style={styles.planTitleAr}>موثقة</Text>
+                      </View>
                     </View>
                     <Text style={styles.planPrice}>250 EGP / month</Text>
+                    <Text style={[styles.planBody, styles.planBodyAr]}>شارة موثقة لنشاطك التجاري لزيادة الثقة والاعتماد داخل التطبيق.</Text>
                     <Text style={styles.planBody}>Trusted badge for your business and stronger customer confidence.</Text>
                     <TouchableOpacity style={styles.planBtn} onPress={() => openBusinessInquiry("Verified")}>
-                      <Text style={styles.planBtnText}>Request this plan</Text>
+                      <Text style={styles.planBtnText}>اطلب هذه الباقة{"\n"}Request this plan</Text>
                     </TouchableOpacity>
                   </View>
 
@@ -1319,12 +1323,16 @@ export default function App() {
                       <View style={[styles.planIconBadge, styles.planIconFeatured]}>
                         <Ionicons name="star" size={18} color="#d97706" />
                       </View>
-                      <Text style={styles.planTitle}>Featured</Text>
+                      <View style={styles.planTitleWrap}>
+                        <Text style={styles.planTitle}>Featured</Text>
+                        <Text style={styles.planTitleAr}>مميزة</Text>
+                      </View>
                     </View>
                     <Text style={styles.planPrice}>400 EGP / month</Text>
+                    <Text style={[styles.planBody, styles.planBodyAr]}>ظهور أقوى داخل الفئات وترتيب أفضل في نتائج البحث.</Text>
                     <Text style={styles.planBody}>Higher visibility inside categories and better placement in search results.</Text>
                     <TouchableOpacity style={styles.planBtn} onPress={() => openBusinessInquiry("Featured")}>
-                      <Text style={styles.planBtnText}>Request this plan</Text>
+                      <Text style={styles.planBtnText}>اطلب هذه الباقة{"\n"}Request this plan</Text>
                     </TouchableOpacity>
                   </View>
 
@@ -1333,19 +1341,19 @@ export default function App() {
                       <View style={[styles.planIconBadge, styles.planIconPremium]}>
                         <Ionicons name="sparkles" size={18} color="#7c3aed" />
                       </View>
-                      <Text style={styles.planTitle}>Premium</Text>
+                      <View style={styles.planTitleWrap}>
+                        <Text style={styles.planTitle}>Premium</Text>
+                        <Text style={styles.planTitleAr}>بريميوم</Text>
+                      </View>
                     </View>
                     <Text style={styles.planPrice}>800 EGP / month</Text>
+                    <Text style={[styles.planBody, styles.planBodyAr]}>ظهور مميز + شارة موثقة + أولوية أعلى لأقوى حضور داخل التطبيق.</Text>
                     <Text style={styles.planBody}>Featured + Verified + top priority for the strongest exposure in the app.</Text>
                     <TouchableOpacity style={[styles.planBtn, styles.planBtnPremium]} onPress={() => openBusinessInquiry("Premium")}>
-                      <Text style={styles.planBtnText}>Request this plan</Text>
+                      <Text style={styles.planBtnText}>اطلب هذه الباقة{"\n"}Request this plan</Text>
                     </TouchableOpacity>
                   </View>
                 </View>
-
-                <TouchableOpacity style={styles.businessCta} onPress={openBusinessInquiry}>
-                  <Text style={styles.businessCtaText}>Advertise with us</Text>
-                </TouchableOpacity>
               </View>
 
             </ScrollView>
@@ -2350,17 +2358,26 @@ const styles = StyleSheet.create({
     borderRadius: 18,
     padding: 14,
     borderWidth: 1,
-    borderColor: "rgba(236,205,227,0.85)"
+    borderColor: "rgba(236,205,227,0.85)",
+    shadowColor: "#d38fc1",
+    shadowOpacity: 0.12,
+    shadowRadius: 14,
+    shadowOffset: { width: 0, height: 8 },
+    elevation: 4
   },
   planCardPremium: {
     backgroundColor: "rgba(248,242,255,0.95)",
-    borderColor: "rgba(206,186,255,0.9)"
+    borderColor: "rgba(206,186,255,0.9)",
+    shadowColor: "#b387ff"
   },
   planCardTop: {
     flexDirection: "row",
     alignItems: "center",
     gap: 10,
     marginBottom: 8
+  },
+  planTitleWrap: {
+    flex: 1
   },
   planIconBadge: {
     width: 34,
@@ -2387,6 +2404,12 @@ const styles = StyleSheet.create({
     fontSize: 17,
     fontWeight: "800"
   },
+  planTitleAr: {
+    color: "#6b7280",
+    fontSize: 12,
+    fontWeight: "700",
+    marginTop: 2
+  },
   planPrice: {
     color: "#9a0f6f",
     fontSize: 14,
@@ -2397,16 +2420,27 @@ const styles = StyleSheet.create({
     color: "#4b5563",
     fontSize: 13,
     lineHeight: 21,
-    marginBottom: 10
+    marginBottom: 6
+  },
+  planBodyAr: {
+    textAlign: "right",
+    writingDirection: "rtl",
+    color: "#374151"
   },
   planBtn: {
-    alignSelf: "flex-start",
+    alignSelf: "stretch",
     backgroundColor: "#ffffff",
     borderWidth: 1,
     borderColor: "rgba(196,181,253,0.9)",
-    borderRadius: 999,
+    borderRadius: 16,
     paddingHorizontal: 14,
-    paddingVertical: 9
+    paddingVertical: 11,
+    marginTop: 4,
+    shadowColor: "#e9d5ff",
+    shadowOpacity: 0.18,
+    shadowRadius: 10,
+    shadowOffset: { width: 0, height: 6 },
+    elevation: 2
   },
   planBtnPremium: {
     backgroundColor: "rgba(255,255,255,0.9)"
@@ -2414,7 +2448,9 @@ const styles = StyleSheet.create({
   planBtnText: {
     color: "#7c3aed",
     fontSize: 13,
-    fontWeight: "800"
+    fontWeight: "800",
+    textAlign: "center",
+    lineHeight: 20
   },
   businessFeatureItem: {
     flexDirection: "row",
@@ -2426,25 +2462,8 @@ const styles = StyleSheet.create({
     fontSize: 14,
     fontWeight: "700"
   },
-  businessCta: {
-    backgroundColor: "#b30f7f",
-    borderRadius: 16,
-    paddingVertical: 14,
-    alignItems: "center",
-    justifyContent: "center",
-    shadowColor: "#b30f7f",
-    shadowOpacity: 0.24,
-    shadowRadius: 12,
-    shadowOffset: { width: 0, height: 8 },
-    elevation: 6
-  },
   businessHeroBadge: {
     backgroundColor: "rgba(255,240,247,0.96)"
-  },
-  businessCtaText: {
-    color: "#ffffff",
-    fontSize: 15,
-    fontWeight: "800"
   },
   planSelectedBadge: {
     alignSelf: "flex-start",
