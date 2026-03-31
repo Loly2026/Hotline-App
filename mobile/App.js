@@ -172,9 +172,15 @@ export default function App() {
   const [contactModalVisible, setContactModalVisible] = useState(false);
   const [aboutModalVisible, setAboutModalVisible] = useState(false);
   const [businessModalVisible, setBusinessModalVisible] = useState(false);
+  const [businessRequestVisible, setBusinessRequestVisible] = useState(false);
   const [newHotlineName, setNewHotlineName] = useState("");
   const [newHotlinePhone, setNewHotlinePhone] = useState("");
   const [contactMessage, setContactMessage] = useState("");
+  const [businessRequesterName, setBusinessRequesterName] = useState("");
+  const [businessName, setBusinessName] = useState("");
+  const [businessPhone, setBusinessPhone] = useState("");
+  const [businessNote, setBusinessNote] = useState("");
+  const [selectedBusinessPlan, setSelectedBusinessPlan] = useState("Premium");
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
   const focusAnim = useRef(new Animated.Value(0)).current;
@@ -751,10 +757,48 @@ export default function App() {
 
   const openBusinessInquiry = (plan = "Premium") => {
     setBusinessModalVisible(false);
-    setContactMessage(
+    setSelectedBusinessPlan(plan);
+    setBusinessNote(
       `Hello, I’m interested in the ${plan} business plan for my listing.\n\nمرحباً، أنا مهتم بباقة ${plan} لنشاطي داخل التطبيق وأريد معرفة التفاصيل.`
     );
-    setContactModalVisible(true);
+    setBusinessRequestVisible(true);
+  };
+
+  const handleBusinessRequestSubmit = async () => {
+    const requesterName = businessRequesterName.trim();
+    const shopName = businessName.trim();
+    const phone = businessPhone.trim();
+    const note = businessNote.trim();
+    const phoneDigits = phone.replace(/[^\d+]/g, "");
+
+    if (!requesterName || !shopName || !phone) {
+      Alert.alert("Missing Data", "Please enter your name, business name, and phone or WhatsApp number.");
+      return;
+    }
+
+    if (phoneDigits.length < 7) {
+      Alert.alert("Invalid Contact", "Please enter a valid phone or WhatsApp number so we can contact you.");
+      return;
+    }
+
+    try {
+      await sendFeedback({
+        type: "business_inquiry",
+        requester_name: requesterName,
+        business_name: shopName,
+        contact_phone: phone,
+        plan: selectedBusinessPlan,
+        message: note
+      });
+      setBusinessRequestVisible(false);
+      setBusinessRequesterName("");
+      setBusinessName("");
+      setBusinessPhone("");
+      setBusinessNote("");
+      Alert.alert("Done", "Your business request was sent successfully.");
+    } catch (err) {
+      Alert.alert("Error", err.message || "Failed to send business request.");
+    }
   };
 
   if (!introLoaded) {
@@ -1153,6 +1197,68 @@ export default function App() {
         </KeyboardAvoidingView>
       </Modal>
 
+      <Modal transparent visible={businessRequestVisible} animationType="fade" onRequestClose={() => setBusinessRequestVisible(false)}>
+        <KeyboardAvoidingView style={styles.flexOne} behavior={Platform.OS === "ios" ? "padding" : "height"}>
+          <View style={styles.modalBackdrop}>
+            <View style={[styles.modalCard, styles.suggestCard, styles.contactCard]}>
+              <View style={styles.sheetGlow} />
+              <View style={styles.sheetGlowSecondary} />
+              <ScrollView keyboardShouldPersistTaps="handled" showsVerticalScrollIndicator={false}>
+                <View style={styles.suggestHero}>
+                  <View style={[styles.suggestHeroBadge, styles.businessHeroBadge]}>
+                    <Ionicons name="briefcase" size={22} color="#9a0f6f" />
+                  </View>
+                  <Text style={styles.modalTitle}>Business Request</Text>
+                  <Text style={styles.modalSubTitle}>Tell us about your business and the plan you want.</Text>
+                </View>
+                <View style={styles.planSelectedBadge}>
+                  <Text style={styles.planSelectedBadgeText}>{selectedBusinessPlan} plan</Text>
+                </View>
+                <TextInput
+                  style={[styles.modalInput, styles.suggestInput]}
+                  placeholder="Your name"
+                  placeholderTextColor="#7b8799"
+                  value={businessRequesterName}
+                  onChangeText={setBusinessRequesterName}
+                />
+                <TextInput
+                  style={[styles.modalInput, styles.suggestInput]}
+                  placeholder="Business name"
+                  placeholderTextColor="#7b8799"
+                  value={businessName}
+                  onChangeText={setBusinessName}
+                />
+                <TextInput
+                  style={[styles.modalInput, styles.suggestInput]}
+                  placeholder="Phone or WhatsApp"
+                  placeholderTextColor="#7b8799"
+                  keyboardType="phone-pad"
+                  value={businessPhone}
+                  onChangeText={setBusinessPhone}
+                />
+                <TextInput
+                  style={[styles.modalInput, styles.modalTextArea]}
+                  placeholder="Request details"
+                  placeholderTextColor="#7b8799"
+                  multiline
+                  textAlignVertical="top"
+                  value={businessNote}
+                  onChangeText={setBusinessNote}
+                />
+                <View style={styles.modalActions}>
+                  <TouchableOpacity style={styles.modalBtnGhost} onPress={() => setBusinessRequestVisible(false)}>
+                    <Text style={styles.modalBtnGhostText}>Cancel</Text>
+                  </TouchableOpacity>
+                  <TouchableOpacity style={styles.modalBtnPrimary} onPress={handleBusinessRequestSubmit}>
+                    <Text style={styles.modalBtnPrimaryText}>Send</Text>
+                  </TouchableOpacity>
+                </View>
+              </ScrollView>
+            </View>
+          </View>
+        </KeyboardAvoidingView>
+      </Modal>
+
       <Modal transparent visible={businessModalVisible} animationType="fade" onRequestClose={() => setBusinessModalVisible(false)}>
         <View style={styles.modalBackdrop}>
           <View style={[styles.modalCard, styles.aboutCard]}>
@@ -1340,12 +1446,26 @@ export default function App() {
               <Ionicons name="sparkles" size={20} color="#b30f7f" />
             </View>
             <Text style={styles.hintTitle}>الخدمات السريعة</Text>
-            <Text style={[styles.hintBody, styles.aboutBodyAr]}>
-              البار السفلي يساعدك على: الوصول إلى Business Plans لمعرفة الباقات، استخدام Add Number لإضافة رقم جديد، و Contact us لإرسال اقتراح أو ملاحظة.
-            </Text>
-            <Text style={styles.hintBody}>
-              Use the bottom bar for quick actions: Business Plans, Add Number, and Contact us.
-            </Text>
+            <View style={styles.hintList}>
+              <View style={styles.hintItem}>
+                <View style={[styles.hintMiniBadge, styles.hintMiniBusiness]}>
+                  <Ionicons name="rocket-outline" size={14} color="#7c3aed" />
+                </View>
+                <Text style={[styles.hintItemText, styles.aboutBodyAr]}>Business Plans لعرض باقات الظهور المميز والتوثيق للأعمال.</Text>
+              </View>
+              <View style={styles.hintItem}>
+                <View style={[styles.hintMiniBadge, styles.hintMiniAdd]}>
+                  <Ionicons name="sparkles" size={14} color="#b30f7f" />
+                </View>
+                <Text style={[styles.hintItemText, styles.aboutBodyAr]}>Add Number لإضافة رقم جديد أو اقتراح جهة جديدة داخل التطبيق.</Text>
+              </View>
+              <View style={styles.hintItem}>
+                <View style={[styles.hintMiniBadge, styles.hintMiniContact]}>
+                  <Ionicons name="chatbubble-ellipses-outline" size={14} color="#0f766e" />
+                </View>
+                <Text style={[styles.hintItemText, styles.aboutBodyAr]}>Contact us لإرسال ملاحظة أو اقتراح يساعدنا في تحسين الخدمة.</Text>
+              </View>
+            </View>
             <TouchableOpacity style={styles.hintBtn} onPress={dismissSuggestHint}>
               <Text style={styles.hintBtnText}>Got it</Text>
             </TouchableOpacity>
@@ -2318,9 +2438,27 @@ const styles = StyleSheet.create({
     shadowOffset: { width: 0, height: 8 },
     elevation: 6
   },
+  businessHeroBadge: {
+    backgroundColor: "rgba(255,240,247,0.96)"
+  },
   businessCtaText: {
     color: "#ffffff",
     fontSize: 15,
+    fontWeight: "800"
+  },
+  planSelectedBadge: {
+    alignSelf: "flex-start",
+    backgroundColor: "#f3e8ff",
+    borderWidth: 1,
+    borderColor: "#e9d5ff",
+    borderRadius: 999,
+    paddingHorizontal: 12,
+    paddingVertical: 7,
+    marginBottom: 12
+  },
+  planSelectedBadgeText: {
+    color: "#7c3aed",
+    fontSize: 13,
     fontWeight: "800"
   },
   sheetCard: {
@@ -2609,6 +2747,45 @@ const styles = StyleSheet.create({
     fontSize: 14,
     lineHeight: 22,
     marginBottom: 6
+  },
+  hintList: {
+    gap: 10,
+    marginTop: 4,
+    marginBottom: 4
+  },
+  hintItem: {
+    flexDirection: "row",
+    alignItems: "flex-start",
+    gap: 10,
+    backgroundColor: "rgba(249,250,251,0.94)",
+    borderWidth: 1,
+    borderColor: "rgba(234,236,242,0.95)",
+    borderRadius: 16,
+    paddingHorizontal: 12,
+    paddingVertical: 10
+  },
+  hintMiniBadge: {
+    width: 28,
+    height: 28,
+    borderRadius: 14,
+    alignItems: "center",
+    justifyContent: "center",
+    marginTop: 2
+  },
+  hintMiniBusiness: {
+    backgroundColor: "#f3e8ff"
+  },
+  hintMiniAdd: {
+    backgroundColor: "#fde7f7"
+  },
+  hintMiniContact: {
+    backgroundColor: "#dff7f4"
+  },
+  hintItemText: {
+    flex: 1,
+    color: "#374151",
+    fontSize: 13,
+    lineHeight: 21
   },
   hintBtn: {
     alignSelf: "flex-end",

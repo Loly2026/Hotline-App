@@ -241,7 +241,16 @@ function queueFeedbackEmail(message) {
 }
 
 app.post("/api/feedback", async (req, res) => {
-  const { type = "", organization_name = "", hotline_number = "", message = "" } = req.body || {};
+  const {
+    type = "",
+    organization_name = "",
+    hotline_number = "",
+    requester_name = "",
+    business_name = "",
+    contact_phone = "",
+    plan = "",
+    message = ""
+  } = req.body || {};
 
   try {
     if (type === "add_hotline") {
@@ -272,6 +281,34 @@ app.post("/api/feedback", async (req, res) => {
         to: feedbackReceiver,
         subject: "Hotline App Suggestion",
         text: `User suggestion:\n\n${msg}`
+      });
+
+      return res.status(201).json({ ok: true });
+    }
+
+    if (type === "business_inquiry") {
+      const requester = String(requester_name).trim();
+      const business = String(business_name).trim();
+      const phone = String(contact_phone).trim();
+      const selectedPlan = String(plan).trim();
+      const note = String(message).trim();
+
+      if (!requester || !business || !phone || !selectedPlan) {
+        return res.status(400).json({ error: "requester_name, business_name, contact_phone, and plan are required" });
+      }
+
+      insertPending.run({
+        name_ar: `${requester} / ${business}`,
+        phone,
+        category_slug: "business-plan",
+        message: `Plan: ${selectedPlan}${note ? `\nNote: ${note}` : ""}`
+      });
+
+      queueFeedbackEmail({
+        from: process.env.MAIL_FROM || process.env.SMTP_USER,
+        to: feedbackReceiver,
+        subject: "Business Plan Request",
+        text: `Business inquiry received:\n\nRequester: ${requester}\nBusiness: ${business}\nPhone: ${phone}\nPlan: ${selectedPlan}\n${note ? `Note: ${note}\n` : ""}`
       });
 
       return res.status(201).json({ ok: true });
