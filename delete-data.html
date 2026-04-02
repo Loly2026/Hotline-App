@@ -1,0 +1,157 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Delete Data Request | Hotline App</title>
+    <style>
+      :root {
+        --bg: #f7edf5;
+        --card: rgba(255, 255, 255, 0.9);
+        --text: #1f2340;
+        --muted: #61688d;
+        --accent: #c0188f;
+        --line: rgba(192, 24, 143, 0.14);
+      }
+
+      * {
+        box-sizing: border-box;
+      }
+
+      body {
+        margin: 0;
+        font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+        background:
+          radial-gradient(circle at top left, rgba(192, 24, 143, 0.18), transparent 34%),
+          radial-gradient(circle at top right, rgba(104, 67, 255, 0.12), transparent 30%),
+          var(--bg);
+        color: var(--text);
+        line-height: 1.7;
+      }
+
+      .wrap {
+        width: min(920px, calc(100% - 32px));
+        margin: 0 auto;
+        padding: 48px 0 64px;
+      }
+
+      .hero,
+      .card {
+        background: var(--card);
+        border: 1px solid var(--line);
+        border-radius: 28px;
+        box-shadow: 0 22px 60px rgba(64, 29, 95, 0.08);
+        backdrop-filter: blur(10px);
+      }
+
+      .hero {
+        padding: 28px;
+        margin-bottom: 18px;
+      }
+
+      .eyebrow {
+        display: inline-block;
+        padding: 6px 12px;
+        border-radius: 999px;
+        background: rgba(192, 24, 143, 0.09);
+        color: var(--accent);
+        font-size: 13px;
+        font-weight: 700;
+        letter-spacing: 0.02em;
+      }
+
+      h1 {
+        margin: 14px 0 10px;
+        font-size: clamp(30px, 6vw, 46px);
+        line-height: 1.08;
+      }
+
+      .sub {
+        margin: 0;
+        color: var(--muted);
+        font-size: 17px;
+      }
+
+      .card {
+        padding: 28px;
+      }
+
+      h2 {
+        margin: 28px 0 10px;
+        font-size: 22px;
+      }
+
+      h2:first-child {
+        margin-top: 0;
+      }
+
+      p,
+      li {
+        font-size: 16px;
+      }
+
+      ul,
+      ol {
+        margin: 10px 0 0;
+        padding-left: 22px;
+      }
+
+      .footer {
+        margin-top: 18px;
+        color: var(--muted);
+        font-size: 14px;
+      }
+    </style>
+  </head>
+  <body>
+    <main class="wrap">
+      <section class="hero">
+        <span class="eyebrow">Hotline App</span>
+        <h1>Delete Data Request</h1>
+        <p class="sub">Last updated: April 3, 2026</p>
+      </section>
+
+      <section class="card">
+        <h2>How to Request Deletion</h2>
+        <p>
+          If you want Hotline App to delete information you previously submitted,
+          please send a request through the <strong>Contact us</strong> section inside
+          the app.
+        </p>
+
+        <ol>
+          <li>Open Hotline App.</li>
+          <li>Tap <strong>Contact us</strong>.</li>
+          <li>Mention that you want your submitted data deleted.</li>
+          <li>Include enough information to identify your request.</li>
+        </ol>
+
+        <h2>What Data Can Be Deleted</h2>
+        <ul>
+          <li>Contact us messages</li>
+          <li>Add Number submissions</li>
+          <li>Business plan requests</li>
+          <li>Submitted name and phone details associated with those requests</li>
+        </ul>
+
+        <h2>What May Be Retained</h2>
+        <p>
+          We may retain limited internal records if required for fraud prevention,
+          legal compliance, or service integrity. If retained, this will be limited
+          to what is reasonably necessary.
+        </p>
+
+        <h2>Processing Time</h2>
+        <p>
+          We aim to review and process deletion requests within a reasonable time
+          after receiving them.
+        </p>
+
+        <p class="footer">
+          This page applies to Hotline App and data submitted through the app's
+          feedback and business inquiry forms.
+        </p>
+      </section>
+    </main>
+  </body>
+</html>
