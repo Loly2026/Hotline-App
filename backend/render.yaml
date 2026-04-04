@@ -10,7 +10,7 @@ services:
       - key: PORT
         value: 4001
       - key: DB_PATH
-        value: ./hotline.db
+        value: /var/data/hotline.db
       - key: ADMIN_USER
         sync: false
       - key: ADMIN_PASS
