@@ -1,25 +1,11 @@
 import Database from "better-sqlite3";
-import fs from "node:fs";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 import "dotenv/config";
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
-const bundledDbPath = path.join(__dirname, "..", "hotline.db");
-const dbPath = process.env.DB_PATH || bundledDbPath;
-
-// When using a persistent disk path in production, seed it once from the bundled DB
-// so the app keeps the initial categories/contacts but future admin edits stay durable.
-if (dbPath !== bundledDbPath) {
-  const dbDir = path.dirname(dbPath);
-  if (!fs.existsSync(dbDir)) {
-    fs.mkdirSync(dbDir, { recursive: true });
-  }
-  if (!fs.existsSync(dbPath) && fs.existsSync(bundledDbPath)) {
-    fs.copyFileSync(bundledDbPath, dbPath);
-  }
-}
+const dbPath = process.env.DB_PATH || path.join(__dirname, "..", "hotline.db");
 
 export const db = new Database(dbPath);
 
