@@ -12,7 +12,8 @@
     "start": "node src/server.js",
     "dev": "node src/server.js",
     "import:user-hotlines": "node src/import-user-hotlines.js data/user-hotlines.txt",
-    "import:curated": "node src/import-curated.js"
+    "import:curated": "node src/import-curated.js",
+    "migrate:postgres": "node src/migrate-sqlite-to-postgres.js"
   },
   "dependencies": {
     "better-sqlite3": "^11.8.1",
@@ -20,6 +21,7 @@
     "dotenv": "^17.2.1",
     "expo": "^55.0.6",
     "express": "^4.21.2",
-    "nodemailer": "^6.9.16"
+    "nodemailer": "^6.9.16",
+    "pg": "^8.20.0"
   }
 }
