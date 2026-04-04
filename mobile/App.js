@@ -3,6 +3,7 @@ import {
   ActivityIndicator,
   Alert,
   Animated,
+  BackHandler,
   KeyboardAvoidingView,
   Easing,
   FlatList,
@@ -18,8 +19,8 @@ import {
   TouchableOpacity,
   View,
   PanResponder,
-  Dimensions,
-  ImageBackground
+  ImageBackground,
+  useWindowDimensions
 } from "react-native";
 import { LinearGradient } from "expo-linear-gradient";
 import * as FileSystem from "expo-file-system";
@@ -129,8 +130,6 @@ const CATEGORY_GROUP_OVERRIDES = {
   syndicates: "retail",
   education: "retail"
 };
-const SCREEN_WIDTH = Dimensions.get("window").width;
-const SWIPE_THRESHOLD = SCREEN_WIDTH * 0.25; // ربع الشاشة
 const introLocal = require("./assets/intro.png");
 const CONTACTS_CACHE_PATH = `${FileSystem.cacheDirectory}contacts-cache.json`;
 const SUGGEST_HINT_PATH = `${FileSystem.documentDirectory}suggest-hint-seen.txt`;
@@ -157,7 +156,24 @@ function sortContacts(items) {
 }
 
 export default function App() {
+  const { width: screenWidth, height: screenHeight } = useWindowDimensions();
+  const isTablet = screenWidth >= 768;
+  const isLargeTablet = screenWidth >= 1024;
+  const isAndroid = Platform.OS === "android";
+  const widthScale = Math.min(Math.max(screenWidth / (isTablet ? 900 : 390), 0.88), isTablet ? 1.08 : 1.12);
+  const heightScale = Math.min(Math.max(screenHeight / (isTablet ? 1180 : 844), 0.9), 1.08);
+  const uiScale = Math.min(widthScale, heightScale);
+  const swipeThreshold = screenWidth * 0.25;
+  const heroContentWidth = isLargeTablet ? 840 : isTablet ? 760 : screenWidth;
+  const bodyContentWidth = isLargeTablet ? 860 : isTablet ? 780 : screenWidth;
+  const categoryColumns = screenWidth >= 900 ? 4 : isTablet ? 3 : 2;
+  const heroIconSize = Math.round(38 * uiScale);
+  const heroInfoIconSize = Math.round(20 * uiScale);
+  const categoryIconSize = Math.round((isTablet ? 36 : 50) * uiScale);
+  const bottomSideIconSize = Math.round((isTablet ? 26 : 32) * uiScale);
+  const bottomCenterIconSize = Math.round((isTablet ? 20 : 24) * uiScale);
   const scrollRef = useRef(null);
+  const scrollY = useRef(new Animated.Value(0)).current;
   const phoneAnim = useRef(new Animated.Value(0)).current;
   const swipeBackX = useRef(new Animated.Value(0)).current;
   const searchResultsAnim = useRef(new Animated.Value(0)).current;
@@ -221,9 +237,9 @@ export default function App() {
       },
       onPanResponderRelease: (_e, g) => {
         if (!detailGroup) return;
-        if (g.dx > SWIPE_THRESHOLD || g.vx > 0.75) {
+        if (g.dx > swipeThreshold || g.vx > 0.75) {
           Animated.timing(swipeBackX, {
-            toValue: SCREEN_WIDTH,
+            toValue: screenWidth,
             duration: 180,
             easing: Easing.out(Easing.cubic),
             useNativeDriver: true
@@ -557,8 +573,8 @@ export default function App() {
     return (
       <View style={[styles.contactBadgeRow, compact && styles.contactBadgeRowCompact]}>
         {badges.map((badge) => (
-          <View key={badge.key} style={[styles.contactBadge, badge.style]}>
-            <Text style={[styles.contactBadgeText, badge.text]}>{badge.label}</Text>
+          <View key={badge.key} style={[styles.contactBadge, contactBadgeResponsive, badge.style]}>
+            <Text style={[styles.contactBadgeText, contactBadgeTextResponsive, badge.text]}>{badge.label}</Text>
           </View>
         ))}
       </View>
@@ -604,6 +620,7 @@ export default function App() {
           android_ripple={{ color: "rgba(255,255,255,0.24)", borderless: false }}
           style={({ pressed }) => [
             styles.categoryCard,
+            categoryCardResponsive,
             {
               shadowColor: palette.accent,
               backgroundColor: selected ? palette.cardActive || palette.card : palette.card,
@@ -623,13 +640,15 @@ export default function App() {
           }}
         >
           <View style={styles.cardContent}>
-            <View style={styles.categoryImageWrap}>
-              <View style={styles.categoryBadge}>
-                <IconComp name={iconMeta.name || "apps"} size={46} color={iconMeta.color || "#6b7280"} />
+            <View style={[styles.categoryImageWrap, categoryImageWrapResponsive]}>
+              <View style={[styles.categoryBadge, categoryBadgeResponsive]}>
+                <View style={[styles.categoryIconWrap, categoryIconWrapResponsive]}>
+                  <IconComp name={iconMeta.name || "apps"} size={categoryIconSize} color={iconMeta.color || "#6b7280"} />
+                </View>
               </View>
             </View>
-            <Text style={[styles.categoryText, selected && styles.categoryTextActive]}>{item.title}</Text>
-            <Text style={styles.categoryTextSub}>{GROUP_AR[item.key]}</Text>
+            <Text style={[styles.categoryText, categoryTextResponsive, selected && styles.categoryTextActive]}>{item.title}</Text>
+            <Text style={[styles.categoryTextSub, categoryTextSubResponsive]}>{GROUP_AR[item.key]}</Text>
           </View>
         </Pressable>
       </Animated.View>
@@ -689,6 +708,68 @@ export default function App() {
     }
     setBusinessModalVisible(true);
   };
+
+  useEffect(() => {
+    if (Platform.OS !== "android") return undefined;
+
+    const onBackPress = () => {
+      if (showIntro) {
+        setShowIntro(false);
+        return true;
+      }
+
+      if (showSuggestHint) {
+        dismissSuggestHint();
+        return true;
+      }
+
+      if (businessRequestVisible) {
+        setBusinessRequestVisible(false);
+        return true;
+      }
+
+      if (businessModalVisible) {
+        setBusinessModalVisible(false);
+        return true;
+      }
+
+      if (aboutModalVisible) {
+        setAboutModalVisible(false);
+        return true;
+      }
+
+      if (contactModalVisible) {
+        setContactModalVisible(false);
+        return true;
+      }
+
+      if (addModalVisible) {
+        setAddModalVisible(false);
+        return true;
+      }
+
+      if (detailGroup || activeCategorySlug || quickResult) {
+        handleHomePress();
+        return true;
+      }
+
+      return false;
+    };
+
+    const subscription = BackHandler.addEventListener("hardwareBackPress", onBackPress);
+    return () => subscription.remove();
+  }, [
+    showIntro,
+    showSuggestHint,
+    businessRequestVisible,
+    businessModalVisible,
+    aboutModalVisible,
+    contactModalVisible,
+    addModalVisible,
+    detailGroup,
+    activeCategorySlug,
+    quickResult
+  ]);
 
   const sendFeedback = async (payload) => {
     const controller = new AbortController();
@@ -809,6 +890,304 @@ export default function App() {
     );
   }
 
+  const heroResponsive = {
+    alignSelf: "center",
+    width: "100%",
+    maxWidth: heroContentWidth,
+    paddingTop: Math.round((isTablet ? 18 : isAndroid ? 20 : 26) * heightScale),
+    paddingBottom: Math.round((isTablet ? 18 : isAndroid ? 18 : 26) * heightScale),
+    borderBottomLeftRadius: Math.round((isTablet ? 30 : 36) * uiScale),
+    borderBottomRightRadius: Math.round((isTablet ? 30 : 36) * uiScale)
+  };
+
+  const heroAnimatedStyle = {
+    transform: [
+      {
+        translateY: scrollY.interpolate({
+          inputRange: [0, 120],
+          outputRange: [0, -42],
+          extrapolate: "clamp"
+        })
+      }
+    ],
+    paddingTop: Animated.add(
+      new Animated.Value(Math.round((isTablet ? 18 : isAndroid ? 20 : 26) * heightScale)),
+      scrollY.interpolate({
+        inputRange: [0, 120],
+        outputRange: [0, Math.round((isTablet ? -10 : -12) * heightScale)],
+        extrapolate: "clamp"
+      })
+    ),
+    paddingBottom: Animated.add(
+      new Animated.Value(Math.round((isTablet ? 18 : isAndroid ? 18 : 26) * heightScale)),
+      scrollY.interpolate({
+        inputRange: [0, 120],
+        outputRange: [0, Math.round((isTablet ? -12 : -16) * heightScale)],
+        extrapolate: "clamp"
+      })
+    )
+  };
+
+  const welcomeTitleResponsive = {
+    fontSize: Math.round((isTablet ? 24 : isAndroid ? 34 : 38) * uiScale)
+  };
+
+  const welcomeSubResponsive = {
+    fontSize: Math.round((isTablet ? 16 : isAndroid ? 22 : 24) * uiScale)
+  };
+
+  const searchBarResponsive = {
+    minHeight: Math.round((isTablet ? 52 : isAndroid ? 58 : 64) * heightScale),
+    borderRadius: Math.round((isTablet ? 22 : 26) * uiScale),
+    paddingHorizontal: Math.round((isTablet ? 14 : 16) * widthScale)
+  };
+
+  const searchShellAnimatedStyle = {
+    transform: [
+      {
+        translateY: scrollY.interpolate({
+          inputRange: [0, 140],
+          outputRange: [0, -18],
+          extrapolate: "clamp"
+        })
+      },
+      {
+        scale: scrollY.interpolate({
+          inputRange: [0, 140],
+          outputRange: [1, 0.88],
+          extrapolate: "clamp"
+        })
+      }
+    ]
+  };
+
+  const searchInputResponsive = {
+    fontSize: Math.round((isTablet ? 15 : 17) * uiScale)
+  };
+
+  const searchIconBadgeResponsive = {
+    width: Math.round((isTablet ? 36 : 40) * uiScale),
+    height: Math.round((isTablet ? 36 : 40) * uiScale),
+    borderRadius: Math.round((isTablet ? 18 : 20) * uiScale)
+  };
+
+  const searchIconTextResponsive = {
+    fontSize: Math.round((isTablet ? 18 : 20) * uiScale)
+  };
+
+  const suggestItemResponsive = {
+    paddingHorizontal: Math.round(12 * widthScale),
+    paddingVertical: Math.round(10 * heightScale)
+  };
+
+  const suggestTextResponsive = {
+    fontSize: Math.round((isTablet ? 14 : 15) * uiScale)
+  };
+
+  const contactBadgeResponsive = {
+    paddingHorizontal: Math.round(8 * widthScale),
+    paddingVertical: Math.round(3 * heightScale)
+  };
+
+  const contactBadgeTextResponsive = {
+    fontSize: Math.round((isTablet ? 10 : 10.5) * uiScale)
+  };
+
+  const suggestCategoryPreviewResponsive = {
+    fontSize: Math.round((isTablet ? 11 : 11.5) * uiScale)
+  };
+
+  const suggestPhoneBadgeResponsive = {
+    paddingHorizontal: Math.round(11 * widthScale),
+    paddingVertical: Math.round(6 * heightScale),
+    borderRadius: Math.round(12 * uiScale)
+  };
+
+  const suggestPhonePreviewResponsive = {
+    fontSize: Math.round((isTablet ? 14 : 15) * uiScale)
+  };
+
+  const contentResponsive = {
+    alignItems: "center",
+    paddingTop: Math.round((isTablet ? 18 : 14) * heightScale),
+    paddingBottom: Math.round((isTablet ? 108 : isAndroid ? 96 : 116) * heightScale)
+  };
+
+  const fullWidthCard = {
+    width: "100%",
+    maxWidth: bodyContentWidth,
+    alignSelf: "center"
+  };
+
+  const gridWrapperResponsive = {
+    width: "100%",
+    maxWidth: bodyContentWidth,
+    alignSelf: "center"
+  };
+
+  const bottomBarResponsive = isTablet
+    ? {
+        left: undefined,
+        right: undefined,
+        width: Math.min(screenWidth - 24, 760),
+        alignSelf: "center",
+        bottom: Math.round(10 * heightScale),
+        height: Math.round(78 * heightScale),
+        paddingBottom: Math.round(2 * heightScale),
+        borderRadius: Math.round(24 * uiScale)
+      }
+    : isAndroid
+      ? {
+          left: Math.round(10 * widthScale),
+          right: Math.round(10 * widthScale),
+          bottom: Math.round(6 * heightScale),
+          height: Math.round(88 * heightScale),
+          paddingBottom: Math.round(6 * heightScale),
+          borderRadius: Math.round(22 * uiScale)
+        }
+      : {};
+
+  const bottomSideVisualSlotResponsive = {
+    width: Math.round((isTablet ? 60 : 72) * widthScale),
+    height: Math.round((isTablet ? 52 : 64) * heightScale),
+    marginBottom: Math.round((isTablet ? 0 : isAndroid ? 4 : 8) * heightScale)
+  };
+
+  const bottomTextResponsive = {
+    fontSize: Math.round((isTablet ? 13 : 16) * uiScale),
+    marginTop: Math.round((isTablet ? -2 : isAndroid ? -4 : -8) * heightScale),
+    textAlign: "center",
+    paddingHorizontal: Math.round((isTablet ? 6 : 4) * widthScale),
+    lineHeight: Math.round((isTablet ? 15 : 18) * uiScale)
+  };
+
+  const bottomSideTextResponsive = {
+    marginTop: Math.round((isTablet ? -4 : isAndroid ? -8 : -14) * heightScale)
+  };
+
+  const bottomSubTextResponsive = {
+    fontSize: Math.round((isTablet ? 9 : 10) * uiScale),
+    marginTop: 0,
+    color: isTablet ? "#ffd7f3" : "#ffd0f0"
+  };
+
+  const bottomCenterBadgeResponsive = {
+    width: Math.round((isTablet ? 52 : isAndroid ? 58 : 64) * uiScale),
+    height: Math.round((isTablet ? 52 : isAndroid ? 58 : 64) * uiScale),
+    borderRadius: Math.round((isTablet ? 26 : isAndroid ? 29 : 32) * uiScale)
+  };
+
+  const bottomCenterBadgeShadowResponsive = {
+    width: Math.round((isTablet ? 60 : isAndroid ? 66 : 74) * uiScale),
+    height: Math.round((isTablet ? 60 : isAndroid ? 66 : 74) * uiScale),
+    borderRadius: Math.round((isTablet ? 30 : isAndroid ? 33 : 37) * uiScale),
+    top: Math.round((isTablet ? -3 : isAndroid ? -6 : -7) * heightScale)
+  };
+
+  const bottomCenterTextResponsive = {
+    fontSize: Math.round((isTablet ? 11 : 14) * uiScale),
+    marginTop: Math.round((isTablet ? 3 : isAndroid ? 2 : 5) * heightScale),
+    textAlign: "center",
+    paddingHorizontal: Math.round(6 * widthScale)
+  };
+
+  const categoryCardResponsive = {
+    minHeight: Math.round((isTablet ? 106 : isAndroid ? 118 : 132) * heightScale),
+    paddingVertical: Math.round((isTablet ? 10 : 14) * heightScale),
+    borderRadius: Math.round((isTablet ? 22 : 26) * uiScale),
+    paddingHorizontal: Math.round((isTablet ? 10 : 12) * widthScale)
+  };
+
+  const categoryBadgeResponsive = {
+    width: Math.round((isTablet ? 56 : 80) * uiScale),
+    height: Math.round((isTablet ? 56 : 80) * uiScale),
+    borderRadius: Math.round((isTablet ? 16 : 22) * uiScale)
+  };
+
+  const categoryImageWrapResponsive = {
+    width: Math.round((isTablet ? 64 : 88) * uiScale),
+    height: Math.round((isTablet ? 64 : 88) * uiScale),
+    marginBottom: Math.round((isTablet ? 6 : 10) * heightScale)
+  };
+
+  const categoryIconWrapResponsive = {
+    width: Math.round((isTablet ? 42 : 52) * uiScale),
+    height: Math.round((isTablet ? 42 : 52) * uiScale)
+  };
+
+  const categoryTextResponsive = {
+    fontSize: Math.round((isTablet ? 13 : 15) * uiScale)
+  };
+
+  const categoryTextSubResponsive = {
+    fontSize: Math.round((isTablet ? 11 : 12) * uiScale),
+    lineHeight: Math.round((isTablet ? 14 : 16) * uiScale)
+  };
+
+  const detailPageResponsive = {
+    width: "100%",
+    maxWidth: bodyContentWidth,
+    alignSelf: "center",
+    marginTop: Math.round((isTablet ? 4 : 8) * heightScale),
+    padding: Math.round((isTablet ? 14 : 16) * uiScale)
+  };
+
+  const introBrandWrapResponsive = {
+    top: Math.round((isTablet ? 32 : 60) * heightScale),
+    left: Math.round((isTablet ? 40 : 24) * widthScale),
+    right: Math.round((isTablet ? 40 : 24) * widthScale),
+    alignItems: isTablet ? "center" : "flex-start"
+  };
+
+  const introBrandTitleResponsive = {
+    fontSize: Math.round((isTablet ? 24 : 28) * uiScale),
+    textAlign: isTablet ? "center" : "left"
+  };
+
+  const introBrandSubResponsive = {
+    fontSize: Math.round((isTablet ? 13 : 14) * uiScale),
+    maxWidth: isTablet ? 320 : 250,
+    textAlign: isTablet ? "center" : "left"
+  };
+
+  const showIntroBrandOverlay = isTablet;
+
+  const introResizeMode = "stretch";
+
+  const introButtonResponsive = {
+    bottom: Math.round((isTablet ? 26 : isAndroid ? 42 : 36) * heightScale),
+    paddingHorizontal: Math.round((isTablet ? 26 : 30) * widthScale),
+    paddingVertical: Math.round((isTablet ? 10 : 12) * heightScale)
+  };
+
+  const introImageResponsive =
+    {
+      position: "absolute",
+      alignSelf: "stretch",
+      width: screenWidth,
+      height: screenHeight,
+      borderRadius: 0,
+      overflow: "hidden"
+    };
+
+  const introTintResponsive = {
+    backgroundColor: isTablet ? "rgba(34, 0, 48, 0.12)" : "rgba(34, 0, 48, 0.22)"
+  };
+
+  const hintOverlayResponsive = {
+    paddingBottom: Math.round((isTablet ? 96 : 138) * heightScale),
+    paddingHorizontal: Math.round((isTablet ? 20 : 24) * widthScale)
+  };
+
+  const hintCardResponsive = {
+    maxWidth: isTablet ? 330 : 340,
+    paddingHorizontal: Math.round((isTablet ? 16 : 18) * widthScale),
+    paddingTop: Math.round((isTablet ? 14 : 16) * heightScale),
+    paddingBottom: Math.round((isTablet ? 12 : 14) * heightScale)
+  };
+
+  const bottomCenterVisualSlotResponsive = null;
+
   return (
     <SafeAreaView style={styles.container}>
       <StatusBar style="light" />
@@ -816,7 +1195,7 @@ export default function App() {
       <View style={styles.appGlowBottom} pointerEvents="none" />
       <View style={styles.appGlowMid} pointerEvents="none" />
 
-      <View style={styles.hero}>
+      <Animated.View style={[styles.hero, heroResponsive, heroAnimatedStyle]}>
         <View style={styles.heroBlob1} />
         <View style={styles.heroBlob2} />
         <View style={styles.welcomeRow}>
@@ -847,11 +1226,11 @@ export default function App() {
               }
             ]}
           >
-            <Ionicons name="phone-portrait" size={40} color="#fff" />
+            <Ionicons name="phone-portrait" size={heroIconSize} color="#fff" />
           </Animated.View>
           <View style={styles.welcomeTextWrap}>
-            <Text style={styles.welcomeTitle}>Welcome to</Text>
-            <Text style={styles.welcomeSub}>Hotline app</Text>
+            <Text style={[styles.welcomeTitle, welcomeTitleResponsive]}>Welcome to</Text>
+            <Text style={[styles.welcomeSub, welcomeSubResponsive]}>Hotline app</Text>
           </View>
           {detailGroup ? (
             <Pressable style={styles.heroBackBtn} onPress={closeDetailView}>
@@ -859,13 +1238,13 @@ export default function App() {
             </Pressable>
           ) : (
             <Pressable style={styles.heroInfoBtn} onPress={() => setAboutModalVisible(true)}>
-              <Ionicons name="information-circle" size={22} color="#ffffff" />
+              <Ionicons name="information-circle" size={heroInfoIconSize} color="#ffffff" />
             </Pressable>
           )}
         </View>
 
-        <View style={styles.searchShell}>
-          <View style={styles.searchBar}>
+        <Animated.View style={[styles.searchShell, searchShellAnimatedStyle]}>
+          <View style={[styles.searchBar, searchBarResponsive]}>
           {query.trim() && isArabicInput ? (
             <TouchableOpacity style={[styles.clearSearchBtn, styles.clearSearchBtnLeft]} onPress={clearSearch}>
               <Text style={styles.clearSearchText}>×</Text>
@@ -876,22 +1255,30 @@ export default function App() {
             onChangeText={setQuery}
             placeholder="Search hotline"
             placeholderTextColor="#8b8b8b"
-            style={styles.searchInput}
+            style={[styles.searchInput, searchInputResponsive]}
           />
           {query.trim() && !isArabicInput ? (
             <TouchableOpacity style={[styles.clearSearchBtn, styles.clearSearchBtnRight]} onPress={clearSearch}>
               <Text style={styles.clearSearchText}>×</Text>
             </TouchableOpacity>
           ) : null}
-          <View style={styles.searchIconBadge}>
-            <Text style={styles.searchIcon}>🔎</Text>
+          <View style={[styles.searchIconBadge, searchIconBadgeResponsive]}>
+            <Text style={[styles.searchIcon, searchIconTextResponsive]}>🔎</Text>
           </View>
           </View>
           <Text style={styles.searchCaption}>Search by name or hotline number</Text>
-        </View>
-      </View>
+        </Animated.View>
+      </Animated.View>
 
-      <ScrollView ref={scrollRef} contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
+      <Animated.ScrollView
+        ref={scrollRef}
+        contentContainerStyle={[styles.content, contentResponsive]}
+        showsVerticalScrollIndicator={false}
+        scrollEventThrottle={16}
+        onScroll={Animated.event([{ nativeEvent: { contentOffset: { y: scrollY } } }], {
+          useNativeDriver: false
+        })}
+      >
         {predictions.length ? (
           <Animated.View
             style={{
@@ -906,16 +1293,16 @@ export default function App() {
               opacity: searchResultsAnim
             }}
           >
-          <View style={styles.suggestBox}>
+          <View style={[styles.suggestBox, fullWidthCard]}>
             {predictions.map((p) => (
-              <TouchableOpacity key={p.id} style={styles.suggestItem} onPress={() => handlePredictionPress(p)}>
+              <TouchableOpacity key={p.id} style={[styles.suggestItem, suggestItemResponsive]} onPress={() => handlePredictionPress(p)}>
                 <View style={styles.suggestMeta}>
-                  <Text style={styles.suggestText}>{p.name_ar}</Text>
+                  <Text style={[styles.suggestText, suggestTextResponsive]}>{p.name_ar}</Text>
                   {renderContactBadges(p, true)}
-                  <Text style={styles.suggestCategoryPreview}>{p.category_name_ar}</Text>
+                  <Text style={[styles.suggestCategoryPreview, suggestCategoryPreviewResponsive]}>{p.category_name_ar}</Text>
                   <View style={styles.suggestBottomRow}>
-                    <TouchableOpacity style={styles.suggestPhoneBadge} onPress={() => callNumber(p)} disabled={!!p.is_non_phone}>
-                      <Text style={styles.suggestPhonePreview}>{p.phone || "--"}</Text>
+                    <TouchableOpacity style={[styles.suggestPhoneBadge, suggestPhoneBadgeResponsive]} onPress={() => callNumber(p)} disabled={!!p.is_non_phone}>
+                      <Text style={[styles.suggestPhonePreview, suggestPhonePreviewResponsive]}>{p.phone || "--"}</Text>
                     </TouchableOpacity>
                     <Text style={styles.suggestHint}>Tap to view</Text>
                   </View>
@@ -927,13 +1314,13 @@ export default function App() {
         ) : null}
 
         {!predictions.length && typoSuggestion ? (
-          <TouchableOpacity style={styles.typoBox} onPress={() => handlePredictionPress(typoSuggestion)}>
+          <TouchableOpacity style={[styles.typoBox, fullWidthCard]} onPress={() => handlePredictionPress(typoSuggestion)}>
             <Text style={styles.typoText}>Did you mean: {typoSuggestion} ?</Text>
           </TouchableOpacity>
         ) : null}
 
         {quickResult ? (
-          <View style={styles.quickResultCard}>
+          <View style={[styles.quickResultCard, fullWidthCard]}>
             <Text style={styles.quickResultTitle}>{quickResult.name_ar}</Text>
             {renderContactBadges(quickResult)}
             <Text style={styles.quickResultSub}>{quickResult.category_name_ar}</Text>
@@ -949,12 +1336,14 @@ export default function App() {
 
         {!detailGroup ? (
           <FlatList
+            key={`grid-${categoryColumns}`}
             data={GROUPS}
             renderItem={renderCategory}
             keyExtractor={(item) => item.key}
-            numColumns={2}
+            numColumns={categoryColumns}
             scrollEnabled={false}
-            columnWrapperStyle={styles.gridRow}
+            columnWrapperStyle={categoryColumns > 1 ? styles.gridRow : undefined}
+            style={gridWrapperResponsive}
           />
         ) : null}
 
@@ -962,6 +1351,7 @@ export default function App() {
           <Animated.View
             style={[
               styles.detailPage,
+              detailPageResponsive,
               {
                 transform: [
                   {
@@ -1057,38 +1447,40 @@ export default function App() {
             </View>
           </Animated.View>
         ) : null}
-      </ScrollView>
+      </Animated.ScrollView>
 
-      <LinearGradient colors={["#6c47f5", "#b30f7f"]} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={styles.bottomBar}>
+      {!showIntro ? (
+        <LinearGradient colors={["#6c47f5", "#b30f7f"]} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={[styles.bottomBar, bottomBarResponsive]}>
         <TouchableOpacity style={styles.bottomItem} onPress={onPrimaryNavPress}>
-          <View style={[styles.bottomVisualSlot, styles.bottomSideVisualSlot]}>
+          <View style={[styles.bottomVisualSlot, styles.bottomSideVisualSlot, bottomSideVisualSlotResponsive]}>
             {detailGroup || activeCategorySlug || quickResult ? (
               <Text style={styles.bottomIcon}>🏠</Text>
             ) : (
-              <Ionicons name="rocket-outline" size={30} color="#ffffff" />
+              <Ionicons name="rocket-outline" size={bottomSideIconSize} color="#ffffff" />
             )}
           </View>
-          <Text style={[styles.bottomText, styles.bottomSideText]}>{detailGroup || activeCategorySlug || quickResult ? "Home" : "Business Plans"}</Text>
+          <Text style={[styles.bottomText, styles.bottomSideText, bottomTextResponsive, bottomSideTextResponsive]}>{detailGroup || activeCategorySlug || quickResult ? "Home" : "Business Plans"}</Text>
           {!detailGroup && !activeCategorySlug && !quickResult ? (
-            <Text style={styles.bottomSubText}>Advertise</Text>
+            <Text style={[styles.bottomSubText, bottomSubTextResponsive]}>Advertise</Text>
           ) : null}
         </TouchableOpacity>
         <TouchableOpacity style={[styles.bottomItem, styles.bottomCenterItem]} onPress={() => setAddModalVisible(true)}>
           <View style={styles.bottomVisualSlot}>
-            <View style={styles.bottomCenterBadgeShadowCircle} />
-            <View style={styles.bottomCenterBadge}>
-              <Ionicons name="sparkles" size={22} color="#9a0f6f" />
+            <View style={[styles.bottomCenterBadgeShadowCircle, bottomCenterBadgeShadowResponsive]} />
+            <View style={[styles.bottomCenterBadge, bottomCenterBadgeResponsive]}>
+              <Ionicons name="sparkles" size={bottomCenterIconSize} color="#9a0f6f" />
             </View>
           </View>
-          <Text style={styles.bottomCenterText}>Add Number</Text>
+          <Text style={[styles.bottomCenterText, bottomCenterTextResponsive]}>Add Number</Text>
         </TouchableOpacity>
         <TouchableOpacity style={styles.bottomItem} onPress={() => setContactModalVisible(true)}>
-          <View style={[styles.bottomVisualSlot, styles.bottomSideVisualSlot]}>
-            <Ionicons name="chatbubble-ellipses-outline" size={30} color="#ffffff" />
+          <View style={[styles.bottomVisualSlot, styles.bottomSideVisualSlot, bottomSideVisualSlotResponsive]}>
+            <Ionicons name="chatbubble-ellipses-outline" size={bottomSideIconSize} color="#ffffff" />
           </View>
-          <Text style={[styles.bottomText, styles.bottomSideText]}>Contact us</Text>
+          <Text style={[styles.bottomText, styles.bottomSideText, bottomTextResponsive, bottomSideTextResponsive]}>Contact us</Text>
         </TouchableOpacity>
-      </LinearGradient>
+        </LinearGradient>
+      ) : null}
 
       <Modal transparent visible={addModalVisible} animationType="fade" onRequestClose={() => setAddModalVisible(false)}>
         <KeyboardAvoidingView style={styles.flexOne} behavior={Platform.OS === "ios" ? "padding" : "height"}>
@@ -1429,18 +1821,20 @@ export default function App() {
 
       {showIntro ? (
         <View style={styles.introOverlay}>
-          <ImageBackground source={introLocal} style={styles.introImage} resizeMode="cover">
-            <View style={styles.introTint} />
+          <ImageBackground source={introLocal} style={[styles.introImage, introImageResponsive]} resizeMode={introResizeMode}>
+            <View style={[styles.introTint, introTintResponsive]} />
             <View style={styles.introGlowTop} />
             <View style={styles.introGlowBottom} />
-            <View style={styles.introBrandWrap}>
-              <View style={styles.introBrandBadge}>
-                <Ionicons name="call" size={18} color="#ffffff" />
+            {showIntroBrandOverlay ? (
+              <View style={[styles.introBrandWrap, introBrandWrapResponsive]}>
+                <View style={styles.introBrandBadge}>
+                  <Ionicons name="call" size={18} color="#ffffff" />
+                </View>
+                <Text style={[styles.introBrandTitle, introBrandTitleResponsive]}>Hotline App</Text>
+                <Text style={[styles.introBrandSub, introBrandSubResponsive]}>Fast access to important numbers in Egypt</Text>
               </View>
-              <Text style={styles.introBrandTitle}>Hotline App</Text>
-              <Text style={styles.introBrandSub}>Fast access to important numbers in Egypt</Text>
-            </View>
-            <TouchableOpacity style={styles.introBtnFloating} onPress={handleIntroContinue}>
+            ) : null}
+            <TouchableOpacity style={[styles.introBtnFloating, introButtonResponsive]} onPress={handleIntroContinue}>
               <Text style={styles.introBtnText}>Enter App</Text>
             </TouchableOpacity>
           </ImageBackground>
@@ -1448,8 +1842,8 @@ export default function App() {
       ) : null}
 
       {showSuggestHint ? (
-        <Pressable style={styles.hintOverlay} onPress={dismissSuggestHint}>
-          <View style={styles.hintCard}>
+        <Pressable style={[styles.hintOverlay, hintOverlayResponsive]} onPress={dismissSuggestHint}>
+          <View style={[styles.hintCard, hintCardResponsive]}>
             <View style={styles.hintBadge}>
               <Ionicons name="sparkles" size={20} color="#b30f7f" />
             </View>
@@ -1571,13 +1965,15 @@ const styles = StyleSheet.create({
     width: 56,
     height: 56,
     borderRadius: 16,
-    backgroundColor: "rgba(255,255,255,0.22)",
+    backgroundColor: "#c53a95",
     padding: 4,
     shadowColor: "#0f1b66",
-    shadowOpacity: 0.28,
-    shadowRadius: 10,
-    shadowOffset: { width: 0, height: 6 },
-    elevation: 6
+    shadowOpacity: 0.08,
+    shadowRadius: 4,
+    shadowOffset: { width: 0, height: 2 },
+    elevation: 0,
+    borderWidth: 1,
+    borderColor: "#d96fb2"
   },
   phoneIconImage: {
     width: "100%",
@@ -1626,14 +2022,16 @@ const styles = StyleSheet.create({
     width: 42,
     height: 42,
     borderRadius: 21,
-    backgroundColor: "rgba(255,255,255,0.58)",
+    backgroundColor: "#ffffff",
     alignItems: "center",
     justifyContent: "center",
     shadowColor: "#ffffff",
-    shadowOpacity: 0.35,
-    shadowRadius: 10,
-    shadowOffset: { width: 0, height: 4 },
-    elevation: 3
+    shadowOpacity: 0.05,
+    shadowRadius: 3,
+    shadowOffset: { width: 0, height: 1 },
+    elevation: 0,
+    borderWidth: 1,
+    borderColor: "#f1d6ea"
   },
   clearSearchBtn: {
     width: 30,
@@ -1875,14 +2273,21 @@ const styles = StyleSheet.create({
     width: 80,
     height: 80,
     borderRadius: 22,
-    backgroundColor: "rgba(255,255,255,0.2)",
+    backgroundColor: "transparent",
     alignItems: "center",
     justifyContent: "center",
     shadowColor: "#000",
-    shadowOpacity: 0.1,
-    shadowRadius: 12,
-    shadowOffset: { width: 0, height: 8 },
-    elevation: 4
+    shadowOpacity: 0,
+    shadowRadius: 0,
+    shadowOffset: { width: 0, height: 0 },
+    elevation: 0,
+    borderWidth: 0,
+    borderColor: "transparent"
+  },
+  categoryIconWrap: {
+    alignItems: "center",
+    justifyContent: "center",
+    overflow: "visible"
   },
   cardUnderGlow: {
     display: "none"
@@ -2064,16 +2469,16 @@ const styles = StyleSheet.create({
     width: 38,
     height: 38,
     borderRadius: 19,
-    backgroundColor: "rgba(255,255,255,0.16)",
+    backgroundColor: "#ca489d",
     borderWidth: 1,
-    borderColor: "rgba(255,255,255,0.28)",
+    borderColor: "#de84bd",
     alignItems: "center",
     justifyContent: "center",
     shadowColor: "#56093f",
-    shadowOpacity: 0.18,
-    shadowRadius: 10,
-    shadowOffset: { width: 0, height: 6 },
-    elevation: 4
+    shadowOpacity: 0.05,
+    shadowRadius: 4,
+    shadowOffset: { width: 0, height: 2 },
+    elevation: 0
   },
   loader: {
     marginVertical: 10
@@ -2164,7 +2569,7 @@ const styles = StyleSheet.create({
     flex: 1,
     alignItems: "center",
     justifyContent: "center",
-    minWidth: 96
+    minWidth: 80
   },
   bottomCenterItem: {
     justifyContent: "center"
@@ -2190,10 +2595,10 @@ const styles = StyleSheet.create({
     borderWidth: 1.5,
     borderColor: "rgba(255,255,255,0.88)",
     shadowColor: "#7b7b86",
-    shadowOpacity: 0.24,
-    shadowRadius: 10,
-    shadowOffset: { width: 0, height: 6 },
-    elevation: 12,
+    shadowOpacity: 0.08,
+    shadowRadius: 4,
+    shadowOffset: { width: 0, height: 2 },
+    elevation: 0,
     zIndex: 2
   },
   bottomCenterBadgeShadowCircle: {
@@ -2604,7 +3009,8 @@ const styles = StyleSheet.create({
     backgroundColor: "rgba(16, 0, 32, 0.55)",
     alignItems: "center",
     justifyContent: "center",
-    padding: 0
+    paddingHorizontal: 16,
+    paddingVertical: 16
   },
   introTint: {
     position: "absolute",
@@ -2640,12 +3046,12 @@ const styles = StyleSheet.create({
     width: 38,
     height: 38,
     borderRadius: 19,
-    backgroundColor: "rgba(255,255,255,0.2)",
+    backgroundColor: "#ca489d",
     alignItems: "center",
     justifyContent: "center",
     marginBottom: 10,
     borderWidth: 1,
-    borderColor: "rgba(255,255,255,0.28)"
+    borderColor: "#de84bd"
   },
   introBrandTitle: {
     color: "#ffffff",
