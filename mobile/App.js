@@ -1076,6 +1076,17 @@ export default function App() {
     color: isTablet ? "#ffd7f3" : "#ffd0f0"
   };
 
+  const businessPlanItemResponsive = {
+    paddingTop: Math.round((isTablet ? 2 : 4) * heightScale)
+  };
+
+  const businessPlanTextResponsive = {
+    marginTop: Math.round((isTablet ? -2 : -1) * heightScale),
+    lineHeight: Math.round((isTablet ? 14 : 16) * uiScale)
+  };
+
+  const showBusinessPlanSubText = !isAndroid;
+
   const bottomCenterBadgeResponsive = {
     width: Math.round((isTablet ? 52 : isAndroid ? 58 : 64) * uiScale),
     height: Math.round((isTablet ? 52 : isAndroid ? 58 : 64) * uiScale),
@@ -1457,7 +1468,7 @@ export default function App() {
 
       {!showIntro ? (
         <LinearGradient colors={["#6c47f5", "#b30f7f"]} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={[styles.bottomBar, bottomBarResponsive]}>
-        <TouchableOpacity style={styles.bottomItem} onPress={onPrimaryNavPress}>
+        <TouchableOpacity style={[styles.bottomItem, businessPlanItemResponsive]} onPress={onPrimaryNavPress}>
           <View style={[styles.bottomVisualSlot, styles.bottomSideVisualSlot, bottomSideVisualSlotResponsive]}>
             {detailGroup || activeCategorySlug || quickResult ? (
               <Text style={styles.bottomIcon}>🏠</Text>
@@ -1465,8 +1476,10 @@ export default function App() {
               <Ionicons name="rocket-outline" size={bottomSideIconSize} color="#ffffff" />
             )}
           </View>
-          <Text style={[styles.bottomText, styles.bottomSideText, bottomTextResponsive, bottomSideTextResponsive]}>{detailGroup || activeCategorySlug || quickResult ? "Home" : "Business Plans"}</Text>
-          {!detailGroup && !activeCategorySlug && !quickResult ? (
+          <Text style={[styles.bottomText, styles.bottomSideText, bottomTextResponsive, bottomSideTextResponsive, businessPlanTextResponsive]}>
+            {detailGroup || activeCategorySlug || quickResult ? "Home" : "Business\nPlans"}
+          </Text>
+          {!detailGroup && !activeCategorySlug && !quickResult && showBusinessPlanSubText ? (
             <Text style={[styles.bottomSubText, bottomSubTextResponsive]}>Advertise</Text>
           ) : null}
         </TouchableOpacity>
