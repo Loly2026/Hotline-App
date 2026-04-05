@@ -20,6 +20,7 @@ import {
   View,
   PanResponder,
   ImageBackground,
+  Dimensions,
   useWindowDimensions
 } from "react-native";
 import { LinearGradient } from "expo-linear-gradient";
@@ -100,12 +101,12 @@ const ICONS = {
   retail: { set: "mci", name: "toolbox-outline", color: "#8b5cf6" }
 };
 const GROUP_COLORS = {
-  gov: { accent: "#ef4444", card: "rgba(239,68,68,0.12)", cardActive: "rgba(239,68,68,0.18)" }, // أحمر
-  health: { accent: "#ec4899", card: "rgba(236,72,153,0.12)", cardActive: "rgba(236,72,153,0.18)" }, // بينك
-  food: { accent: "#f59e0b", card: "rgba(245,158,11,0.12)", cardActive: "rgba(245,158,11,0.18)" }, // أصفر
-  finance: { accent: "#0ea5e9", card: "rgba(14,165,233,0.12)", cardActive: "rgba(14,165,233,0.18)" }, // لبني
-  mobility: { accent: "#22c55e", card: "rgba(34,197,94,0.12)", cardActive: "rgba(34,197,94,0.18)" }, // أخضر
-  retail: { accent: "#8b5cf6", card: "rgba(139,92,246,0.12)", cardActive: "rgba(139,92,246,0.18)" } // بنفسجي
+  gov: { accent: "#ef4444", card: "#fde2e2", cardActive: "#f9c9c9" },
+  health: { accent: "#ec4899", card: "#fde1ef", cardActive: "#f9c7e0" },
+  food: { accent: "#f59e0b", card: "#feedd1", cardActive: "#f9ddb0" },
+  finance: { accent: "#0ea5e9", card: "#dcedfb", cardActive: "#c2e2fb" },
+  mobility: { accent: "#22c55e", card: "#deefe0", cardActive: "#cae8d0" },
+  retail: { accent: "#8b5cf6", card: "#ebe0ff", cardActive: "#dbcafc" }
 };
 const CATEGORY_GROUP_OVERRIDES = {
   emergency: "gov",
@@ -163,6 +164,8 @@ export default function App() {
   const widthScale = Math.min(Math.max(screenWidth / (isTablet ? 900 : 390), 0.88), isTablet ? 1.08 : 1.12);
   const heightScale = Math.min(Math.max(screenHeight / (isTablet ? 1180 : 844), 0.9), 1.08);
   const uiScale = Math.min(widthScale, heightScale);
+  const physicalScreenHeight = Dimensions.get("screen").height;
+  const androidSystemInset = isAndroid ? Math.max(physicalScreenHeight - screenHeight, 0) : 0;
   const swipeThreshold = screenWidth * 0.25;
   const heroContentWidth = isLargeTablet ? 840 : isTablet ? 760 : screenWidth;
   const bodyContentWidth = isLargeTablet ? 860 : isTablet ? 780 : screenWidth;
@@ -1010,7 +1013,7 @@ export default function App() {
   const contentResponsive = {
     alignItems: "center",
     paddingTop: Math.round((isTablet ? 18 : 14) * heightScale),
-    paddingBottom: Math.round((isTablet ? 108 : isAndroid ? 96 : 116) * heightScale)
+    paddingBottom: Math.round((isTablet ? 108 : isAndroid ? 96 : 116) * heightScale) + androidSystemInset + (isTablet ? 14 : 8)
   };
 
   const fullWidthCard = {
@@ -1029,20 +1032,22 @@ export default function App() {
     ? {
         left: undefined,
         right: undefined,
-        width: Math.min(screenWidth - 24, 760),
+        width: Math.min(screenWidth * 0.72, 620),
         alignSelf: "center",
-        bottom: Math.round(10 * heightScale),
-        height: Math.round(78 * heightScale),
-        paddingBottom: Math.round(2 * heightScale),
-        borderRadius: Math.round(24 * uiScale)
+        bottom: Math.round(16 * heightScale) + androidSystemInset,
+        height: Math.round(86 * heightScale),
+        paddingBottom: Math.round(8 * heightScale),
+        paddingTop: Math.round(8 * heightScale),
+        borderRadius: Math.round(28 * uiScale)
       }
     : isAndroid
       ? {
           left: Math.round(10 * widthScale),
           right: Math.round(10 * widthScale),
-          bottom: Math.round(6 * heightScale),
-          height: Math.round(88 * heightScale),
-          paddingBottom: Math.round(6 * heightScale),
+          bottom: Math.round(6 * heightScale) + androidSystemInset,
+          height: Math.round(92 * heightScale),
+          paddingBottom: Math.round(8 * heightScale),
+          paddingTop: Math.round(8 * heightScale),
           borderRadius: Math.round(22 * uiScale)
         }
       : {};
@@ -1050,19 +1055,19 @@ export default function App() {
   const bottomSideVisualSlotResponsive = {
     width: Math.round((isTablet ? 60 : 72) * widthScale),
     height: Math.round((isTablet ? 52 : 64) * heightScale),
-    marginBottom: Math.round((isTablet ? 0 : isAndroid ? 4 : 8) * heightScale)
+    marginBottom: Math.round((isTablet ? 4 : isAndroid ? 6 : 8) * heightScale)
   };
 
   const bottomTextResponsive = {
     fontSize: Math.round((isTablet ? 13 : 16) * uiScale),
-    marginTop: Math.round((isTablet ? -2 : isAndroid ? -4 : -8) * heightScale),
+    marginTop: Math.round((isTablet ? 1 : isAndroid ? 1 : -2) * heightScale),
     textAlign: "center",
     paddingHorizontal: Math.round((isTablet ? 6 : 4) * widthScale),
     lineHeight: Math.round((isTablet ? 15 : 18) * uiScale)
   };
 
   const bottomSideTextResponsive = {
-    marginTop: Math.round((isTablet ? -4 : isAndroid ? -8 : -14) * heightScale)
+    marginTop: Math.round((isTablet ? -1 : isAndroid ? -1 : -6) * heightScale)
   };
 
   const bottomSubTextResponsive = {
@@ -1086,37 +1091,37 @@ export default function App() {
 
   const bottomCenterTextResponsive = {
     fontSize: Math.round((isTablet ? 11 : 14) * uiScale),
-    marginTop: Math.round((isTablet ? 3 : isAndroid ? 2 : 5) * heightScale),
+    marginTop: Math.round((isTablet ? 2 : isAndroid ? 2 : 4) * heightScale),
     textAlign: "center",
     paddingHorizontal: Math.round(6 * widthScale)
   };
 
   const categoryCardResponsive = {
-    minHeight: Math.round((isTablet ? 106 : isAndroid ? 118 : 132) * heightScale),
-    paddingVertical: Math.round((isTablet ? 10 : 14) * heightScale),
+    minHeight: Math.round((isTablet ? 118 : isAndroid ? 118 : 132) * heightScale),
+    paddingVertical: Math.round((isTablet ? 14 : 14) * heightScale),
     borderRadius: Math.round((isTablet ? 22 : 26) * uiScale),
     paddingHorizontal: Math.round((isTablet ? 10 : 12) * widthScale)
   };
 
   const categoryBadgeResponsive = {
-    width: Math.round((isTablet ? 56 : 80) * uiScale),
-    height: Math.round((isTablet ? 56 : 80) * uiScale),
-    borderRadius: Math.round((isTablet ? 16 : 22) * uiScale)
+    width: Math.round((isTablet ? 72 : 80) * uiScale),
+    height: Math.round((isTablet ? 72 : 80) * uiScale),
+    borderRadius: Math.round((isTablet ? 20 : 22) * uiScale)
   };
 
   const categoryImageWrapResponsive = {
-    width: Math.round((isTablet ? 64 : 88) * uiScale),
-    height: Math.round((isTablet ? 64 : 88) * uiScale),
-    marginBottom: Math.round((isTablet ? 6 : 10) * heightScale)
+    width: Math.round((isTablet ? 76 : 88) * uiScale),
+    height: Math.round((isTablet ? 76 : 88) * uiScale),
+    marginBottom: Math.round((isTablet ? 8 : 10) * heightScale)
   };
 
   const categoryIconWrapResponsive = {
-    width: Math.round((isTablet ? 42 : 52) * uiScale),
-    height: Math.round((isTablet ? 42 : 52) * uiScale)
+    width: Math.round((isTablet ? 52 : 52) * uiScale),
+    height: Math.round((isTablet ? 52 : 52) * uiScale)
   };
 
   const categoryTextResponsive = {
-    fontSize: Math.round((isTablet ? 13 : 15) * uiScale)
+    fontSize: Math.round((isTablet ? 14 : 15) * uiScale)
   };
 
   const categoryTextSubResponsive = {
@@ -1191,11 +1196,11 @@ export default function App() {
   return (
     <SafeAreaView style={styles.container}>
       <StatusBar style="light" />
-      <View style={styles.appGlowTop} pointerEvents="none" />
-      <View style={styles.appGlowBottom} pointerEvents="none" />
-      <View style={styles.appGlowMid} pointerEvents="none" />
+      {!showIntro ? <View style={styles.appGlowTop} pointerEvents="none" /> : null}
+      {!showIntro ? <View style={styles.appGlowBottom} pointerEvents="none" /> : null}
+      {!showIntro ? <View style={styles.appGlowMid} pointerEvents="none" /> : null}
 
-      <Animated.View style={[styles.hero, heroResponsive, heroAnimatedStyle]}>
+      <Animated.View style={[styles.hero, heroResponsive, heroAnimatedStyle, showIntro && styles.screenHidden]}>
         <View style={styles.heroBlob1} />
         <View style={styles.heroBlob2} />
         <View style={styles.welcomeRow}>
@@ -1275,6 +1280,7 @@ export default function App() {
         contentContainerStyle={[styles.content, contentResponsive]}
         showsVerticalScrollIndicator={false}
         scrollEventThrottle={16}
+        style={showIntro ? styles.screenHidden : null}
         onScroll={Animated.event([{ nativeEvent: { contentOffset: { y: scrollY } } }], {
           useNativeDriver: false
         })}
@@ -1466,7 +1472,6 @@ export default function App() {
         </TouchableOpacity>
         <TouchableOpacity style={[styles.bottomItem, styles.bottomCenterItem]} onPress={() => setAddModalVisible(true)}>
           <View style={styles.bottomVisualSlot}>
-            <View style={[styles.bottomCenterBadgeShadowCircle, bottomCenterBadgeShadowResponsive]} />
             <View style={[styles.bottomCenterBadge, bottomCenterBadgeResponsive]}>
               <Ionicons name="sparkles" size={bottomCenterIconSize} color="#9a0f6f" />
             </View>
@@ -1886,6 +1891,9 @@ const styles = StyleSheet.create({
   flexOne: {
     flex: 1
   },
+  screenHidden: {
+    opacity: 0
+  },
   container: {
     flex: 1,
     backgroundColor: "#f7e8f3"
@@ -2086,7 +2094,8 @@ const styles = StyleSheet.create({
     paddingHorizontal: 14,
     paddingVertical: 12,
     borderBottomWidth: 1,
-    borderBottomColor: "rgba(232,226,240,0.8)"
+    borderBottomColor: "rgba(232,226,240,0.8)",
+    alignItems: "flex-start"
   },
   suggestText: {
     color: "#1f2937",
@@ -2129,7 +2138,8 @@ const styles = StyleSheet.create({
     color: "#15803d"
   },
   suggestMeta: {
-    flex: 1
+    width: "100%",
+    flexGrow: 0
   },
   suggestCategoryPreview: {
     color: "#6b7280",
@@ -2148,6 +2158,7 @@ const styles = StyleSheet.create({
     borderRadius: 14,
     paddingHorizontal: 13,
     paddingVertical: 7,
+    minWidth: 76,
     borderWidth: 1,
     borderColor: "#ead8ff",
     shadowColor: "#d8b4fe",
@@ -2159,7 +2170,8 @@ const styles = StyleSheet.create({
   suggestPhonePreview: {
     color: "#6d28d9",
     fontSize: 16,
-    fontWeight: "800"
+    fontWeight: "800",
+    textAlign: "center"
   },
   suggestHint: {
     color: "#7c3aed",
@@ -2234,30 +2246,30 @@ const styles = StyleSheet.create({
   },
   categoryCard: {
     width: "100%",
-    backgroundColor: "rgba(255,255,255,0.16)",
+    backgroundColor: "#f6e8f3",
     borderRadius: 26,
     alignItems: "center",
     paddingVertical: 14,
     paddingHorizontal: 12,
     minHeight: 132,
     marginBottom: 0,
-    borderWidth: 1.2,
-    borderColor: "rgba(255,255,255,0.28)",
-    shadowColor: "#ffffff",
-    shadowOpacity: 0.25,
-    shadowRadius: 18,
-    shadowOffset: { width: 0, height: 8 },
-    elevation: 10,
+    borderWidth: 1,
+    borderColor: "rgba(179,15,127,0.08)",
+    shadowColor: "#000",
+    shadowOpacity: 0,
+    shadowRadius: 0,
+    shadowOffset: { width: 0, height: 0 },
+    elevation: 0,
     overflow: "hidden"
   },
   categoryCardActive: {
     borderColor: "#5d67e8",
-    backgroundColor: "rgba(255,255,255,0.22)"
+    backgroundColor: "#f0def0"
   },
   categoryCardPressed: {
     transform: [{ scale: 0.95 }, { translateY: 3 }],
-    shadowOpacity: 0.35,
-    shadowRadius: 12
+    shadowOpacity: 0,
+    shadowRadius: 0
   },
   categoryIcon: {
     display: "none"
@@ -2569,17 +2581,19 @@ const styles = StyleSheet.create({
     flex: 1,
     alignItems: "center",
     justifyContent: "center",
-    minWidth: 80
+    minWidth: 80,
+    paddingHorizontal: 4
   },
   bottomCenterItem: {
-    justifyContent: "center"
+    justifyContent: "center",
+    paddingHorizontal: 2
   },
   bottomVisualSlot: {
     width: 72,
     height: 64,
     alignItems: "center",
     justifyContent: "center",
-    marginBottom: 2,
+    marginBottom: 6,
     position: "relative"
   },
   bottomSideVisualSlot: {
@@ -2589,11 +2603,11 @@ const styles = StyleSheet.create({
     width: 64,
     height: 64,
     borderRadius: 32,
-    backgroundColor: "rgba(255,255,255,0.98)",
+    backgroundColor: "#ffffff",
     alignItems: "center",
     justifyContent: "center",
     borderWidth: 1.5,
-    borderColor: "rgba(255,255,255,0.88)",
+    borderColor: "#f3d8ea",
     shadowColor: "#7b7b86",
     shadowOpacity: 0.08,
     shadowRadius: 4,
@@ -2601,20 +2615,11 @@ const styles = StyleSheet.create({
     elevation: 0,
     zIndex: 2
   },
-  bottomCenterBadgeShadowCircle: {
-    position: "absolute",
-    width: 74,
-    height: 74,
-    borderRadius: 37,
-    backgroundColor: "#f7e8f3",
-    top: -5,
-    zIndex: 1
-  },
   bottomCenterText: {
     color: "#fff",
     fontSize: 14,
     fontWeight: "800",
-    marginTop: 5
+    marginTop: 3
   },
   bottomIcon: {
     fontSize: 36,
@@ -3006,11 +3011,13 @@ const styles = StyleSheet.create({
     bottom: 0,
     left: 0,
     right: 0,
-    backgroundColor: "rgba(16, 0, 32, 0.55)",
+    backgroundColor: "#18011f",
     alignItems: "center",
     justifyContent: "center",
     paddingHorizontal: 16,
-    paddingVertical: 16
+    paddingVertical: 16,
+    zIndex: 999,
+    elevation: 50
   },
   introTint: {
     position: "absolute",
