@@ -1,8 +1,9 @@
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
   ActivityIndicator,
   Alert,
   Animated,
+  AppState,
   BackHandler,
   KeyboardAvoidingView,
   Easing,
@@ -166,6 +167,9 @@ export default function App() {
   const uiScale = Math.min(widthScale, heightScale);
   const physicalScreenHeight = Dimensions.get("screen").height;
   const androidSystemInset = isAndroid ? Math.max(physicalScreenHeight - screenHeight, 0) : 0;
+  const androidBottomSafeOffset = isAndroid
+    ? Math.max(androidSystemInset, Math.round((isTablet ? 28 : 22) * heightScale))
+    : 0;
   const swipeThreshold = screenWidth * 0.25;
   const heroContentWidth = isLargeTablet ? 840 : isTablet ? 760 : screenWidth;
   const bodyContentWidth = isLargeTablet ? 860 : isTablet ? 780 : screenWidth;
@@ -206,6 +210,9 @@ export default function App() {
   const detailAnim = useRef(new Animated.Value(0)).current;
   const addSheetAnim = useRef(new Animated.Value(0)).current;
   const addSheetDrag = useRef(new Animated.Value(0)).current;
+  const hasLoadedContactsRef = useRef(false);
+  const appStateRef = useRef(AppState.currentState);
+  const lastContactsRefreshRef = useRef(0);
   const [detailGroup, setDetailGroup] = useState("");
   const [detailCategory, setDetailCategory] = useState("");
   const lastDetail = useRef({ group: "", category: "" });
@@ -293,10 +300,10 @@ export default function App() {
     })
   ).current;
 
-  useEffect(() => {
-    async function load() {
-      let seededFromLocal = false;
+  const loadContacts = useCallback(async ({ seedFromCache = false, silent = false } = {}) => {
+    let seededFromLocal = false;
 
+    if (seedFromCache) {
       try {
         const cacheInfo = await FileSystem.getInfoAsync(CONTACTS_CACHE_PATH);
         if (cacheInfo.exists) {
@@ -316,31 +323,60 @@ export default function App() {
         setAllContacts(sortContacts(FALLBACK_CONTACTS));
         setError("يتم عرض نسخة محلية من البيانات حالياً.");
       }
-
-      setLoading(false);
-
-      const controller = new AbortController();
-      const timeoutId = setTimeout(() => controller.abort(), 20000);
-      try {
-        const res = await fetch(`${API_BASE_URL}/api/contacts?limit=3000`, {
-          signal: controller.signal
-        });
-        const data = await res.json();
-        if (Array.isArray(data) && data.length > 0) {
-          setAllContacts(sortContacts(data));
-          setError("");
-          await FileSystem.writeAsStringAsync(CONTACTS_CACHE_PATH, JSON.stringify(sortContacts(data)));
-        } else {
-          setError("يتم عرض آخر نسخة محفوظة من البيانات حالياً.");
-        }
-      } catch {
-        setError(`تعذر تحميل البيانات من ${API_BASE_URL} - يتم عرض آخر نسخة محفوظة.`);
-      } finally {
-        clearTimeout(timeoutId);
-      }
     }
-    load();
+
+    if (!silent && !hasLoadedContactsRef.current) {
+      setLoading(false);
+    }
+
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), 20000);
+    try {
+      const res = await fetch(`${API_BASE_URL}/api/contacts?limit=3000&t=${Date.now()}`, {
+        signal: controller.signal,
+        headers: {
+          "Cache-Control": "no-cache"
+        }
+      });
+      const data = await res.json();
+      if (Array.isArray(data) && data.length > 0) {
+        const sorted = sortContacts(data);
+        setAllContacts(sorted);
+        setError("");
+        lastContactsRefreshRef.current = Date.now();
+        await FileSystem.writeAsStringAsync(CONTACTS_CACHE_PATH, JSON.stringify(sorted));
+      } else if (!seededFromLocal) {
+        setError("يتم عرض آخر نسخة محفوظة من البيانات حالياً.");
+      }
+    } catch {
+      if (!seededFromLocal) {
+        setError(`تعذر تحميل البيانات من ${API_BASE_URL} - يتم عرض آخر نسخة محفوظة.`);
+      }
+    } finally {
+      clearTimeout(timeoutId);
+      hasLoadedContactsRef.current = true;
+      setLoading(false);
+    }
   }, []);
+
+  useEffect(() => {
+    loadContacts({ seedFromCache: true });
+  }, [loadContacts]);
+
+  useEffect(() => {
+    const subscription = AppState.addEventListener("change", (nextState) => {
+      const wasBackgrounded = /inactive|background/.test(appStateRef.current);
+      if (wasBackgrounded && nextState === "active") {
+        const now = Date.now();
+        if (now - lastContactsRefreshRef.current > 10000) {
+          loadContacts({ silent: true });
+        }
+      }
+      appStateRef.current = nextState;
+    });
+
+    return () => subscription.remove();
+  }, [loadContacts]);
 
   useEffect(() => {
     // introLoaded stays true (no persistent storage)
@@ -1013,7 +1049,10 @@ export default function App() {
   const contentResponsive = {
     alignItems: "center",
     paddingTop: Math.round((isTablet ? 18 : 14) * heightScale),
-    paddingBottom: Math.round((isTablet ? 108 : isAndroid ? 96 : 116) * heightScale) + androidSystemInset + (isTablet ? 14 : 8)
+    paddingBottom:
+      Math.round((isTablet ? 108 : isAndroid ? 96 : 116) * heightScale) +
+      androidBottomSafeOffset +
+      (isTablet ? 14 : 8)
   };
 
   const fullWidthCard = {
@@ -1034,7 +1073,7 @@ export default function App() {
         right: undefined,
         width: Math.min(screenWidth * 0.72, 620),
         alignSelf: "center",
-        bottom: Math.round(16 * heightScale) + androidSystemInset,
+        bottom: Math.round(16 * heightScale) + androidBottomSafeOffset,
         height: Math.round(86 * heightScale),
         paddingBottom: Math.round(8 * heightScale),
         paddingTop: Math.round(8 * heightScale),
@@ -1044,7 +1083,7 @@ export default function App() {
       ? {
           left: Math.round(10 * widthScale),
           right: Math.round(10 * widthScale),
-          bottom: Math.round(6 * heightScale) + androidSystemInset,
+          bottom: Math.round(8 * heightScale) + androidBottomSafeOffset,
           height: Math.round(92 * heightScale),
           paddingBottom: Math.round(8 * heightScale),
           paddingTop: Math.round(8 * heightScale),
@@ -1056,6 +1095,10 @@ export default function App() {
     width: Math.round((isTablet ? 60 : 72) * widthScale),
     height: Math.round((isTablet ? 52 : 64) * heightScale),
     marginBottom: Math.round((isTablet ? 4 : isAndroid ? 6 : 8) * heightScale)
+  };
+
+  const businessPlanVisualSlotResponsive = {
+    marginTop: Math.round((isTablet ? 4 : isAndroid ? 5 : 0) * heightScale)
   };
 
   const bottomTextResponsive = {
@@ -1079,13 +1122,6 @@ export default function App() {
   const businessPlanItemResponsive = {
     paddingTop: Math.round((isTablet ? 2 : 4) * heightScale)
   };
-
-  const businessPlanTextResponsive = {
-    marginTop: Math.round((isTablet ? -2 : -1) * heightScale),
-    lineHeight: Math.round((isTablet ? 14 : 16) * uiScale)
-  };
-
-  const showBusinessPlanSubText = !isAndroid;
 
   const bottomCenterBadgeResponsive = {
     width: Math.round((isTablet ? 52 : isAndroid ? 58 : 64) * uiScale),
@@ -1469,19 +1505,16 @@ export default function App() {
       {!showIntro ? (
         <LinearGradient colors={["#6c47f5", "#b30f7f"]} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={[styles.bottomBar, bottomBarResponsive]}>
         <TouchableOpacity style={[styles.bottomItem, businessPlanItemResponsive]} onPress={onPrimaryNavPress}>
-          <View style={[styles.bottomVisualSlot, styles.bottomSideVisualSlot, bottomSideVisualSlotResponsive]}>
+          <View style={[styles.bottomVisualSlot, styles.bottomSideVisualSlot, bottomSideVisualSlotResponsive, businessPlanVisualSlotResponsive]}>
             {detailGroup || activeCategorySlug || quickResult ? (
               <Text style={styles.bottomIcon}>🏠</Text>
             ) : (
               <Ionicons name="rocket-outline" size={bottomSideIconSize} color="#ffffff" />
             )}
           </View>
-          <Text style={[styles.bottomText, styles.bottomSideText, bottomTextResponsive, bottomSideTextResponsive, businessPlanTextResponsive]}>
-            {detailGroup || activeCategorySlug || quickResult ? "Home" : "Business\nPlans"}
+          <Text style={[styles.bottomText, styles.bottomSideText, bottomTextResponsive, bottomSideTextResponsive]}>
+            {detailGroup || activeCategorySlug || quickResult ? "Home" : "Promote"}
           </Text>
-          {!detailGroup && !activeCategorySlug && !quickResult && showBusinessPlanSubText ? (
-            <Text style={[styles.bottomSubText, bottomSubTextResponsive]}>Advertise</Text>
-          ) : null}
         </TouchableOpacity>
         <TouchableOpacity style={[styles.bottomItem, styles.bottomCenterItem]} onPress={() => setAddModalVisible(true)}>
           <View style={styles.bottomVisualSlot}>

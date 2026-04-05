@@ -9,5 +9,12 @@ function getExpoHost() {
 
 const fallbackHost = Platform.OS === "android" ? "10.0.2.2" : "localhost";
 const resolvedHost = getExpoHost() || fallbackHost;
+const PUBLIC_API_URL = "https://hotline-app-4j53.onrender.com";
+const extraApiBaseUrl = Constants.expoConfig?.extra?.apiBaseUrl;
 
-export const API_BASE_URL = process.env.EXPO_PUBLIC_API_URL || `http://${resolvedHost}:4000`;
+export const API_BASE_URL =
+  process.env.EXPO_PUBLIC_API_URL ||
+  (typeof extraApiBaseUrl === "string" && extraApiBaseUrl && !extraApiBaseUrl.startsWith("@env:")
+    ? extraApiBaseUrl
+    : "") ||
+  (__DEV__ ? `http://${resolvedHost}:4000` : PUBLIC_API_URL);
