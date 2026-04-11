@@ -34,17 +34,17 @@ import FALLBACK_CONTACTS from "./src/data/fallbackContacts";
 const GROUPS = [
   { key: "gov", title: "Emergency", icon: "🚨" },
   { key: "health", title: "Hospital", icon: "🏨" },
-  { key: "food", title: "Food", icon: "🍽️" },
-  { key: "finance", title: "Finance", icon: "💳" },
-  { key: "mobility", title: "Transport", icon: "🚗" },
+  { key: "food", title: "Food & Malls", icon: "🍽️" },
+  { key: "finance", title: "Finance & Realty", icon: "💳" },
+  { key: "mobility", title: "Cars & Transport", icon: "🚗" },
   { key: "retail", title: "Services", icon: "🧰" }
 ];
 const GROUP_AR = {
   gov: "طوارئ وخدمات حكومية",
   health: "مستشفيات وخدمات طبية",
-  food: "مطاعم وأكل",
-  finance: "خدمات مالية",
-  mobility: "نقل ومواصلات",
+  food: "مطاعم ومولات",
+  finance: "مال وعقارات",
+  mobility: "سيارات ومواصلات وشحن",
   retail: "خدمات متنوعة"
 };
 function normalizeText(value) {
@@ -124,13 +124,20 @@ const CATEGORY_GROUP_OVERRIDES = {
   airlines: "mobility",
   furniture: "retail",
   appliances: "retail",
-  supermarkets: "retail",
+  supermarkets: "food",
   hotels: "retail",
-  realestate: "retail",
+  realestate: "finance",
   apps: "retail",
   charity: "retail",
   syndicates: "retail",
   education: "retail"
+};
+const CATEGORY_ORDER_BY_GROUP = {
+  retail: {
+    "mobile-internet": 1,
+    appliances: 2,
+    apps: 3
+  }
 };
 const introLocal = require("./assets/intro.png");
 const CONTACTS_CACHE_PATH = `${FileSystem.cacheDirectory}contacts-cache.json`;
@@ -155,6 +162,14 @@ function sortContacts(items) {
     if (nationalDiff) return nationalDiff;
     return String(a?.name_ar || "").localeCompare(String(b?.name_ar || ""), "ar");
   });
+}
+
+function sortCategoriesForGroup(a, b, groupKey) {
+  const orderMap = CATEGORY_ORDER_BY_GROUP[groupKey] || {};
+  const aOrder = orderMap[a.slug] || 999;
+  const bOrder = orderMap[b.slug] || 999;
+  if (aOrder !== bOrder) return aOrder - bOrder;
+  return String(a.name || "").localeCompare(String(b.name || ""), "ar");
 }
 
 export default function App() {
@@ -501,7 +516,7 @@ export default function App() {
     });
 
     grouped.forEach((group) => {
-      group.items.sort((a, b) => String(a.name || "").localeCompare(String(b.name || ""), "ar"));
+      group.items.sort((a, b) => sortCategoriesForGroup(a, b, group.key));
     });
 
     return grouped.filter((group) => group.items.length > 0);
@@ -515,7 +530,9 @@ export default function App() {
 
   const detailCategoryList = useMemo(() => {
     if (!selectedGroupKey || selectedGroupKey === "all") return [];
-    return allCategoryList.filter((cat) => cat.group === selectedGroupKey);
+    return [...allCategoryList]
+      .filter((cat) => cat.group === selectedGroupKey)
+      .sort((a, b) => sortCategoriesForGroup(a, b, selectedGroupKey));
   }, [allCategoryList, selectedGroupKey]);
 
   useEffect(() => {
@@ -686,8 +703,15 @@ export default function App() {
                 </View>
               </View>
             </View>
-            <Text style={[styles.categoryText, categoryTextResponsive, selected && styles.categoryTextActive]}>{item.title}</Text>
-            <Text style={[styles.categoryTextSub, categoryTextSubResponsive]}>{GROUP_AR[item.key]}</Text>
+            <Text
+              numberOfLines={2}
+              style={[styles.categoryText, categoryTextResponsive, selected && styles.categoryTextActive]}
+            >
+              {item.title}
+            </Text>
+            <Text numberOfLines={2} style={[styles.categoryTextSub, categoryTextSubResponsive]}>
+              {GROUP_AR[item.key]}
+            </Text>
           </View>
         </Pressable>
       </Animated.View>
@@ -1144,8 +1168,8 @@ export default function App() {
   };
 
   const categoryCardResponsive = {
-    minHeight: Math.round((isTablet ? 118 : isAndroid ? 118 : 132) * heightScale),
-    paddingVertical: Math.round((isTablet ? 14 : 14) * heightScale),
+    height: Math.round((isTablet ? 142 : isAndroid ? 146 : 156) * heightScale),
+    paddingVertical: Math.round((isTablet ? 12 : 12) * heightScale),
     borderRadius: Math.round((isTablet ? 22 : 26) * uiScale),
     paddingHorizontal: Math.round((isTablet ? 10 : 12) * widthScale)
   };
@@ -1159,7 +1183,7 @@ export default function App() {
   const categoryImageWrapResponsive = {
     width: Math.round((isTablet ? 76 : 88) * uiScale),
     height: Math.round((isTablet ? 76 : 88) * uiScale),
-    marginBottom: Math.round((isTablet ? 8 : 10) * heightScale)
+    marginBottom: Math.round((isTablet ? 4 : 5) * heightScale)
   };
 
   const categoryIconWrapResponsive = {
@@ -1168,12 +1192,14 @@ export default function App() {
   };
 
   const categoryTextResponsive = {
-    fontSize: Math.round((isTablet ? 14 : 15) * uiScale)
+    fontSize: Math.round((isTablet ? 14 : 15) * uiScale),
+    minHeight: Math.round((isTablet ? 28 : 30) * heightScale)
   };
 
   const categoryTextSubResponsive = {
     fontSize: Math.round((isTablet ? 11 : 12) * uiScale),
-    lineHeight: Math.round((isTablet ? 14 : 16) * uiScale)
+    lineHeight: Math.round((isTablet ? 14 : 16) * uiScale),
+    minHeight: Math.round((isTablet ? 20 : 24) * heightScale)
   };
 
   const detailPageResponsive = {
@@ -1753,7 +1779,7 @@ export default function App() {
                         <Text style={styles.planTitleAr}>موثقة</Text>
                       </View>
                     </View>
-                    <Text style={styles.planPrice}>250 EGP / month</Text>
+                    <Text style={styles.planPrice}>100 EGP / month</Text>
                     <Text style={[styles.planBody, styles.planBodyAr]}>شارة موثقة لنشاطك التجاري لزيادة الثقة والاعتماد داخل التطبيق.</Text>
                     <Text style={styles.planBody}>Trusted badge for your business and stronger customer confidence.</Text>
                     <TouchableOpacity style={styles.planBtn} onPress={() => openBusinessInquiry("Verified")}>
@@ -1771,7 +1797,7 @@ export default function App() {
                         <Text style={styles.planTitleAr}>مميزة</Text>
                       </View>
                     </View>
-                    <Text style={styles.planPrice}>400 EGP / month</Text>
+                    <Text style={styles.planPrice}>200 EGP / month</Text>
                     <Text style={[styles.planBody, styles.planBodyAr]}>ظهور أقوى داخل الفئات وترتيب أفضل في نتائج البحث.</Text>
                     <Text style={styles.planBody}>Higher visibility inside categories and better placement in search results.</Text>
                     <TouchableOpacity style={styles.planBtn} onPress={() => openBusinessInquiry("Featured")}>
@@ -1789,7 +1815,7 @@ export default function App() {
                         <Text style={styles.planTitleAr}>بريميوم</Text>
                       </View>
                     </View>
-                    <Text style={styles.planPrice}>800 EGP / month</Text>
+                    <Text style={styles.planPrice}>400 EGP / month</Text>
                     <Text style={[styles.planBody, styles.planBodyAr]}>ظهور مميز + شارة موثقة + أولوية أعلى لأقوى حضور داخل التطبيق.</Text>
                     <Text style={styles.planBody}>Featured + Verified + top priority for the strongest exposure in the app.</Text>
                     <TouchableOpacity style={[styles.planBtn, styles.planBtnPremium]} onPress={() => openBusinessInquiry("Premium")}>
@@ -2306,7 +2332,8 @@ const styles = StyleSheet.create({
     shadowRadius: 0,
     shadowOffset: { width: 0, height: 0 },
     elevation: 0,
-    overflow: "hidden"
+    overflow: "hidden",
+    justifyContent: "center"
   },
   categoryCardActive: {
     borderColor: "#5d67e8",
@@ -2356,7 +2383,9 @@ const styles = StyleSheet.create({
   cardContent: {
     position: "relative",
     alignItems: "center",
-    width: "100%"
+    width: "100%",
+    flex: 1,
+    justifyContent: "center"
   },
   fallbackIcon: {
     fontSize: 48
@@ -2365,13 +2394,16 @@ const styles = StyleSheet.create({
     color: "#0f172a",
     fontSize: 15,
     fontWeight: "800",
-    textAlign: "center"
+    textAlign: "center",
+    textAlignVertical: "center",
+    marginTop: 2
   },
   categoryTextSub: {
     color: "#475569",
     fontSize: 12,
     textAlign: "center",
-    marginTop: 2
+    marginTop: 0,
+    textAlignVertical: "center"
   },
   categoryTextActive: {
     color: "#3b47c0",
