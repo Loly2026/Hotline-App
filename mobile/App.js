@@ -185,10 +185,19 @@ export default function App() {
   const androidBottomSafeOffset = isAndroid
     ? Math.max(androidSystemInset, Math.round((isTablet ? 28 : 22) * heightScale))
     : 0;
+  const contentHorizontalInset = Math.round((isLargeTablet ? 32 : isTablet ? 22 : 14) * widthScale);
   const swipeThreshold = screenWidth * 0.25;
-  const heroContentWidth = isLargeTablet ? 840 : isTablet ? 760 : screenWidth;
-  const bodyContentWidth = isLargeTablet ? 860 : isTablet ? 780 : screenWidth;
-  const categoryColumns = screenWidth >= 900 ? 4 : isTablet ? 3 : 2;
+  const heroContentWidth = isLargeTablet
+    ? Math.min(screenWidth - contentHorizontalInset * 2, 920)
+    : isTablet
+      ? Math.min(screenWidth - contentHorizontalInset * 2, 780)
+      : screenWidth;
+  const bodyContentWidth = isLargeTablet
+    ? Math.min(screenWidth - contentHorizontalInset * 2, 940)
+    : isTablet
+      ? Math.min(screenWidth - contentHorizontalInset * 2, 800)
+      : screenWidth;
+  const categoryColumns = isTablet ? 3 : 2;
   const heroIconSize = Math.round(38 * uiScale);
   const heroInfoIconSize = Math.round(20 * uiScale);
   const categoryIconSize = Math.round((isTablet ? 36 : 50) * uiScale);
@@ -1000,9 +1009,9 @@ export default function App() {
   };
 
   const searchBarResponsive = {
-    minHeight: Math.round((isTablet ? 52 : isAndroid ? 58 : 64) * heightScale),
+    minHeight: Math.round((isTablet ? 56 : isAndroid ? 58 : 64) * heightScale),
     borderRadius: Math.round((isTablet ? 22 : 26) * uiScale),
-    paddingHorizontal: Math.round((isTablet ? 14 : 16) * widthScale)
+    paddingHorizontal: Math.round((isTablet ? 16 : 16) * widthScale)
   };
 
   const searchShellAnimatedStyle = {
@@ -1088,14 +1097,15 @@ export default function App() {
   const gridWrapperResponsive = {
     width: "100%",
     maxWidth: bodyContentWidth,
-    alignSelf: "center"
+    alignSelf: "center",
+    paddingHorizontal: isTablet ? Math.round(4 * widthScale) : 0
   };
 
   const bottomBarResponsive = isTablet
     ? {
         left: undefined,
         right: undefined,
-        width: Math.min(screenWidth * 0.72, 620),
+        width: Math.min(screenWidth - contentHorizontalInset * 2, 680),
         alignSelf: "center",
         bottom: Math.round(16 * heightScale) + androidBottomSafeOffset,
         height: Math.round(86 * heightScale),
@@ -1168,38 +1178,39 @@ export default function App() {
   };
 
   const categoryCardResponsive = {
-    height: Math.round((isTablet ? 142 : isAndroid ? 146 : 156) * heightScale),
-    paddingVertical: Math.round((isTablet ? 12 : 12) * heightScale),
+    height: Math.round((isLargeTablet ? 154 : isTablet ? 148 : isAndroid ? 146 : 156) * heightScale),
+    paddingVertical: Math.round((isTablet ? 13 : 12) * heightScale),
     borderRadius: Math.round((isTablet ? 22 : 26) * uiScale),
-    paddingHorizontal: Math.round((isTablet ? 10 : 12) * widthScale)
+    paddingHorizontal: Math.round((isTablet ? 10 : 12) * widthScale),
+    marginBottom: Math.round((isTablet ? 4 : 6) * heightScale)
   };
 
   const categoryBadgeResponsive = {
-    width: Math.round((isTablet ? 72 : 80) * uiScale),
-    height: Math.round((isTablet ? 72 : 80) * uiScale),
-    borderRadius: Math.round((isTablet ? 20 : 22) * uiScale)
+    width: Math.round((isLargeTablet ? 78 : isTablet ? 74 : 80) * uiScale),
+    height: Math.round((isLargeTablet ? 78 : isTablet ? 74 : 80) * uiScale),
+    borderRadius: Math.round((isLargeTablet ? 22 : isTablet ? 20 : 22) * uiScale)
   };
 
   const categoryImageWrapResponsive = {
-    width: Math.round((isTablet ? 76 : 88) * uiScale),
-    height: Math.round((isTablet ? 76 : 88) * uiScale),
-    marginBottom: Math.round((isTablet ? 4 : 5) * heightScale)
+    width: Math.round((isLargeTablet ? 84 : isTablet ? 78 : 88) * uiScale),
+    height: Math.round((isLargeTablet ? 84 : isTablet ? 78 : 88) * uiScale),
+    marginBottom: Math.round((isTablet ? 4 : 4) * heightScale)
   };
 
   const categoryIconWrapResponsive = {
-    width: Math.round((isTablet ? 52 : 52) * uiScale),
-    height: Math.round((isTablet ? 52 : 52) * uiScale)
+    width: Math.round((isLargeTablet ? 58 : 52) * uiScale),
+    height: Math.round((isLargeTablet ? 58 : 52) * uiScale)
   };
 
   const categoryTextResponsive = {
     fontSize: Math.round((isTablet ? 14 : 15) * uiScale),
-    minHeight: Math.round((isTablet ? 28 : 30) * heightScale)
+    minHeight: Math.round((isTablet ? 26 : 28) * heightScale)
   };
 
   const categoryTextSubResponsive = {
     fontSize: Math.round((isTablet ? 11 : 12) * uiScale),
     lineHeight: Math.round((isTablet ? 14 : 16) * uiScale),
-    minHeight: Math.round((isTablet ? 20 : 24) * heightScale)
+    minHeight: Math.round((isTablet ? 18 : 22) * heightScale)
   };
 
   const detailPageResponsive = {
@@ -2313,8 +2324,8 @@ const styles = StyleSheet.create({
   },
   gridRow: {
     justifyContent: "space-between",
-    columnGap: 14,
-    rowGap: 14
+    columnGap: 16,
+    rowGap: 18
   },
   categoryCard: {
     width: "100%",
@@ -2396,13 +2407,13 @@ const styles = StyleSheet.create({
     fontWeight: "800",
     textAlign: "center",
     textAlignVertical: "center",
-    marginTop: 2
+    marginTop: 1
   },
   categoryTextSub: {
     color: "#475569",
     fontSize: 12,
     textAlign: "center",
-    marginTop: 0,
+    marginTop: -1,
     textAlignVertical: "center"
   },
   categoryTextActive: {
