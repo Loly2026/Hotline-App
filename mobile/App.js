@@ -244,6 +244,17 @@ export default function App() {
   const [introLoaded, setIntroLoaded] = useState(true);
   const [suggestHintReady, setSuggestHintReady] = useState(false);
   const [showSuggestHint, setShowSuggestHint] = useState(false);
+  const canNavigateBack =
+    showIntro ||
+    showSuggestHint ||
+    businessRequestVisible ||
+    businessModalVisible ||
+    aboutModalVisible ||
+    contactModalVisible ||
+    addModalVisible ||
+    !!detailGroup ||
+    !!activeCategorySlug ||
+    !!quickResult;
 
   const closeDetailView = () => {
     setDetailGroup("");
@@ -254,6 +265,61 @@ export default function App() {
     setPendingScrollContactId(null);
     lastDetail.current = { group: "", category: "" };
   };
+
+  const navigateBackOneStep = useCallback(() => {
+    if (showIntro) {
+      setShowIntro(false);
+      return true;
+    }
+
+    if (showSuggestHint) {
+      dismissSuggestHint();
+      return true;
+    }
+
+    if (businessRequestVisible) {
+      setBusinessRequestVisible(false);
+      return true;
+    }
+
+    if (businessModalVisible) {
+      setBusinessModalVisible(false);
+      return true;
+    }
+
+    if (aboutModalVisible) {
+      setAboutModalVisible(false);
+      return true;
+    }
+
+    if (contactModalVisible) {
+      setContactModalVisible(false);
+      return true;
+    }
+
+    if (addModalVisible) {
+      setAddModalVisible(false);
+      return true;
+    }
+
+    if (detailGroup || activeCategorySlug || quickResult) {
+      handleHomePress();
+      return true;
+    }
+
+    return false;
+  }, [
+    showIntro,
+    showSuggestHint,
+    businessRequestVisible,
+    businessModalVisible,
+    aboutModalVisible,
+    contactModalVisible,
+    addModalVisible,
+    detailGroup,
+    activeCategorySlug,
+    quickResult
+  ]);
 
   const panResponder = useRef(
     PanResponder.create({
@@ -290,6 +356,24 @@ export default function App() {
           friction: 14,
           useNativeDriver: true
         }).start();
+      }
+    })
+  ).current;
+
+  const iosBackSwipeResponder = useRef(
+    PanResponder.create({
+      onMoveShouldSetPanResponderCapture: (e, g) => {
+        if (Platform.OS !== "ios" || !canNavigateBack) return false;
+        return e.nativeEvent.pageX <= 28 && g.dx > 12 && Math.abs(g.dx) > Math.abs(g.dy);
+      },
+      onMoveShouldSetPanResponder: (e, g) => {
+        if (Platform.OS !== "ios" || !canNavigateBack) return false;
+        return e.nativeEvent.pageX <= 28 && g.dx > 12 && Math.abs(g.dx) > Math.abs(g.dy);
+      },
+      onPanResponderRelease: (_e, g) => {
+        if (g.dx > swipeThreshold || g.vx > 0.65) {
+          navigateBackOneStep();
+        }
       }
     })
   ).current;
@@ -783,64 +867,10 @@ export default function App() {
 
   useEffect(() => {
     if (Platform.OS !== "android") return undefined;
-
-    const onBackPress = () => {
-      if (showIntro) {
-        setShowIntro(false);
-        return true;
-      }
-
-      if (showSuggestHint) {
-        dismissSuggestHint();
-        return true;
-      }
-
-      if (businessRequestVisible) {
-        setBusinessRequestVisible(false);
-        return true;
-      }
-
-      if (businessModalVisible) {
-        setBusinessModalVisible(false);
-        return true;
-      }
-
-      if (aboutModalVisible) {
-        setAboutModalVisible(false);
-        return true;
-      }
-
-      if (contactModalVisible) {
-        setContactModalVisible(false);
-        return true;
-      }
-
-      if (addModalVisible) {
-        setAddModalVisible(false);
-        return true;
-      }
-
-      if (detailGroup || activeCategorySlug || quickResult) {
-        handleHomePress();
-        return true;
-      }
-
-      return false;
-    };
-
-    const subscription = BackHandler.addEventListener("hardwareBackPress", onBackPress);
+    const subscription = BackHandler.addEventListener("hardwareBackPress", navigateBackOneStep);
     return () => subscription.remove();
   }, [
-    showIntro,
-    showSuggestHint,
-    businessRequestVisible,
-    businessModalVisible,
-    aboutModalVisible,
-    contactModalVisible,
-    addModalVisible,
-    detailGroup,
-    activeCategorySlug,
-    quickResult
+    navigateBackOneStep
   ]);
 
   const sendFeedback = async (payload) => {
@@ -1279,6 +1309,9 @@ export default function App() {
 
   return (
     <SafeAreaView style={styles.container}>
+      {Platform.OS === "ios" && canNavigateBack ? (
+        <View style={styles.iosBackSwipeEdge} {...iosBackSwipeResponder.panHandlers} />
+      ) : null}
       <StatusBar style="light" />
       {!showIntro ? <View style={styles.appGlowTop} pointerEvents="none" /> : null}
       {!showIntro ? <View style={styles.appGlowBottom} pointerEvents="none" /> : null}
@@ -1607,18 +1640,18 @@ export default function App() {
                         <Ionicons name="sparkles" size={22} color="#9a0f6f" />
                       </View>
                       <Text style={styles.modalTitle}>Suggest A Number</Text>
-                      <Text style={styles.modalSubTitle}>Send a new hotline and we will review it.</Text>
+                      <Text style={styles.modalSubTitle}>Send a new hotline / أرسل رقمًا جديدًا وسنراجعه.</Text>
                     </View>
                     <TextInput
                       style={[styles.modalInput, styles.suggestInput]}
-                      placeholder="Place or organization"
+                      placeholder="Place or organization / المكان أو الجهة"
                       placeholderTextColor="#7b8799"
                       value={newHotlineName}
                       onChangeText={setNewHotlineName}
                     />
                     <TextInput
                       style={[styles.modalInput, styles.suggestInput]}
-                      placeholder="Phone or hotline number"
+                      placeholder="Phone or hotline number / رقم الهاتف أو الخط الساخن"
                       placeholderTextColor="#7b8799"
                       keyboardType="phone-pad"
                       value={newHotlinePhone}
@@ -1652,11 +1685,11 @@ export default function App() {
                     <Ionicons name="chatbubble-ellipses" size={22} color="#9a0f6f" />
                   </View>
                   <Text style={styles.modalTitle}>Contact us</Text>
-                  <Text style={styles.modalSubTitle}>Share a suggestion or tell us what to improve.</Text>
+                  <Text style={styles.modalSubTitle}>Share a suggestion / اكتب اقتراحك أو أخبرنا بما يمكن تحسينه.</Text>
                 </View>
                 <TextInput
                   style={[styles.modalInput, styles.modalTextArea]}
-                  placeholder="Write your suggestion"
+                  placeholder="Write your suggestion / اكتب اقتراحك"
                   placeholderTextColor="#7b8799"
                   multiline
                   textAlignVertical="top"
@@ -1973,6 +2006,14 @@ export default function App() {
 const styles = StyleSheet.create({
   flexOne: {
     flex: 1
+  },
+  iosBackSwipeEdge: {
+    position: "absolute",
+    left: 0,
+    top: 0,
+    bottom: 0,
+    width: 28,
+    zIndex: 50
   },
   screenHidden: {
     opacity: 0
