@@ -193,16 +193,35 @@ export default function App() {
       ? Math.min(screenWidth - contentHorizontalInset * 2, 780)
       : screenWidth;
   const bodyContentWidth = isLargeTablet
-    ? Math.min(screenWidth - contentHorizontalInset * 2, 940)
+    ? Math.min(screenWidth - contentHorizontalInset * 2, 980)
     : isTablet
       ? Math.min(screenWidth - contentHorizontalInset * 2, 800)
       : screenWidth;
-  const categoryColumns = isTablet ? 3 : 2;
-  const heroIconSize = Math.round(38 * uiScale);
-  const heroInfoIconSize = Math.round(20 * uiScale);
-  const categoryIconSize = Math.round((isTablet ? 36 : 50) * uiScale);
-  const bottomSideIconSize = Math.round((isTablet ? 26 : 32) * uiScale);
-  const bottomCenterIconSize = Math.round((isTablet ? 20 : 24) * uiScale);
+  const categoryColumns = isLargeTablet ? 2 : isTablet ? 3 : 2;
+  const categoryRowCount = Math.ceil(GROUPS.length / categoryColumns);
+  const heroIconSize = Math.round((isLargeTablet ? 46 : 38) * uiScale);
+  const heroInfoIconSize = Math.round((isLargeTablet ? 22 : 20) * uiScale);
+  const categoryIconSize = Math.round((isLargeTablet ? 40 : isTablet ? 36 : 50) * uiScale);
+  const bottomSideIconSize = Math.round((isLargeTablet ? 28 : isTablet ? 26 : 32) * uiScale);
+  const bottomCenterIconSize = Math.round((isLargeTablet ? 22 : isTablet ? 20 : 24) * uiScale);
+  const largeTabletGridGap = Math.round(22 * heightScale);
+  const largeTabletGridAvailableHeight = Math.max(
+    screenHeight -
+      Math.round(320 * heightScale) -
+      Math.round(150 * heightScale) -
+      androidBottomSafeOffset,
+    Math.round(620 * heightScale)
+  );
+  const largeTabletCardHeight = Math.round(
+    Math.min(
+      Math.max(
+        (largeTabletGridAvailableHeight - largeTabletGridGap * Math.max(categoryRowCount - 1, 0)) /
+          Math.max(categoryRowCount, 1),
+        180 * heightScale
+      ),
+      238 * heightScale
+    )
+  );
   const scrollRef = useRef(null);
   const scrollY = useRef(new Animated.Value(0)).current;
   const phoneAnim = useRef(new Animated.Value(0)).current;
@@ -858,10 +877,6 @@ export default function App() {
   };
 
   const onPrimaryNavPress = () => {
-    if (detailGroup || activeCategorySlug || quickResult) {
-      handleHomePress();
-      return;
-    }
     setBusinessModalVisible(true);
   };
 
@@ -996,10 +1011,10 @@ export default function App() {
     alignSelf: "center",
     width: "100%",
     maxWidth: heroContentWidth,
-    paddingTop: Math.round((isTablet ? 18 : isAndroid ? 20 : 26) * heightScale),
-    paddingBottom: Math.round((isTablet ? 18 : isAndroid ? 18 : 26) * heightScale),
-    borderBottomLeftRadius: Math.round((isTablet ? 30 : 36) * uiScale),
-    borderBottomRightRadius: Math.round((isTablet ? 30 : 36) * uiScale)
+    paddingTop: Math.round((isLargeTablet ? 22 : isTablet ? 18 : isAndroid ? 20 : 26) * heightScale),
+    paddingBottom: Math.round((isLargeTablet ? 22 : isTablet ? 18 : isAndroid ? 18 : 26) * heightScale),
+    borderBottomLeftRadius: Math.round((isLargeTablet ? 34 : isTablet ? 30 : 36) * uiScale),
+    borderBottomRightRadius: Math.round((isLargeTablet ? 34 : isTablet ? 30 : 36) * uiScale)
   };
 
   const heroAnimatedStyle = {
@@ -1013,35 +1028,35 @@ export default function App() {
       }
     ],
     paddingTop: Animated.add(
-      new Animated.Value(Math.round((isTablet ? 18 : isAndroid ? 20 : 26) * heightScale)),
+      new Animated.Value(Math.round((isLargeTablet ? 22 : isTablet ? 18 : isAndroid ? 20 : 26) * heightScale)),
       scrollY.interpolate({
         inputRange: [0, 120],
-        outputRange: [0, Math.round((isTablet ? -10 : -12) * heightScale)],
+        outputRange: [0, Math.round((isLargeTablet ? -12 : isTablet ? -10 : -12) * heightScale)],
         extrapolate: "clamp"
       })
     ),
     paddingBottom: Animated.add(
-      new Animated.Value(Math.round((isTablet ? 18 : isAndroid ? 18 : 26) * heightScale)),
+      new Animated.Value(Math.round((isLargeTablet ? 22 : isTablet ? 18 : isAndroid ? 18 : 26) * heightScale)),
       scrollY.interpolate({
         inputRange: [0, 120],
-        outputRange: [0, Math.round((isTablet ? -12 : -16) * heightScale)],
+        outputRange: [0, Math.round((isLargeTablet ? -14 : isTablet ? -12 : -16) * heightScale)],
         extrapolate: "clamp"
       })
     )
   };
 
   const welcomeTitleResponsive = {
-    fontSize: Math.round((isTablet ? 24 : isAndroid ? 34 : 38) * uiScale)
+    fontSize: Math.round((isLargeTablet ? 28 : isTablet ? 24 : isAndroid ? 34 : 38) * uiScale)
   };
 
   const welcomeSubResponsive = {
-    fontSize: Math.round((isTablet ? 16 : isAndroid ? 22 : 24) * uiScale)
+    fontSize: Math.round((isLargeTablet ? 18 : isTablet ? 16 : isAndroid ? 22 : 24) * uiScale)
   };
 
   const searchBarResponsive = {
-    minHeight: Math.round((isTablet ? 56 : isAndroid ? 58 : 64) * heightScale),
-    borderRadius: Math.round((isTablet ? 22 : 26) * uiScale),
-    paddingHorizontal: Math.round((isTablet ? 16 : 16) * widthScale)
+    minHeight: Math.round((isLargeTablet ? 62 : isTablet ? 56 : isAndroid ? 58 : 64) * heightScale),
+    borderRadius: Math.round((isLargeTablet ? 24 : isTablet ? 22 : 26) * uiScale),
+    paddingHorizontal: Math.round((isLargeTablet ? 18 : 16) * widthScale)
   };
 
   const searchShellAnimatedStyle = {
@@ -1064,17 +1079,17 @@ export default function App() {
   };
 
   const searchInputResponsive = {
-    fontSize: Math.round((isTablet ? 15 : 17) * uiScale)
+    fontSize: Math.round((isLargeTablet ? 17 : isTablet ? 15 : 17) * uiScale)
   };
 
   const searchIconBadgeResponsive = {
-    width: Math.round((isTablet ? 36 : 40) * uiScale),
-    height: Math.round((isTablet ? 36 : 40) * uiScale),
-    borderRadius: Math.round((isTablet ? 18 : 20) * uiScale)
+    width: Math.round((isLargeTablet ? 40 : isTablet ? 36 : 40) * uiScale),
+    height: Math.round((isLargeTablet ? 40 : isTablet ? 36 : 40) * uiScale),
+    borderRadius: Math.round((isLargeTablet ? 20 : isTablet ? 18 : 20) * uiScale)
   };
 
   const searchIconTextResponsive = {
-    fontSize: Math.round((isTablet ? 18 : 20) * uiScale)
+    fontSize: Math.round((isLargeTablet ? 20 : isTablet ? 18 : 20) * uiScale)
   };
 
   const suggestItemResponsive = {
@@ -1111,9 +1126,9 @@ export default function App() {
 
   const contentResponsive = {
     alignItems: "center",
-    paddingTop: Math.round((isTablet ? 18 : 14) * heightScale),
+    paddingTop: Math.round((isLargeTablet ? 22 : isTablet ? 18 : 14) * heightScale),
     paddingBottom:
-      Math.round((isTablet ? 108 : isAndroid ? 96 : 116) * heightScale) +
+      Math.round((isLargeTablet ? 116 : isTablet ? 108 : isAndroid ? 96 : 116) * heightScale) +
       androidBottomSafeOffset +
       (isTablet ? 14 : 8)
   };
@@ -1128,20 +1143,25 @@ export default function App() {
     width: "100%",
     maxWidth: bodyContentWidth,
     alignSelf: "center",
-    paddingHorizontal: isTablet ? Math.round(4 * widthScale) : 0
+    paddingHorizontal: isLargeTablet ? Math.round(8 * widthScale) : isTablet ? Math.round(4 * widthScale) : 0
+  };
+
+  const gridRowResponsive = {
+    columnGap: isLargeTablet ? Math.round(22 * widthScale) : Math.round(16 * widthScale),
+    marginBottom: isLargeTablet ? largeTabletGridGap : Math.round(18 * heightScale)
   };
 
   const bottomBarResponsive = isTablet
     ? {
         left: undefined,
         right: undefined,
-        width: Math.min(screenWidth - contentHorizontalInset * 2, 680),
+        width: Math.min(screenWidth - contentHorizontalInset * 2, isLargeTablet ? 760 : 680),
         alignSelf: "center",
-        bottom: Math.round(16 * heightScale) + androidBottomSafeOffset,
-        height: Math.round(86 * heightScale),
-        paddingBottom: Math.round(8 * heightScale),
-        paddingTop: Math.round(8 * heightScale),
-        borderRadius: Math.round(28 * uiScale)
+        bottom: Math.round((isLargeTablet ? 20 : 16) * heightScale) + androidBottomSafeOffset,
+        height: Math.round((isLargeTablet ? 94 : 86) * heightScale),
+        paddingBottom: Math.round((isLargeTablet ? 10 : 8) * heightScale),
+        paddingTop: Math.round((isLargeTablet ? 10 : 8) * heightScale),
+        borderRadius: Math.round((isLargeTablet ? 30 : 28) * uiScale)
       }
     : isAndroid
       ? {
@@ -1156,9 +1176,9 @@ export default function App() {
       : {};
 
   const bottomSideVisualSlotResponsive = {
-    width: Math.round((isTablet ? 60 : 72) * widthScale),
-    height: Math.round((isTablet ? 52 : 64) * heightScale),
-    marginBottom: Math.round((isTablet ? 4 : isAndroid ? 6 : 8) * heightScale)
+    width: Math.round((isLargeTablet ? 66 : isTablet ? 60 : 72) * widthScale),
+    height: Math.round((isLargeTablet ? 56 : isTablet ? 52 : 64) * heightScale),
+    marginBottom: Math.round((isLargeTablet ? 6 : isTablet ? 4 : isAndroid ? 6 : 8) * heightScale)
   };
 
   const businessPlanVisualSlotResponsive = {
@@ -1166,11 +1186,11 @@ export default function App() {
   };
 
   const bottomTextResponsive = {
-    fontSize: Math.round((isTablet ? 13 : 16) * uiScale),
-    marginTop: Math.round((isTablet ? 1 : isAndroid ? 1 : -2) * heightScale),
+    fontSize: Math.round((isLargeTablet ? 12.5 : isTablet ? 11.5 : 13.5) * uiScale),
+    marginTop: Math.round((isLargeTablet ? 2 : isTablet ? 1 : isAndroid ? 1 : -2) * heightScale),
     textAlign: "center",
     paddingHorizontal: Math.round((isTablet ? 6 : 4) * widthScale),
-    lineHeight: Math.round((isTablet ? 15 : 18) * uiScale)
+    lineHeight: Math.round((isLargeTablet ? 14 : isTablet ? 13 : 15) * uiScale)
   };
 
   const bottomSideTextResponsive = {
@@ -1201,46 +1221,47 @@ export default function App() {
   };
 
   const bottomCenterTextResponsive = {
-    fontSize: Math.round((isTablet ? 11 : 14) * uiScale),
+    fontSize: Math.round((isTablet ? 10.5 : 12.5) * uiScale),
     marginTop: Math.round((isTablet ? 2 : isAndroid ? 2 : 4) * heightScale),
     textAlign: "center",
-    paddingHorizontal: Math.round(6 * widthScale)
+    paddingHorizontal: Math.round(6 * widthScale),
+    lineHeight: Math.round((isTablet ? 12 : 14) * uiScale)
   };
 
   const categoryCardResponsive = {
-    height: Math.round((isLargeTablet ? 154 : isTablet ? 148 : isAndroid ? 146 : 156) * heightScale),
-    paddingVertical: Math.round((isTablet ? 13 : 12) * heightScale),
+    height: isLargeTablet ? largeTabletCardHeight : Math.round((isTablet ? 148 : isAndroid ? 146 : 156) * heightScale),
+    paddingVertical: Math.round((isLargeTablet ? 18 : isTablet ? 13 : 12) * heightScale),
     borderRadius: Math.round((isTablet ? 22 : 26) * uiScale),
-    paddingHorizontal: Math.round((isTablet ? 10 : 12) * widthScale),
-    marginBottom: Math.round((isTablet ? 4 : 6) * heightScale)
+    paddingHorizontal: Math.round((isLargeTablet ? 14 : isTablet ? 10 : 12) * widthScale),
+    marginBottom: isLargeTablet ? 0 : Math.round((isTablet ? 4 : 6) * heightScale)
   };
 
   const categoryBadgeResponsive = {
-    width: Math.round((isLargeTablet ? 78 : isTablet ? 74 : 80) * uiScale),
-    height: Math.round((isLargeTablet ? 78 : isTablet ? 74 : 80) * uiScale),
+    width: Math.round((isLargeTablet ? 90 : isTablet ? 74 : 80) * uiScale),
+    height: Math.round((isLargeTablet ? 90 : isTablet ? 74 : 80) * uiScale),
     borderRadius: Math.round((isLargeTablet ? 22 : isTablet ? 20 : 22) * uiScale)
   };
 
   const categoryImageWrapResponsive = {
-    width: Math.round((isLargeTablet ? 84 : isTablet ? 78 : 88) * uiScale),
-    height: Math.round((isLargeTablet ? 84 : isTablet ? 78 : 88) * uiScale),
-    marginBottom: Math.round((isTablet ? 4 : 4) * heightScale)
+    width: Math.round((isLargeTablet ? 98 : isTablet ? 78 : 88) * uiScale),
+    height: Math.round((isLargeTablet ? 98 : isTablet ? 78 : 88) * uiScale),
+    marginBottom: Math.round((isLargeTablet ? 8 : 4) * heightScale)
   };
 
   const categoryIconWrapResponsive = {
-    width: Math.round((isLargeTablet ? 58 : 52) * uiScale),
-    height: Math.round((isLargeTablet ? 58 : 52) * uiScale)
+    width: Math.round((isLargeTablet ? 68 : 52) * uiScale),
+    height: Math.round((isLargeTablet ? 68 : 52) * uiScale)
   };
 
   const categoryTextResponsive = {
-    fontSize: Math.round((isTablet ? 14 : 15) * uiScale),
-    minHeight: Math.round((isTablet ? 26 : 28) * heightScale)
+    fontSize: Math.round((isLargeTablet ? 18 : isTablet ? 14 : 15) * uiScale),
+    minHeight: Math.round((isLargeTablet ? 34 : isTablet ? 26 : 28) * heightScale)
   };
 
   const categoryTextSubResponsive = {
-    fontSize: Math.round((isTablet ? 11 : 12) * uiScale),
-    lineHeight: Math.round((isTablet ? 14 : 16) * uiScale),
-    minHeight: Math.round((isTablet ? 18 : 22) * heightScale)
+    fontSize: Math.round((isLargeTablet ? 13 : isTablet ? 11 : 12) * uiScale),
+    lineHeight: Math.round((isLargeTablet ? 17 : isTablet ? 14 : 16) * uiScale),
+    minHeight: Math.round((isLargeTablet ? 26 : isTablet ? 18 : 22) * heightScale)
   };
 
   const detailPageResponsive = {
@@ -1450,9 +1471,11 @@ export default function App() {
             {quickResult.is_non_phone ? (
               <Text style={styles.nonPhone}>غير هاتفي / عبر التطبيق</Text>
             ) : (
-              <TouchableOpacity style={styles.callBtn} onPress={() => callNumber(quickResult)}>
-                <Text style={styles.callBtnText}>{quickResult.phone}</Text>
-              </TouchableOpacity>
+              <View style={styles.quickActionRow}>
+                <TouchableOpacity style={[styles.callBtn, styles.quickActionBtn]} onPress={() => callNumber(quickResult)}>
+                  <Text style={styles.callBtnText}>{quickResult.phone}</Text>
+                </TouchableOpacity>
+              </View>
             )}
           </View>
         ) : null}
@@ -1465,7 +1488,7 @@ export default function App() {
             keyExtractor={(item) => item.key}
             numColumns={categoryColumns}
             scrollEnabled={false}
-            columnWrapperStyle={categoryColumns > 1 ? styles.gridRow : undefined}
+            columnWrapperStyle={categoryColumns > 1 ? [styles.gridRow, gridRowResponsive] : undefined}
             style={gridWrapperResponsive}
           />
         ) : null}
@@ -1546,17 +1569,20 @@ export default function App() {
                                   {item.is_non_phone ? (
                                     <Text style={styles.nonPhone}>غير هاتفي / عبر التطبيق</Text>
                                   ) : (
-                                    <Pressable
-                                      style={({ pressed }) => [
-                                        styles.callBtn,
-                                        { backgroundColor: palette.accent },
-                                        pressed && styles.callBtnPressed
-                                      ]}
-                                      android_ripple={{ color: "rgba(255,255,255,0.25)", borderless: true }}
-                                      onPress={() => callNumber(item)}
-                                    >
-                                      <Text style={styles.callBtnText}>{item.phone}</Text>
-                                    </Pressable>
+                                    <View style={styles.contactActionRow}>
+                                      <Pressable
+                                        style={({ pressed }) => [
+                                          styles.callBtn,
+                                          styles.contactActionBtn,
+                                          { backgroundColor: palette.accent },
+                                          pressed && styles.callBtnPressed
+                                        ]}
+                                        android_ripple={{ color: "rgba(255,255,255,0.25)", borderless: true }}
+                                        onPress={() => callNumber(item)}
+                                      >
+                                        <Text style={styles.callBtnText}>{item.phone}</Text>
+                                      </Pressable>
+                                    </View>
                                   )}
                                 </View>
                               </View>
@@ -1576,14 +1602,10 @@ export default function App() {
         <LinearGradient colors={["#6c47f5", "#b30f7f"]} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={[styles.bottomBar, bottomBarResponsive]}>
         <TouchableOpacity style={[styles.bottomItem, businessPlanItemResponsive]} onPress={onPrimaryNavPress}>
           <View style={[styles.bottomVisualSlot, styles.bottomSideVisualSlot, bottomSideVisualSlotResponsive, businessPlanVisualSlotResponsive]}>
-            {detailGroup || activeCategorySlug || quickResult ? (
-              <Text style={styles.bottomIcon}>🏠</Text>
-            ) : (
-              <Ionicons name="rocket-outline" size={bottomSideIconSize} color="#ffffff" />
-            )}
+            <Ionicons name="rocket-outline" size={bottomSideIconSize} color="#ffffff" />
           </View>
           <Text style={[styles.bottomText, styles.bottomSideText, bottomTextResponsive, bottomSideTextResponsive]}>
-            {detailGroup || activeCategorySlug || quickResult ? "Home" : "Promote"}
+            Promote
           </Text>
         </TouchableOpacity>
         <TouchableOpacity style={[styles.bottomItem, styles.bottomCenterItem]} onPress={() => setAddModalVisible(true)}>
@@ -1598,7 +1620,9 @@ export default function App() {
           <View style={[styles.bottomVisualSlot, styles.bottomSideVisualSlot, bottomSideVisualSlotResponsive]}>
             <Ionicons name="chatbubble-ellipses-outline" size={bottomSideIconSize} color="#ffffff" />
           </View>
-          <Text style={[styles.bottomText, styles.bottomSideText, bottomTextResponsive, bottomSideTextResponsive]}>Contact us</Text>
+          <Text style={[styles.bottomText, styles.bottomSideText, bottomTextResponsive, bottomSideTextResponsive]}>
+            Contact us
+          </Text>
         </TouchableOpacity>
         </LinearGradient>
       ) : null}
@@ -2366,7 +2390,7 @@ const styles = StyleSheet.create({
   gridRow: {
     justifyContent: "space-between",
     columnGap: 16,
-    rowGap: 18
+    rowGap: 0
   },
   categoryCard: {
     width: "100%",
@@ -2662,8 +2686,25 @@ const styles = StyleSheet.create({
     color: "#8a5a14",
     fontWeight: "700"
   },
+  quickActionRow: {
+    flexDirection: "row",
+    flexWrap: "wrap",
+    gap: 8,
+    marginTop: 10
+  },
+  contactActionRow: {
+    flexDirection: "row",
+    flexWrap: "wrap",
+    gap: 8,
+    marginTop: 10
+  },
+  quickActionBtn: {
+    marginTop: 0
+  },
+  contactActionBtn: {
+    marginTop: 0
+  },
   callBtn: {
-    marginTop: 10,
     backgroundColor: "#ff3b81",
     borderRadius: 999,
     paddingVertical: 10,
