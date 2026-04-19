@@ -139,6 +139,77 @@ const CATEGORY_ORDER_BY_GROUP = {
     apps: 3
   }
 };
+const CONTACT_ASSISTANT_TOPICS = [
+  {
+    key: "about",
+    questionEn: "What is this app?",
+    questionAr: "ما هو هذا التطبيق؟",
+    answerEn: "Hotline App is a fast directory for important hotlines and service numbers in Egypt, organized into clear categories for quick access.",
+    answerAr: "Hotline App هو دليل سريع لأهم الخطوط الساخنة وأرقام الخدمات في مصر، مع تصنيفات واضحة للوصول السريع."
+  },
+  {
+    key: "services",
+    questionEn: "What services can it help me with?",
+    questionAr: "ما الخدمات التي يمكن أن يوفرها لي؟",
+    answerEn: "The app helps with emergency numbers, hospitals, food, finance, transport, telecom, and many other useful services.",
+    answerAr: "التطبيق يساعدك في أرقام الطوارئ، المستشفيات، الطعام، الخدمات المالية، النقل، الاتصالات، وخدمات مفيدة أخرى كثيرة."
+  },
+  {
+    key: "search",
+    questionEn: "How do I search quickly?",
+    questionAr: "كيف أبحث بسرعة؟",
+    answerEn: "Use the search bar at the top to search by service name or hotline number. You can also tap the search icon to open the best matching result.",
+    answerAr: "استخدم شريط البحث في الأعلى للبحث باسم الخدمة أو رقم الخط الساخن. ويمكنك أيضًا الضغط على أيقونة البحث لفتح أقرب نتيجة مناسبة."
+  },
+  {
+    key: "add-number",
+    questionEn: "How can I add a new number?",
+    questionAr: "كيف أضيف رقمًا جديدًا؟",
+    answerEn: "You can use Add Number to suggest a new hotline or service, and we will review it before adding it to the app.",
+    answerAr: "يمكنك استخدام Add Number لاقتراح رقم أو خدمة جديدة، وسنراجعها قبل إضافتها إلى التطبيق.",
+    action: "add-number",
+    actionLabel: "Open Add Number"
+  },
+  {
+    key: "update-number",
+    questionEn: "What if I find a wrong or old number?",
+    questionAr: "ماذا أفعل إذا وجدت رقمًا خطأ أو قديمًا؟",
+    answerEn: "You can send us the correction through Contact us, and we review updates before publishing them in the app.",
+    answerAr: "يمكنك إرسال التصحيح من خلال Contact us، ونحن نراجع التحديثات قبل نشرها داخل التطبيق."
+  },
+  {
+    key: "promote",
+    questionEn: "How can my business appear here?",
+    questionAr: "كيف أجعل رقمي أو نشاطي يظهر هنا بشكل مميز؟",
+    answerEn: "Use Promote to view featured business plans, verified listing options, and stronger visibility inside the app.",
+    answerAr: "استخدم Promote لعرض باقات الظهور المميز، وخيارات التوثيق، وزيادة الظهور داخل التطبيق.",
+    action: "promote",
+    actionLabel: "Open Promote"
+  },
+  {
+    key: "verified",
+    questionEn: "What is the difference between plans?",
+    questionAr: "ما الفرق بين الباقات؟",
+    answerEn: "Verified gives trusted status, Featured improves visibility, and Premium combines stronger visibility with top priority inside the app.",
+    answerAr: "موثقة تعطي حالة موثوقة، ومميزة تزيد الظهور، وبريميوم تجمع بين قوة الظهور والأولوية الأعلى داخل التطبيق."
+  },
+  {
+    key: "language",
+    questionEn: "Does the app support Arabic and English?",
+    questionAr: "هل التطبيق يدعم العربية والإنجليزية؟",
+    answerEn: "Yes. The app is designed to stay easy for Arabic users and still understandable for English-speaking users in key places.",
+    answerAr: "نعم. التطبيق مصمم ليكون سهلًا للمستخدم العربي، وفي نفس الوقت مفهومًا للمستخدم الذي يفضل الإنجليزية في الأجزاء المهمة."
+  },
+  {
+    key: "support",
+    questionEn: "I still need help",
+    questionAr: "ما زلت أحتاج مساعدة",
+    answerEn: "You can write your message below and send it directly to us. We review suggestions and support requests regularly.",
+    answerAr: "يمكنك كتابة رسالتك بالأسفل وإرسالها مباشرة لنا. نحن نراجع الاقتراحات وطلبات المساعدة بشكل منتظم.",
+    action: "focus-message",
+    actionLabel: "Write your message"
+  }
+];
 const introLocal = require("./assets/intro.png");
 const CONTACTS_CACHE_PATH = `${FileSystem.cacheDirectory}contacts-cache.json`;
 const SUGGEST_HINT_PATH = `${FileSystem.documentDirectory}suggest-hint-seen.txt`;
@@ -223,6 +294,9 @@ export default function App() {
     )
   );
   const scrollRef = useRef(null);
+  const searchInputRef = useRef(null);
+  const contactAssistantScrollRef = useRef(null);
+  const contactComposerInputRef = useRef(null);
   const scrollY = useRef(new Animated.Value(0)).current;
   const phoneAnim = useRef(new Animated.Value(0)).current;
   const swipeBackX = useRef(new Animated.Value(0)).current;
@@ -236,6 +310,8 @@ export default function App() {
   const [pendingScrollContactId, setPendingScrollContactId] = useState(null);
   const [addModalVisible, setAddModalVisible] = useState(false);
   const [contactModalVisible, setContactModalVisible] = useState(false);
+  const [selectedContactTopic, setSelectedContactTopic] = useState("");
+  const [contactAssistantHistory, setContactAssistantHistory] = useState([]);
   const [aboutModalVisible, setAboutModalVisible] = useState(false);
   const [businessModalVisible, setBusinessModalVisible] = useState(false);
   const [businessRequestVisible, setBusinessRequestVisible] = useState(false);
@@ -256,6 +332,7 @@ export default function App() {
   const hasLoadedContactsRef = useRef(false);
   const appStateRef = useRef(AppState.currentState);
   const lastContactsRefreshRef = useRef(0);
+  const detailCategoryPositionsRef = useRef({});
   const [detailGroup, setDetailGroup] = useState("");
   const [detailCategory, setDetailCategory] = useState("");
   const lastDetail = useRef({ group: "", category: "" });
@@ -506,7 +583,6 @@ export default function App() {
   }, [loadContacts]);
 
   useEffect(() => {
-    // introLoaded stays true (no persistent storage)
     setIntroLoaded(true);
   }, []);
 
@@ -523,17 +599,24 @@ export default function App() {
   }, []);
 
   useEffect(() => {
-    if (showIntro) {
-      const t = setTimeout(() => setShowIntro(false), 3500);
+    if (showIntro && introLoaded) {
+      const t = setTimeout(() => setShowIntro(false), 4200);
       return () => clearTimeout(t);
     }
-  }, [showIntro]);
+  }, [showIntro, introLoaded]);
 
   useEffect(() => {
     if (!showIntro && suggestHintReady) {
       setShowSuggestHint(true);
     }
   }, [showIntro, suggestHintReady]);
+
+  useEffect(() => {
+    if (contactModalVisible) {
+      setSelectedContactTopic("");
+      setContactAssistantHistory([]);
+    }
+  }, [contactModalVisible]);
 
   const nameTerms = useMemo(() => {
     const s = new Set();
@@ -863,6 +946,26 @@ export default function App() {
     setQuickResult(null);
   };
 
+  const handleSearchIconPress = () => {
+    const trimmedQuery = query.trim();
+    if (!trimmedQuery) {
+      searchInputRef.current?.focus();
+      return;
+    }
+
+    if (predictions.length) {
+      handlePredictionPress(predictions[0]);
+      return;
+    }
+
+    if (typoSuggestion) {
+      handlePredictionPress(typoSuggestion);
+      return;
+    }
+
+    searchInputRef.current?.focus();
+  };
+
   const isArabicInput = /[\u0600-\u06FF]/.test(query);
 
   const handleHomePress = () => {
@@ -946,11 +1049,43 @@ export default function App() {
         message: msg
       });
       setContactModalVisible(false);
+      setSelectedContactTopic("");
+      setContactAssistantHistory([]);
       setContactMessage("");
       Alert.alert("Done", "Your suggestion was sent successfully.");
     } catch (err) {
       Alert.alert("Error", err.message || "Failed to send suggestion.");
     }
+  };
+
+  const handleContactAssistantAction = (action) => {
+    if (action === "focus-message") {
+      requestAnimationFrame(() => {
+        contactAssistantScrollRef.current?.scrollToEnd({ animated: true });
+        setTimeout(() => {
+          contactComposerInputRef.current?.focus();
+        }, 220);
+      });
+      return;
+    }
+
+    if (action === "add-number") {
+      setContactModalVisible(false);
+      setSelectedContactTopic("");
+      setAddModalVisible(true);
+      return;
+    }
+
+    if (action === "promote") {
+      setContactModalVisible(false);
+      setSelectedContactTopic("");
+      setBusinessModalVisible(true);
+    }
+  };
+
+  const handleContactTopicPress = (topic) => {
+    setSelectedContactTopic(topic.key);
+    setContactAssistantHistory((prev) => [...prev, topic.key]);
   };
 
   const openBusinessInquiry = (plan = "Premium") => {
@@ -998,14 +1133,6 @@ export default function App() {
       Alert.alert("Error", err.message || "Failed to send business request.");
     }
   };
-
-  if (!introLoaded) {
-    return (
-      <SafeAreaView style={[styles.container, { justifyContent: "center", alignItems: "center" }]}>
-        <ActivityIndicator size="large" color="#b30f7f" />
-      </SafeAreaView>
-    );
-  }
 
   const heroResponsive = {
     alignSelf: "center",
@@ -1210,7 +1337,8 @@ export default function App() {
   const bottomCenterBadgeResponsive = {
     width: Math.round((isTablet ? 52 : isAndroid ? 58 : 64) * uiScale),
     height: Math.round((isTablet ? 52 : isAndroid ? 58 : 64) * uiScale),
-    borderRadius: Math.round((isTablet ? 26 : isAndroid ? 29 : 32) * uiScale)
+    borderRadius: Math.round((isTablet ? 26 : isAndroid ? 29 : 32) * uiScale),
+    marginTop: Math.round((isTablet ? 0 : isAndroid ? -8 : -4) * heightScale)
   };
 
   const bottomCenterBadgeShadowResponsive = {
@@ -1226,6 +1354,13 @@ export default function App() {
     textAlign: "center",
     paddingHorizontal: Math.round(6 * widthScale),
     lineHeight: Math.round((isTablet ? 12 : 14) * uiScale)
+  };
+
+  const bottomCenterSubTextResponsive = {
+    fontSize: Math.round((isTablet ? 8.5 : 9.5) * uiScale),
+    marginTop: Math.round((isTablet ? 0 : 1) * heightScale),
+    textAlign: "center",
+    color: isTablet ? "#ffd7f3" : "#ffd0f0"
   };
 
   const categoryCardResponsive = {
@@ -1272,6 +1407,11 @@ export default function App() {
     padding: Math.round((isTablet ? 14 : 16) * uiScale)
   };
 
+  const detailOpenListResponsive = {
+    maxHeight: Math.round((isTablet ? screenHeight * 0.44 : screenHeight * 0.4)),
+    marginTop: Math.round((isTablet ? 8 : 6) * heightScale)
+  };
+
   const introBrandWrapResponsive = {
     top: Math.round((isTablet ? 32 : 60) * heightScale),
     left: Math.round((isTablet ? 40 : 24) * widthScale),
@@ -1293,12 +1433,6 @@ export default function App() {
   const showIntroBrandOverlay = isTablet;
 
   const introResizeMode = "stretch";
-
-  const introButtonResponsive = {
-    bottom: Math.round((isTablet ? 26 : isAndroid ? 42 : 36) * heightScale),
-    paddingHorizontal: Math.round((isTablet ? 26 : 30) * widthScale),
-    paddingVertical: Math.round((isTablet ? 10 : 12) * heightScale)
-  };
 
   const introImageResponsive =
     {
@@ -1394,6 +1528,7 @@ export default function App() {
             </TouchableOpacity>
           ) : null}
           <TextInput
+            ref={searchInputRef}
             value={query}
             onChangeText={setQuery}
             placeholder="Search hotline"
@@ -1405,9 +1540,9 @@ export default function App() {
               <Text style={styles.clearSearchText}>×</Text>
             </TouchableOpacity>
           ) : null}
-          <View style={[styles.searchIconBadge, searchIconBadgeResponsive]}>
+          <TouchableOpacity style={[styles.searchIconBadge, searchIconBadgeResponsive]} onPress={handleSearchIconPress} activeOpacity={0.85}>
             <Text style={[styles.searchIcon, searchIconTextResponsive]}>🔎</Text>
-          </View>
+          </TouchableOpacity>
           </View>
           <Text style={styles.searchCaption}>Search by name or hotline number</Text>
         </Animated.View>
@@ -1533,10 +1668,28 @@ export default function App() {
                 return groupItems.map((cat) => {
                   const opened = detailCategory === cat.slug;
                   return (
-                    <View key={cat.slug} style={styles.subCard}>
+                    <View
+                      key={cat.slug}
+                      style={styles.subCard}
+                      onLayout={(e) => {
+                        detailCategoryPositionsRef.current[cat.slug] = e.nativeEvent.layout.y;
+                      }}
+                    >
                       <Pressable
                         style={({ pressed }) => [styles.subHeader, pressed && { opacity: 0.85 }]}
-                        onPress={() => setDetailCategory(opened ? "" : cat.slug)}
+                        onPress={() => {
+                          const nextCategory = opened ? "" : cat.slug;
+                          setDetailCategory(nextCategory);
+                          if (nextCategory) {
+                            requestAnimationFrame(() => {
+                              const localY = detailCategoryPositionsRef.current[nextCategory] || 0;
+                              scrollRef.current?.scrollTo({
+                                y: Math.max(resultsAnchorY + localY - 18, 0),
+                                animated: true
+                              });
+                            });
+                          }
+                        }}
                       >
                         <Text style={styles.subTitle} numberOfLines={1} ellipsizeMode="tail">
                           {cat.name}
@@ -1544,50 +1697,57 @@ export default function App() {
                         <Text style={styles.subToggle}>{opened ? "▲" : "▼"}</Text>
                       </Pressable>
                       {opened ? (
-                        getDetailContactsForSlug(cat.slug)
-                          .map((item) => {
-                            const palette = GROUP_COLORS[cat.group] || { accent: "#ff3b81", card: "#ffffffee" };
-                            lastDetail.current = { group: focusedGroup.key, category: cat.slug };
-                            return (
-                              <View
-                                key={item.id}
-                                onLayout={(e) => scrollToContactCard(item.id, e.nativeEvent.layout.y)}
-                                style={[
-                                  styles.hotlineCard,
-                                  {
-                                    backgroundColor: item.is_featured ? palette.cardActive || palette.card : palette.card,
-                                    shadowColor: palette.accent,
-                                    borderColor: item.is_featured ? `${palette.accent}55` : "rgba(255,255,255,0.55)"
-                                  },
-                                  item.is_featured && styles.hotlineCardFeatured
-                                ]}
-                              >
-                                <View style={styles.hotlineBody}>
-                                  <Text style={styles.hotlineName}>{item.name_ar}</Text>
-                                  {renderContactBadges(item)}
-                                  <Text style={styles.hotlineSub}>{item.category_name_ar}</Text>
-                                  {item.is_non_phone ? (
-                                    <Text style={styles.nonPhone}>غير هاتفي / عبر التطبيق</Text>
-                                  ) : (
-                                    <View style={styles.contactActionRow}>
-                                      <Pressable
-                                        style={({ pressed }) => [
-                                          styles.callBtn,
-                                          styles.contactActionBtn,
-                                          { backgroundColor: palette.accent },
-                                          pressed && styles.callBtnPressed
-                                        ]}
-                                        android_ripple={{ color: "rgba(255,255,255,0.25)", borderless: true }}
-                                        onPress={() => callNumber(item)}
-                                      >
-                                        <Text style={styles.callBtnText}>{item.phone}</Text>
-                                      </Pressable>
-                                    </View>
-                                  )}
+                        <ScrollView
+                          style={[styles.detailOpenList, detailOpenListResponsive]}
+                          nestedScrollEnabled
+                          showsVerticalScrollIndicator
+                          keyboardShouldPersistTaps="handled"
+                        >
+                          {getDetailContactsForSlug(cat.slug)
+                            .map((item) => {
+                              const palette = GROUP_COLORS[cat.group] || { accent: "#ff3b81", card: "#ffffffee" };
+                              lastDetail.current = { group: focusedGroup.key, category: cat.slug };
+                              return (
+                                <View
+                                  key={item.id}
+                                  onLayout={(e) => scrollToContactCard(item.id, e.nativeEvent.layout.y)}
+                                  style={[
+                                    styles.hotlineCard,
+                                    {
+                                      backgroundColor: item.is_featured ? palette.cardActive || palette.card : palette.card,
+                                      shadowColor: palette.accent,
+                                      borderColor: item.is_featured ? `${palette.accent}55` : "rgba(255,255,255,0.55)"
+                                    },
+                                    item.is_featured && styles.hotlineCardFeatured
+                                  ]}
+                                >
+                                  <View style={styles.hotlineBody}>
+                                    <Text style={styles.hotlineName}>{item.name_ar}</Text>
+                                    {renderContactBadges(item)}
+                                    <Text style={styles.hotlineSub}>{item.category_name_ar}</Text>
+                                    {item.is_non_phone ? (
+                                      <Text style={styles.nonPhone}>غير هاتفي / عبر التطبيق</Text>
+                                    ) : (
+                                      <View style={styles.contactActionRow}>
+                                        <Pressable
+                                          style={({ pressed }) => [
+                                            styles.callBtn,
+                                            styles.contactActionBtn,
+                                            { backgroundColor: palette.accent },
+                                            pressed && styles.callBtnPressed
+                                          ]}
+                                          android_ripple={{ color: "rgba(255,255,255,0.25)", borderless: true }}
+                                          onPress={() => callNumber(item)}
+                                        >
+                                          <Text style={styles.callBtnText}>{item.phone}</Text>
+                                        </Pressable>
+                                      </View>
+                                    )}
+                                  </View>
                                 </View>
-                              </View>
-                            );
-                          })
+                              );
+                            })}
+                        </ScrollView>
                       ) : null}
                     </View>
                   );
@@ -1599,32 +1759,40 @@ export default function App() {
       </Animated.ScrollView>
 
       {!showIntro ? (
-        <LinearGradient colors={["#6c47f5", "#b30f7f"]} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={[styles.bottomBar, bottomBarResponsive]}>
-        <TouchableOpacity style={[styles.bottomItem, businessPlanItemResponsive]} onPress={onPrimaryNavPress}>
-          <View style={[styles.bottomVisualSlot, styles.bottomSideVisualSlot, bottomSideVisualSlotResponsive, businessPlanVisualSlotResponsive]}>
-            <Ionicons name="rocket-outline" size={bottomSideIconSize} color="#ffffff" />
-          </View>
-          <Text style={[styles.bottomText, styles.bottomSideText, bottomTextResponsive, bottomSideTextResponsive]}>
-            Promote
-          </Text>
-        </TouchableOpacity>
-        <TouchableOpacity style={[styles.bottomItem, styles.bottomCenterItem]} onPress={() => setAddModalVisible(true)}>
-          <View style={styles.bottomVisualSlot}>
-            <View style={[styles.bottomCenterBadge, bottomCenterBadgeResponsive]}>
-              <Ionicons name="sparkles" size={bottomCenterIconSize} color="#9a0f6f" />
+        <View style={[styles.bottomBarShell, bottomBarResponsive]} pointerEvents="box-none">
+          <LinearGradient colors={["#6c47f5", "#b30f7f"]} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={styles.bottomBar}>
+            <TouchableOpacity style={[styles.bottomItem, businessPlanItemResponsive]} onPress={onPrimaryNavPress}>
+              <View style={[styles.bottomVisualSlot, styles.bottomSideVisualSlot, bottomSideVisualSlotResponsive, businessPlanVisualSlotResponsive]}>
+                <Ionicons name="rocket-outline" size={bottomSideIconSize} color="#ffffff" />
+              </View>
+              <Text style={[styles.bottomText, styles.bottomSideText, bottomTextResponsive, bottomSideTextResponsive]}>
+                Promote
+              </Text>
+            </TouchableOpacity>
+            <View style={styles.bottomCenterSpacer} />
+            <TouchableOpacity style={styles.bottomItem} onPress={() => setAddModalVisible(true)}>
+              <View style={[styles.bottomVisualSlot, styles.bottomSideVisualSlot, bottomSideVisualSlotResponsive]}>
+                <Ionicons name="add-circle-outline" size={bottomSideIconSize} color="#ffffff" />
+              </View>
+              <Text style={[styles.bottomText, styles.bottomSideText, bottomTextResponsive, bottomSideTextResponsive]}>
+                Add Number
+              </Text>
+            </TouchableOpacity>
+          </LinearGradient>
+
+          <TouchableOpacity style={[styles.bottomCenterFloating, styles.bottomCenterItem]} onPress={() => setContactModalVisible(true)}>
+            <View style={styles.bottomVisualSlot}>
+              <View style={[styles.bottomCenterBadge, bottomCenterBadgeResponsive]}>
+                <Ionicons name="phone-portrait" size={bottomCenterIconSize + 1} color="#9a0f6f" />
+                <View style={styles.bottomAssistantSparkles}>
+                  <Ionicons name="sparkles" size={11} color="#ffffff" />
+                </View>
+              </View>
             </View>
-          </View>
-          <Text style={[styles.bottomCenterText, bottomCenterTextResponsive]}>Add Number</Text>
-        </TouchableOpacity>
-        <TouchableOpacity style={styles.bottomItem} onPress={() => setContactModalVisible(true)}>
-          <View style={[styles.bottomVisualSlot, styles.bottomSideVisualSlot, bottomSideVisualSlotResponsive]}>
-            <Ionicons name="chatbubble-ellipses-outline" size={bottomSideIconSize} color="#ffffff" />
-          </View>
-          <Text style={[styles.bottomText, styles.bottomSideText, bottomTextResponsive, bottomSideTextResponsive]}>
-            Contact us
-          </Text>
-        </TouchableOpacity>
-        </LinearGradient>
+            <Text style={[styles.bottomCenterText, bottomCenterTextResponsive]}>Contact us</Text>
+            <Text style={[styles.bottomCenterSubText, bottomCenterSubTextResponsive]}>AI assistant</Text>
+          </TouchableOpacity>
+        </View>
       ) : null}
 
       <Modal transparent visible={addModalVisible} animationType="fade" onRequestClose={() => setAddModalVisible(false)}>
@@ -1703,17 +1871,97 @@ export default function App() {
             <View style={[styles.modalCard, styles.suggestCard, styles.contactCard]}>
               <View style={styles.sheetGlow} />
               <View style={styles.sheetGlowSecondary} />
-              <ScrollView keyboardShouldPersistTaps="handled" showsVerticalScrollIndicator={false}>
+              <ScrollView
+                ref={contactAssistantScrollRef}
+                keyboardShouldPersistTaps="handled"
+                showsVerticalScrollIndicator={false}
+              >
                 <View style={styles.suggestHero}>
                   <View style={[styles.suggestHeroBadge, styles.contactHeroBadge]}>
-                    <Ionicons name="chatbubble-ellipses" size={22} color="#9a0f6f" />
+                    <Ionicons name="phone-portrait" size={20} color="#9a0f6f" />
+                    <View style={styles.contactHeroSparkles}>
+                      <Ionicons name="sparkles" size={10} color="#ffffff" />
+                    </View>
                   </View>
-                  <Text style={styles.modalTitle}>Contact us</Text>
-                  <Text style={styles.modalSubTitle}>Share a suggestion / اكتب اقتراحك أو أخبرنا بما يمكن تحسينه.</Text>
+                  <Text style={styles.modalTitle}>Contact us (AI assistant)</Text>
+                  <Text style={styles.modalSubTitle}>Quick answers, helpful prompts, and direct support in one place.</Text>
                 </View>
+
+                <View style={styles.chatThread}>
+                  <View style={[styles.chatBubble, styles.chatBotBubble]}>
+                    <Text style={styles.chatBubbleLabel}>Hotline Assistant</Text>
+                    <Text style={styles.chatBubbleText}>
+                      Hi, how can we help today?{"\n"}اختر سؤالاً من الأسئلة التالية أو اكتب رسالتك بالأسفل.
+                    </Text>
+                  </View>
+
+                  {contactAssistantHistory.map((topicKey, index) => {
+                    const topic = CONTACT_ASSISTANT_TOPICS.find((item) => item.key === topicKey);
+                    if (!topic) return null;
+                    return (
+                      <View key={`${topic.key}-${index}`} style={styles.chatThreadPair}>
+                        <View style={[styles.chatBubble, styles.chatUserBubble]}>
+                          <Text style={[styles.chatBubbleText, styles.chatUserBubbleText]}>
+                            {topic.questionEn}
+                            {"\n"}
+                            {topic.questionAr}
+                          </Text>
+                        </View>
+                        <View style={[styles.chatBubble, styles.chatBotBubble]}>
+                          <Text style={styles.chatBubbleLabel}>Hotline Assistant</Text>
+                          <Text style={styles.chatBubbleText}>
+                            {topic.answerEn}
+                            {"\n\n"}
+                            {topic.answerAr}
+                          </Text>
+                          {topic.action ? (
+                            <TouchableOpacity
+                              style={styles.chatActionBtn}
+                              onPress={() => handleContactAssistantAction(topic.action)}
+                            >
+                              <Text style={styles.chatActionBtnText}>{topic.actionLabel}</Text>
+                            </TouchableOpacity>
+                          ) : null}
+                        </View>
+                      </View>
+                    );
+                  })}
+
+                  <View style={styles.chatQuickRow}>
+                    {CONTACT_ASSISTANT_TOPICS.map((topic) => (
+                      <TouchableOpacity
+                        key={topic.key}
+                        style={[
+                          styles.chatQuickChip,
+                          selectedContactTopic === topic.key && styles.chatQuickChipActive
+                        ]}
+                        onPress={() => handleContactTopicPress(topic)}
+                      >
+                        <Text
+                          style={[
+                            styles.chatQuickChipText,
+                            selectedContactTopic === topic.key && styles.chatQuickChipTextActive
+                          ]}
+                        >
+                          {topic.questionEn}
+                        </Text>
+                        <Text
+                          style={[
+                            styles.chatQuickChipSubText,
+                            selectedContactTopic === topic.key && styles.chatQuickChipSubTextActive
+                          ]}
+                        >
+                          {topic.questionAr}
+                        </Text>
+                      </TouchableOpacity>
+                    ))}
+                  </View>
+                </View>
+
                 <TextInput
-                  style={[styles.modalInput, styles.modalTextArea]}
-                  placeholder="Write your suggestion / اكتب اقتراحك"
+                  ref={contactComposerInputRef}
+                  style={[styles.modalInput, styles.chatComposerInput]}
+                  placeholder="Still need help? Type your message / اكتب رسالتك هنا"
                   placeholderTextColor="#7b8799"
                   multiline
                   textAlignVertical="top"
@@ -1725,7 +1973,7 @@ export default function App() {
                     <Text style={styles.modalBtnGhostText}>Cancel</Text>
                   </TouchableOpacity>
                   <TouchableOpacity style={styles.modalBtnPrimary} onPress={handleContactSubmit}>
-                    <Text style={styles.modalBtnPrimaryText}>Send</Text>
+                    <Text style={styles.modalBtnPrimaryText}>Send message</Text>
                   </TouchableOpacity>
                 </View>
               </ScrollView>
@@ -1965,11 +2213,9 @@ export default function App() {
       </Modal>
 
       {showIntro ? (
-        <View style={styles.introOverlay}>
+        <Pressable style={styles.introOverlay} onPress={handleIntroContinue}>
           <ImageBackground source={introLocal} style={[styles.introImage, introImageResponsive]} resizeMode={introResizeMode}>
             <View style={[styles.introTint, introTintResponsive]} />
-            <View style={styles.introGlowTop} />
-            <View style={styles.introGlowBottom} />
             {showIntroBrandOverlay ? (
               <View style={[styles.introBrandWrap, introBrandWrapResponsive]}>
                 <View style={styles.introBrandBadge}>
@@ -1979,11 +2225,8 @@ export default function App() {
                 <Text style={[styles.introBrandSub, introBrandSubResponsive]}>Fast access to important numbers in Egypt</Text>
               </View>
             ) : null}
-            <TouchableOpacity style={[styles.introBtnFloating, introButtonResponsive]} onPress={handleIntroContinue}>
-              <Text style={styles.introBtnText}>Enter App</Text>
-            </TouchableOpacity>
           </ImageBackground>
-        </View>
+        </Pressable>
       ) : null}
 
       {showSuggestHint ? (
@@ -1998,7 +2241,7 @@ export default function App() {
                 <View style={[styles.hintMiniBadge, styles.hintMiniBusiness]}>
                   <Ionicons name="rocket-outline" size={14} color="#7c3aed" />
                 </View>
-                <Text style={[styles.hintItemText, styles.aboutBodyAr]}>Business Plans لعرض باقات الظهور المميز والتوثيق للأعمال.</Text>
+                <Text style={[styles.hintItemText, styles.aboutBodyAr]}>Promote لعرض باقات الظهور المميز والتوثيق للأعمال.</Text>
               </View>
               <View style={styles.hintItem}>
                 <View style={[styles.hintMiniBadge, styles.hintMiniAdd]}>
@@ -2522,6 +2765,9 @@ const styles = StyleSheet.create({
     marginTop: 8,
     gap: 10
   },
+  detailOpenList: {
+    width: "100%"
+  },
   chipRow: {
     flexDirection: "row",
     flexWrap: "wrap",
@@ -2730,16 +2976,21 @@ const styles = StyleSheet.create({
     height: 1,
     width: "100%"
   },
-  bottomBar: {
+  bottomBarShell: {
     position: "absolute",
     left: 14,
     right: 14,
     bottom: 0,
-    height: 104,
+    height: 108,
+    overflow: "visible"
+  },
+  bottomBar: {
+    flex: 1,
     borderRadius: 26,
     flexDirection: "row",
     justifyContent: "space-around",
     alignItems: "center",
+    paddingTop: 6,
     paddingBottom: 10,
     shadowColor: "#000",
     shadowOpacity: 0.2,
@@ -2748,6 +2999,9 @@ const styles = StyleSheet.create({
     elevation: 12,
     overflow: "visible"
   },
+  bottomCenterSpacer: {
+    flex: 1
+  },
   bottomItem: {
     flex: 1,
     alignItems: "center",
@@ -2755,17 +3009,28 @@ const styles = StyleSheet.create({
     minWidth: 80,
     paddingHorizontal: 4
   },
+  bottomCenterFloating: {
+    position: "absolute",
+    left: "50%",
+    top: -18,
+    transform: [{ translateX: -44 }],
+    alignItems: "center",
+    justifyContent: "flex-start",
+    zIndex: 5
+  },
   bottomCenterItem: {
     justifyContent: "center",
-    paddingHorizontal: 2
+    paddingHorizontal: 2,
+    marginTop: 0
   },
   bottomVisualSlot: {
     width: 72,
-    height: 64,
+    height: 70,
     alignItems: "center",
     justifyContent: "center",
     marginBottom: 6,
-    position: "relative"
+    position: "relative",
+    overflow: "visible"
   },
   bottomSideVisualSlot: {
     marginBottom: 8
@@ -2786,11 +3051,28 @@ const styles = StyleSheet.create({
     elevation: 0,
     zIndex: 2
   },
+  bottomAssistantSparkles: {
+    position: "absolute",
+    top: 10,
+    right: 8,
+    width: 20,
+    height: 20,
+    borderRadius: 10,
+    backgroundColor: "#d21695",
+    alignItems: "center",
+    justifyContent: "center"
+  },
   bottomCenterText: {
     color: "#fff",
     fontSize: 14,
     fontWeight: "800",
     marginTop: 3
+  },
+  bottomCenterSubText: {
+    color: "#ffd0f0",
+    fontSize: 10,
+    fontWeight: "700",
+    marginTop: 0
   },
   bottomIcon: {
     fontSize: 36,
@@ -3105,36 +3387,48 @@ const styles = StyleSheet.create({
   },
   contactCard: {
     overflow: "hidden",
-    borderRadius: 28,
-    backgroundColor: "rgba(255,255,255,0.94)",
+    borderRadius: 22,
+    backgroundColor: "rgba(255,255,255,0.95)",
     borderColor: "rgba(255,255,255,0.82)"
   },
   suggestHero: {
     alignItems: "center",
-    marginBottom: 12
+    marginBottom: 8
   },
   suggestHeroBadge: {
-    width: 52,
-    height: 52,
-    borderRadius: 26,
+    width: 46,
+    height: 46,
+    borderRadius: 23,
     backgroundColor: "#fde7f7",
     alignItems: "center",
     justifyContent: "center",
-    marginBottom: 10
+    marginBottom: 8
   },
   contactHeroBadge: {
     backgroundColor: "#fce7f3"
   },
+  contactHeroSparkles: {
+    position: "absolute",
+    right: 6,
+    top: 6,
+    width: 16,
+    height: 16,
+    borderRadius: 8,
+    backgroundColor: "#d21695",
+    alignItems: "center",
+    justifyContent: "center"
+  },
   modalTitle: {
     color: "#111827",
-    fontSize: 21,
+    fontSize: 17,
     fontWeight: "800",
-    marginBottom: 4
+    marginBottom: 3
   },
   modalSubTitle: {
     color: "#334155",
-    fontSize: 14,
-    marginBottom: 10
+    fontSize: 12,
+    marginBottom: 6,
+    textAlign: "center"
   },
   modalInput: {
     backgroundColor: "rgba(255,255,255,0.95)",
@@ -3152,6 +3446,96 @@ const styles = StyleSheet.create({
   },
   modalTextArea: {
     minHeight: 110
+  },
+  chatThread: {
+    gap: 7,
+    marginBottom: 8
+  },
+  chatThreadPair: {
+    gap: 5
+  },
+  chatBubble: {
+    maxWidth: "86%",
+    borderRadius: 15,
+    paddingHorizontal: 11,
+    paddingVertical: 9
+  },
+  chatBotBubble: {
+    alignSelf: "flex-start",
+    backgroundColor: "rgba(255,240,248,0.96)",
+    borderWidth: 1,
+    borderColor: "rgba(240,190,225,0.9)"
+  },
+  chatUserBubble: {
+    alignSelf: "flex-end",
+    backgroundColor: "#4a56d7"
+  },
+  chatBubbleLabel: {
+    color: "#9a0f6f",
+    fontSize: 10.5,
+    fontWeight: "800",
+    marginBottom: 3
+  },
+  chatBubbleText: {
+    color: "#334155",
+    fontSize: 12.5,
+    lineHeight: 18
+  },
+  chatUserBubbleText: {
+    color: "#ffffff"
+  },
+  chatQuickRow: {
+    gap: 5
+  },
+  chatQuickChip: {
+    paddingHorizontal: 10,
+    paddingVertical: 7,
+    borderRadius: 15,
+    backgroundColor: "#f3e8ff",
+    borderWidth: 1,
+    borderColor: "#e9d5ff",
+    width: "100%"
+  },
+  chatQuickChipActive: {
+    backgroundColor: "#f6d6ec",
+    borderColor: "#f3a7d2"
+  },
+  chatQuickChipText: {
+    color: "#6b21a8",
+    fontSize: 12.5,
+    fontWeight: "700"
+  },
+  chatQuickChipTextActive: {
+    color: "#9a0f6f"
+  },
+  chatQuickChipSubText: {
+    color: "#7c6a8b",
+    fontSize: 12,
+    fontWeight: "600",
+    marginTop: 1,
+    textAlign: "right",
+    writingDirection: "rtl"
+  },
+  chatQuickChipSubTextActive: {
+    color: "#7a1b5d"
+  },
+  chatActionBtn: {
+    alignSelf: "flex-start",
+    marginTop: 6,
+    backgroundColor: "#4a56d7",
+    borderRadius: 999,
+    paddingHorizontal: 11,
+    paddingVertical: 7
+  },
+  chatActionBtnText: {
+    color: "#ffffff",
+    fontSize: 11.5,
+    fontWeight: "800"
+  },
+  chatComposerInput: {
+    minHeight: 64,
+    borderRadius: 15,
+    marginBottom: 8
   },
   modalActions: {
     flexDirection: "row",
