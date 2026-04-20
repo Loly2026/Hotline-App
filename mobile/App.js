@@ -189,8 +189,8 @@ const CONTACT_ASSISTANT_TOPICS = [
     key: "update-number",
     questionEn: "What if I find a wrong or old number?",
     questionAr: "ماذا أفعل إذا وجدت رقمًا خطأ أو قديمًا؟",
-    answerEn: "You can send us the correction through Contact us, and we review updates before publishing them in the app.",
-    answerAr: "يمكنك إرسال التصحيح من خلال Contact us، ونحن نراجع التحديثات قبل نشرها داخل التطبيق."
+    answerEn: "Write your correction request and press Send request so we can review it before publishing the update in the app.",
+    answerAr: "اكتب طلبك واضغط على إرسال الطلب لنراجعه قبل نشر التحديث داخل التطبيق."
   },
   {
     key: "verified",
@@ -600,6 +600,28 @@ function detectAssistantTopic(message) {
   return findAssistantTopicByKey(bestMatch.topicKey);
 }
 
+function extractAssistantName(message) {
+  const arabicNameMatch =
+    message.match(/(?:انا اسمي|اسمي|انا اسمى|اسمى)\s+([^\n\r,.!؟]+)/i) ||
+    message.match(/(?:أنا اسمي|إسمي|انا|أنا|معاك|معاكي)\s+([^\n\r,.!؟]+)/i);
+  const englishNameMatch = message.match(/(?:my name is|i am|i'm|this is)\s+([a-zA-Z][a-zA-Z\s'-]{1,40})/i);
+  return (arabicNameMatch?.[1] || englishNameMatch?.[1] || "")
+    .trim()
+    .replace(/\s+/g, " ")
+    .split(" ")
+    .slice(0, 3)
+    .join(" ");
+}
+
+function getAssistantNameReply(message) {
+  const detectedName = extractAssistantName(message);
+  if (!detectedName) return null;
+  return {
+    answerEn: `Welcome, ${detectedName}. I’m your smart assistant. How can I help you today?`,
+    answerAr: `أهلاً وسهلاً بك يا ${detectedName}. أنا مساعدك الذكي، أقدر أساعدك إزاي؟`
+  };
+}
+
 function getAssistantReplyForMessage(message, topic) {
   const normalized = normalizeText(message);
   if (!topic || !normalized) return null;
@@ -641,11 +663,17 @@ function getAssistantReplyForMessage(message, topic) {
     if (
       normalized.includes("ساعدني") ||
       normalized.includes("ساعدنى") ||
+      normalized.includes("لو سمحت") ||
+      normalized.includes("لو سمحتى") ||
+      normalized.includes("محتاج دعم") ||
+      normalized.includes("اريد مساعده") ||
+      normalized.includes("احتاج مساعده") ||
       normalized.includes("محتاج مساعده") ||
       normalized.includes("محتاج مساعدة") ||
       normalized.includes("عايز مساعدة") ||
       normalized.includes("عايز مساعده") ||
       normalized.includes("عاوز مساعدة") ||
+      normalized.includes("عاوز مساعده") ||
       normalized.includes("help me")
     ) {
       return {
@@ -736,6 +764,7 @@ export default function App() {
   const [contactModalVisible, setContactModalVisible] = useState(false);
   const [assistantLanguage, setAssistantLanguage] = useState("ar");
   const [selectedContactTopic, setSelectedContactTopic] = useState("");
+  const [quickQuestionsExpanded, setQuickQuestionsExpanded] = useState(false);
   const [contactAssistantHistory, setContactAssistantHistory] = useState([]);
   const [assistantTypingId, setAssistantTypingId] = useState(null);
   const [aboutModalVisible, setAboutModalVisible] = useState(false);
@@ -1043,6 +1072,7 @@ export default function App() {
       assistantReplyTimersRef.current.forEach(clearTimeout);
       assistantReplyTimersRef.current = [];
       setSelectedContactTopic("");
+      setQuickQuestionsExpanded(false);
       setContactAssistantHistory([]);
       setAssistantTypingId(null);
       setPendingSupportMessage("");
@@ -1515,6 +1545,17 @@ export default function App() {
     const msg = contactMessage.trim();
     if (!msg) {
       Alert.alert("Missing Message", "Please write your suggestion first.");
+      return;
+    }
+
+    const nameReply = getAssistantNameReply(msg);
+    if (nameReply) {
+      appendAssistantEntry({
+        userText: msg,
+        answerEn: nameReply.answerEn,
+        answerAr: nameReply.answerAr
+      });
+      setContactMessage("");
       return;
     }
 
@@ -2489,60 +2530,79 @@ export default function App() {
                   </TouchableOpacity>
                 </View>
 
-                <View style={styles.assistantSectionHead}>
-                  <Text style={styles.assistantSectionTitle}>
-                    {assistantLanguage === "ar" ? "أسئلة سريعة" : "Quick questions"}
-                  </Text>
-                  <Text style={styles.assistantSectionSub}>
-                    {assistantLanguage === "ar"
-                      ? "اختصارات مفيدة لو تحب تبدأ بسرعة"
-                      : "Useful shortcuts if you want a fast start"}
-                  </Text>
-                </View>
+                <TouchableOpacity
+                  style={styles.quickQuestionsToggle}
+                  onPress={() => {
+                    setQuickQuestionsExpanded((prev) => {
+                      const next = !prev;
+                      if (!next) setSelectedContactTopic("");
+                      return next;
+                    });
+                  }}
+                  activeOpacity={0.86}
+                >
+                  <View style={styles.quickQuestionsToggleTextWrap}>
+                    <Text style={styles.assistantSectionTitle}>
+                      {assistantLanguage === "ar" ? "أسئلة سريعة" : "Quick questions"}
+                    </Text>
+                    <Text style={styles.assistantSectionSub}>
+                      {assistantLanguage === "ar"
+                        ? "اختصارات مفيدة لو تحب تبدأ بسرعة"
+                        : "Useful shortcuts if you want a fast start"}
+                    </Text>
+                  </View>
+                  <Ionicons
+                    name={quickQuestionsExpanded ? "chevron-up" : "chevron-down"}
+                    size={20}
+                    color="#9a0f6f"
+                  />
+                </TouchableOpacity>
 
-                <View style={styles.chatQuickRow}>
-                  {CONTACT_ASSISTANT_TOPICS.filter((topic) =>
-                    CONTACT_ASSISTANT_VISIBLE_TOPIC_KEYS.includes(topic.key)
-                  ).map((topic) => (
-                    <View key={topic.key} style={styles.chatQuestionBlock}>
-                      <TouchableOpacity
-                        style={[
-                          styles.chatQuickChip,
-                          selectedContactTopic === topic.key && styles.chatQuickChipActive
-                        ]}
-                        onPress={() => handleContactTopicPress(topic)}
-                      >
-                        <Text
+                {quickQuestionsExpanded ? (
+                  <View style={styles.chatQuickRow}>
+                    {CONTACT_ASSISTANT_TOPICS.filter((topic) =>
+                      CONTACT_ASSISTANT_VISIBLE_TOPIC_KEYS.includes(topic.key)
+                    ).map((topic) => (
+                      <View key={topic.key} style={styles.chatQuestionBlock}>
+                        <TouchableOpacity
                           style={[
-                            styles.chatQuickChipText,
-                            selectedContactTopic === topic.key && styles.chatQuickChipTextActive
+                            styles.chatQuickChip,
+                            selectedContactTopic === topic.key && styles.chatQuickChipActive
                           ]}
+                          onPress={() => handleContactTopicPress(topic)}
                         >
-                          {assistantLanguage === "ar" ? topic.questionAr : topic.questionEn}
-                        </Text>
-                      </TouchableOpacity>
-
-                      {selectedContactTopic === topic.key ? (
-                        <View style={[styles.chatBubble, styles.chatBotBubble, styles.chatInlineAnswer]}>
-                          <Text style={styles.chatBubbleLabel}>Hotline Assistant</Text>
-                          <Text style={styles.chatBubbleText}>
-                            {assistantLanguage === "ar" ? topic.answerAr : topic.answerEn}
+                          <Text
+                            style={[
+                              styles.chatQuickChipText,
+                              selectedContactTopic === topic.key && styles.chatQuickChipTextActive
+                            ]}
+                          >
+                            {assistantLanguage === "ar" ? topic.questionAr : topic.questionEn}
                           </Text>
-                          {topic.action ? (
-                            <TouchableOpacity
-                              style={styles.chatActionBtn}
-                              onPress={() => handleContactAssistantAction(topic.action)}
-                            >
-                              <Text style={styles.chatActionBtnText}>
-                                {assistantLanguage === "ar" ? topic.actionLabelAr : topic.actionLabelEn}
-                              </Text>
-                            </TouchableOpacity>
-                          ) : null}
-                        </View>
-                      ) : null}
-                    </View>
-                  ))}
-                </View>
+                        </TouchableOpacity>
+
+                        {selectedContactTopic === topic.key ? (
+                          <View style={[styles.chatBubble, styles.chatBotBubble, styles.chatInlineAnswer]}>
+                            <Text style={styles.chatBubbleLabel}>Hotline Assistant</Text>
+                            <Text style={styles.chatBubbleText}>
+                              {assistantLanguage === "ar" ? topic.answerAr : topic.answerEn}
+                            </Text>
+                            {topic.action ? (
+                              <TouchableOpacity
+                                style={styles.chatActionBtn}
+                                onPress={() => handleContactAssistantAction(topic.action)}
+                              >
+                                <Text style={styles.chatActionBtnText}>
+                                  {assistantLanguage === "ar" ? topic.actionLabelAr : topic.actionLabelEn}
+                                </Text>
+                              </TouchableOpacity>
+                            ) : null}
+                          </View>
+                        ) : null}
+                      </View>
+                    ))}
+                  </View>
+                ) : null}
 
                 <View style={[styles.assistantSectionHead, styles.chatAssistantSectionHead]}>
                   <Text style={styles.assistantSectionTitle}>
@@ -2623,7 +2683,7 @@ export default function App() {
                 />
                 <View style={styles.contactFooterRow}>
                   <TouchableOpacity style={styles.modalBtnGhost} onPress={() => setContactModalVisible(false)}>
-                    <Text style={styles.modalBtnGhostText}>Close</Text>
+                    <Text style={styles.modalBtnGhostText}>{assistantLanguage === "ar" ? "اغلاق" : "Close"}</Text>
                   </TouchableOpacity>
                   <View style={styles.contactPrimaryActions}>
                     <TouchableOpacity style={styles.modalBtnPrimary} onPress={handleContactSubmit}>
@@ -3644,7 +3704,9 @@ const styles = StyleSheet.create({
     right: 14,
     bottom: 0,
     height: 108,
-    overflow: "visible"
+    overflow: "visible",
+    zIndex: 40,
+    elevation: 1
   },
   bottomBar: {
     flex: 1,
@@ -3659,7 +3721,8 @@ const styles = StyleSheet.create({
     shadowRadius: 14,
     shadowOffset: { width: 0, height: 10 },
     elevation: 12,
-    overflow: "visible"
+    overflow: "visible",
+    zIndex: 1
   },
   bottomCenterSpacer: {
     flex: 1
@@ -3678,7 +3741,8 @@ const styles = StyleSheet.create({
     transform: [{ translateX: -44 }],
     alignItems: "center",
     justifyContent: "flex-start",
-    zIndex: 5
+    zIndex: 50,
+    elevation: 30
   },
   bottomCenterItem: {
     justifyContent: "center",
@@ -3710,8 +3774,8 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.08,
     shadowRadius: 4,
     shadowOffset: { width: 0, height: 2 },
-    elevation: 0,
-    zIndex: 2
+    elevation: 18,
+    zIndex: 60
   },
   bottomAssistantSparkles: {
     position: "absolute",
@@ -4111,7 +4175,7 @@ const styles = StyleSheet.create({
   },
   modalTitle: {
     color: "#111827",
-    fontSize: 17,
+    fontSize: 19,
     fontWeight: "800",
     marginBottom: 3
   },
@@ -4155,7 +4219,7 @@ const styles = StyleSheet.create({
   },
   assistantSectionTitle: {
     color: "#1f2937",
-    fontSize: 13,
+    fontSize: 15,
     fontWeight: "800",
     textAlign: "center"
   },
@@ -4165,6 +4229,22 @@ const styles = StyleSheet.create({
     fontWeight: "600",
     textAlign: "center",
     marginTop: 2
+  },
+  quickQuestionsToggle: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    backgroundColor: "rgba(255,255,255,0.92)",
+    borderWidth: 1,
+    borderColor: "#ead5e8",
+    borderRadius: 16,
+    paddingHorizontal: 14,
+    paddingVertical: 12,
+    marginBottom: 10
+  },
+  quickQuestionsToggleTextWrap: {
+    flex: 1,
+    paddingRight: 10
   },
   modalInput: {
     backgroundColor: "rgba(255,255,255,0.95)",
