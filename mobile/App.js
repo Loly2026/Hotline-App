@@ -141,6 +141,20 @@ const CATEGORY_ORDER_BY_GROUP = {
 };
 const CONTACT_ASSISTANT_TOPICS = [
   {
+    key: "greeting",
+    questionEn: "Hello",
+    questionAr: "السلام عليكم",
+    answerEn: "Hello and welcome. I’m here to help you with search, adding numbers, business promotion, and support inside the app.",
+    answerAr: "وعليكم السلام وأهلاً بك. أنا هنا لمساعدتك في البحث، وإضافة الأرقام، وترويج النشاط، والدعم داخل التطبيق."
+  },
+  {
+    key: "thanks",
+    questionEn: "Thank you",
+    questionAr: "شكرًا",
+    answerEn: "You’re welcome. If you need anything else, I’m here to help.",
+    answerAr: "العفو. إذا احتجت أي شيء آخر فأنا هنا للمساعدة."
+  },
+  {
     key: "about",
     questionEn: "What is this app?",
     questionAr: "ما هو هذا التطبيق؟",
@@ -214,6 +228,307 @@ const CONTACT_ASSISTANT_TOPICS = [
     action: "focus-message",
     actionLabelEn: "Write your message",
     actionLabelAr: "ابدأ الكتابة"
+  },
+  {
+    key: "technical-support",
+    questionEn: "I need technical support",
+    questionAr: "أحتاج دعمًا فنيًا",
+    answerEn: "If you have a problem in the app, describe it briefly and send it to us. You can also mention what screen or feature caused the issue so we can help faster.",
+    answerAr: "إذا كانت لديك مشكلة داخل التطبيق، اكتبها باختصار وأرسلها لنا. ويمكنك أيضًا ذكر الشاشة أو الميزة التي ظهرت فيها المشكلة حتى نساعدك بشكل أسرع.",
+    action: "focus-message",
+    actionLabelEn: "Describe the problem",
+    actionLabelAr: "اكتب المشكلة"
+  },
+  {
+    key: "problem",
+    questionEn: "I have a problem",
+    questionAr: "عندي مشكلة",
+    answerEn: "I’m sorry you ran into a problem. I can help you with guidance here, or you can write the issue below and send it directly to our team.",
+    answerAr: "آسف لوجود مشكلة عندك. أقدر أساعدك بالإرشاد هنا، أو يمكنك كتابة المشكلة بالأسفل وإرسالها مباشرة إلى فريقنا.",
+    action: "focus-message",
+    actionLabelEn: "Write the problem",
+    actionLabelAr: "اكتب المشكلة"
+  },
+  {
+    key: "respect",
+    questionEn: "I’m upset",
+    questionAr: "أنا منزعج",
+    answerEn: "I’m sorry if something caused frustration. I’ll still try to help as clearly as possible. Tell me the issue and I’ll guide you to the best next step.",
+    answerAr: "أنا آسف إذا كان هناك شيء سبب لك انزعاجًا. سأحاول مساعدتك بأوضح طريقة ممكنة. اكتب المشكلة وسأرشدك لأفضل خطوة تالية.",
+    action: "focus-message",
+    actionLabelEn: "Tell me the issue",
+    actionLabelAr: "اكتب المشكلة"
+  }
+];
+const CONTACT_ASSISTANT_VISIBLE_TOPIC_KEYS = [
+  "about",
+  "services",
+  "search",
+  "add-number",
+  "update-number",
+  "verified",
+  "promote",
+  "language",
+  "support"
+];
+const CONTACT_ASSISTANT_INTENTS = [
+  {
+    topicKey: "greeting",
+    keywords: [
+      "سلام عليكم",
+      "السلام عليكم",
+      "وعليكم السلام",
+      "اهلا",
+      "أهلا",
+      "اهلا بيك",
+      "مرحبا",
+      "صباح الخير",
+      "صباح الورد",
+      "مساء الخير",
+      "مساء النور",
+      "hello",
+      "hi",
+      "hey",
+      "good morning",
+      "good evening"
+    ]
+  },
+  {
+    topicKey: "thanks",
+    keywords: [
+      "شكرا",
+      "شكرًا",
+      "متشكر",
+      "تسلم",
+      "thank you",
+      "thanks",
+      "thx"
+    ]
+  },
+  {
+    topicKey: "add-number",
+    keywords: [
+      "اضيف رقم",
+      "اضافه رقم",
+      "اريد اضافه رقم",
+      "عايز اضيف رقم",
+      "عاوز اضيف رقم",
+      "محتاج اضيف رقم",
+      "اضيف رقمي",
+      "اضافة رقمي",
+      "رقم جديد",
+      "add number",
+      "add my number",
+      "i want to add a number",
+      "new number",
+      "suggest number",
+      "add hotline"
+    ]
+  },
+  {
+    topicKey: "update-number",
+    keywords: [
+      "رقم غلط",
+      "رقم خطا",
+      "رقم قديم",
+      "تصحيح رقم",
+      "اعدل رقمي",
+      "تعديل رقمي",
+      "عايز اعدل رقمي",
+      "عاوز اعدل رقمي",
+      "تعديل الرقم",
+      "صحح الرقم",
+      "مش شغال",
+      "الرقم مش شغال",
+      "الرقم خطأ",
+      "wrong number",
+      "old number",
+      "edit my number",
+      "change my number",
+      "update number",
+      "incorrect number"
+    ]
+  },
+  {
+    topicKey: "promote",
+    keywords: [
+      "اظهر نشاطي",
+      "اظهر رقمي",
+      "ارقي نشاطي",
+      "ترقيه نشاطي",
+      "ترقية نشاطي",
+      "عايز اروج",
+      "عاوز اروج",
+      "اروج نشاطي",
+      "اخلي نشاطي يظهر",
+      "اعمل اعلان",
+      "اعلن",
+      "ترويج",
+      "promote",
+      "featured",
+      "upgrade my business",
+      "promote my business",
+      "show my number",
+      "show my listing",
+      "list my business",
+      "show my business",
+      "advertise"
+    ]
+  },
+  {
+    topicKey: "verified",
+    keywords: [
+      "فرق الباقات",
+      "الباقات",
+      "ايه الباقات",
+      "ما هي الباقات",
+      "اسعار الباقات",
+      "الاسعار",
+      "سعر الباقات",
+      "موثقه",
+      "مميزه",
+      "بريميوم",
+      "plans",
+      "pricing",
+      "prices",
+      "plan price",
+      "business plans",
+      "verified",
+      "premium",
+      "featured plan"
+    ]
+  },
+  {
+    topicKey: "search",
+    keywords: [
+      "ابحث",
+      "بحث",
+      "ادور",
+      "ازاي ابحث",
+      "كيف ابحث",
+      "ادور ازاي",
+      "ابحث ازاي",
+      "search",
+      "how to search",
+      "how do i search",
+      "find",
+      "look up"
+    ]
+  },
+  {
+    topicKey: "services",
+    keywords: [
+      "الخدمات",
+      "ايه الخدمات",
+      "ايه المطلوب",
+      "المطلوب ايه",
+      "الخدمات اللي عندكم",
+      "ايه اللي التطبيق بيقدمه",
+      "التطبيق بيعمل ايه",
+      "ممكن يساعدني في ايه",
+      "يوفر ايه",
+      "services",
+      "what do you offer",
+      "what can you help me with",
+      "what can it do",
+      "what services"
+    ]
+  },
+  {
+    topicKey: "about",
+    keywords: [
+      "ايه التطبيق",
+      "ما هو التطبيق",
+      "انتم مين",
+      "انتو مين",
+      "مين انتو",
+      "من انتم",
+      "عن التطبيق",
+      "what is this app",
+      "who are you",
+      "what are you",
+      "about app",
+      "what is hotline app"
+    ]
+  },
+  {
+    topicKey: "language",
+    keywords: [
+      "عربي",
+      "انجليزي",
+      "اللغة",
+      "غير اللغة",
+      "اختار اللغة",
+      "arabic",
+      "english",
+      "change language",
+      "language option",
+      "language"
+    ]
+  },
+  {
+    topicKey: "support",
+    keywords: [
+      "محتاج مساعده",
+      "محتاج مساعدة",
+      "عايز مساعده",
+      "عايز مساعدة",
+      "عاوز مساعدة",
+      "ساعدني",
+      "ساعدنى",
+      "لو سمحت ساعدني",
+      "لو سمحت ساعدنى",
+      "ممكن تساعدني",
+      "ممكن تساعدنى",
+      "help",
+      "help me",
+      "i need help",
+      "support",
+      "contact support"
+    ]
+  },
+  {
+    topicKey: "technical-support",
+    keywords: [
+      "دعم فني",
+      "الدعم الفني",
+      "customer service",
+      "technical support",
+      "tech support",
+      "support team",
+      "خدمة العملاء",
+      "كوستمر سيرفيس"
+    ]
+  },
+  {
+    topicKey: "problem",
+    keywords: [
+      "عندي مشكلة",
+      "في مشكلة",
+      "مشكلة ظهرت",
+      "المشكلة",
+      "في عطل",
+      "التطبيق واقف",
+      "حصل خطأ",
+      "error",
+      "bug",
+      "issue",
+      "problem",
+      "something went wrong"
+    ]
+  },
+  {
+    topicKey: "respect",
+    keywords: [
+      "غلط",
+      "زفت",
+      "سيء",
+      "مش عاجبني",
+      "bad",
+      "stupid",
+      "useless",
+      "annoying"
+    ]
   }
 ];
 const introLocal = require("./assets/intro.png");
@@ -239,6 +554,108 @@ function sortContacts(items) {
     if (nationalDiff) return nationalDiff;
     return String(a?.name_ar || "").localeCompare(String(b?.name_ar || ""), "ar");
   });
+}
+
+function findAssistantTopicByKey(topicKey) {
+  return CONTACT_ASSISTANT_TOPICS.find((item) => item.key === topicKey) || null;
+}
+
+function detectAssistantTopic(message) {
+  const normalized = normalizeText(message);
+  if (!normalized) return null;
+  const messageWords = normalized.split(" ").filter(Boolean);
+  let bestMatch = null;
+  let bestScore = 0;
+
+  CONTACT_ASSISTANT_INTENTS.forEach((intent) => {
+    let score = 0;
+    intent.keywords.forEach((keyword) => {
+      const normalizedKeyword = normalizeText(keyword);
+      if (!normalizedKeyword) return;
+
+      if (normalized.includes(normalizedKeyword)) {
+        score += normalizedKeyword.includes(" ") ? 4 : 3;
+        return;
+      }
+
+      const keywordWords = normalizedKeyword.split(" ").filter(Boolean);
+      const matchedWords = keywordWords.filter(
+        (word) =>
+          messageWords.includes(word) ||
+          messageWords.some((msgWord) => msgWord.includes(word) || word.includes(msgWord))
+      ).length;
+
+      if (matchedWords > 0) {
+        score += matchedWords / keywordWords.length;
+      }
+    });
+
+    if (score > bestScore) {
+      bestScore = score;
+      bestMatch = intent;
+    }
+  });
+
+  if (!bestMatch || bestScore < 1.1) return null;
+  return findAssistantTopicByKey(bestMatch.topicKey);
+}
+
+function getAssistantReplyForMessage(message, topic) {
+  const normalized = normalizeText(message);
+  if (!topic || !normalized) return null;
+
+  if (topic.key === "greeting") {
+    if (normalized.includes("السلام عليكم") || normalized.includes("سلام عليكم")) {
+      return {
+        answerEn: "Wa alaikum assalam. Welcome, I’m here to help you.",
+        answerAr: "وعليكم السلام. أهلاً بك، أنا هنا لمساعدتك."
+      };
+    }
+    if (normalized.includes("صباح الورد")) {
+      return {
+        answerEn: "Good morning to you too. Wishing you a lovely day.",
+        answerAr: "صباح الفل والورد. يومك جميل إن شاء الله."
+      };
+    }
+    if (normalized.includes("صباح الخير")) {
+      return {
+        answerEn: "Good morning. How can I help you today?",
+        answerAr: "صباح النور. كيف أستطيع مساعدتك اليوم؟"
+      };
+    }
+    if (normalized.includes("مساء الخير")) {
+      return {
+        answerEn: "Good evening. How can I help you tonight?",
+        answerAr: "مساء النور. كيف أستطيع مساعدتك الليلة؟"
+      };
+    }
+    if (normalized.includes("hello") || normalized === "hi" || normalized.includes("hey")) {
+      return {
+        answerEn: "Hello. I’m here to help you with anything inside the app.",
+        answerAr: "مرحبًا. أنا هنا لمساعدتك في أي شيء داخل التطبيق."
+      };
+    }
+  }
+
+  if (topic.key === "support") {
+    if (
+      normalized.includes("ساعدني") ||
+      normalized.includes("ساعدنى") ||
+      normalized.includes("محتاج مساعده") ||
+      normalized.includes("محتاج مساعدة") ||
+      normalized.includes("عايز مساعدة") ||
+      normalized.includes("عايز مساعده") ||
+      normalized.includes("عاوز مساعدة") ||
+      normalized.includes("help me")
+    ) {
+      return {
+        answerEn: "How can I help you? Write your request or problem and we’ll solve it together.",
+        answerAr: "كيف يمكن أن أساعدك؟ اكتب طلبك أو مشكلتك لنحلها سويًا."
+      };
+    }
+  }
+
+  return null;
 }
 
 function sortCategoriesForGroup(a, b, groupKey) {
@@ -327,6 +744,7 @@ export default function App() {
   const [newHotlineName, setNewHotlineName] = useState("");
   const [newHotlinePhone, setNewHotlinePhone] = useState("");
   const [contactMessage, setContactMessage] = useState("");
+  const [pendingSupportMessage, setPendingSupportMessage] = useState("");
   const [businessRequesterName, setBusinessRequesterName] = useState("");
   const [businessName, setBusinessName] = useState("");
   const [businessPhone, setBusinessPhone] = useState("");
@@ -627,6 +1045,7 @@ export default function App() {
       setSelectedContactTopic("");
       setContactAssistantHistory([]);
       setAssistantTypingId(null);
+      setPendingSupportMessage("");
     }
   }, [contactModalVisible]);
 
@@ -1056,27 +1475,157 @@ export default function App() {
     }
   };
 
+  const appendAssistantEntry = ({ userText, topic, answerEn, answerAr, action, actionLabelEn, actionLabelAr }) => {
+    const entryId = `${topic?.key || "custom"}-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`;
+    setContactAssistantHistory((prev) => [
+      ...prev,
+      {
+        id: entryId,
+        topicKey: topic?.key || "",
+        userText,
+        answerEn: answerEn ?? topic?.answerEn ?? "",
+        answerAr: answerAr ?? topic?.answerAr ?? "",
+        action: action ?? topic?.action ?? "",
+        actionLabelEn: actionLabelEn ?? topic?.actionLabelEn ?? "",
+        actionLabelAr: actionLabelAr ?? topic?.actionLabelAr ?? "",
+        assistantVisible: false
+      }
+    ]);
+    setAssistantTypingId(entryId);
+    const replyTimer = setTimeout(() => {
+      setContactAssistantHistory((prev) =>
+        prev.map((entry) => (entry.id === entryId ? { ...entry, assistantVisible: true } : entry))
+      );
+      setAssistantTypingId((current) => (current === entryId ? null : current));
+      requestAnimationFrame(() => {
+        setTimeout(() => {
+          contactAssistantScrollRef.current?.scrollToEnd({ animated: true });
+        }, 120);
+      });
+    }, 480);
+    assistantReplyTimersRef.current.push(replyTimer);
+    requestAnimationFrame(() => {
+      setTimeout(() => {
+        contactAssistantScrollRef.current?.scrollToEnd({ animated: true });
+      }, 160);
+    });
+  };
+
   const handleContactSubmit = async () => {
     const msg = contactMessage.trim();
     if (!msg) {
       Alert.alert("Missing Message", "Please write your suggestion first.");
       return;
     }
+
+    const matchedTopic = detectAssistantTopic(msg);
+    if (matchedTopic) {
+      const customReply = getAssistantReplyForMessage(msg, matchedTopic);
+      appendAssistantEntry({
+        userText: msg,
+        topic: matchedTopic,
+        answerEn: customReply?.answerEn,
+        answerAr: customReply?.answerAr
+      });
+      setContactMessage("");
+      return;
+    }
+
+    setPendingSupportMessage(msg);
+    appendAssistantEntry({
+      userText: msg,
+      answerEn:
+        "For more questions and details, you can send your request directly to our team.",
+      answerAr:
+        "لمزيد من الاستفسارات والمعلومات، يمكنك إرسال طلبك مباشرة إلى فريقنا.",
+      action: "send-support",
+      actionLabelEn: "Send request",
+      actionLabelAr: "إرسال الطلب"
+    });
+    setContactMessage("");
+  };
+
+  const handleDirectContactSubmit = async () => {
+    const msg = contactMessage.trim();
+    if (!msg) {
+      Alert.alert("Missing Message", "Please write your message first.");
+      return;
+    }
+
     try {
       await sendFeedback({
         type: "suggestion",
         message: msg
       });
-      setContactModalVisible(false);
-      setSelectedContactTopic("");
+      appendAssistantEntry({
+        userText: msg,
+        answerEn: "Your message was sent directly to our team successfully.",
+        answerAr: "تم إرسال رسالتك مباشرة إلى فريقنا بنجاح.",
+        action: "focus-message",
+        actionLabelEn: "Write another message",
+        actionLabelAr: "اكتب رسالة أخرى"
+      });
+      setPendingSupportMessage("");
       setContactMessage("");
-      Alert.alert("Done", "Your suggestion was sent successfully.");
-    } catch (err) {
-      Alert.alert("Error", err.message || "Failed to send suggestion.");
+    } catch {
+      appendAssistantEntry({
+        userText: msg,
+        answerEn:
+          "The support server is taking longer than usual right now. Because we use a free backend, please wait a few seconds and try sending again.",
+        answerAr:
+          "خادم الدعم يتأخر الآن أكثر من المعتاد. لأننا نستخدم خادمًا مجانيًا، انتظر بضع ثوانٍ ثم حاول الإرسال مرة أخرى.",
+        action: "send-support",
+        actionLabelEn: "Try again",
+        actionLabelAr: "حاول مرة أخرى"
+      });
+      setPendingSupportMessage(msg);
+      setContactMessage("");
     }
   };
 
   const handleContactAssistantAction = (action) => {
+    if (action === "send-support") {
+      const msg = pendingSupportMessage.trim();
+      if (!msg) {
+        requestAnimationFrame(() => {
+          contactAssistantScrollRef.current?.scrollToEnd({ animated: true });
+          setTimeout(() => {
+            contactComposerInputRef.current?.focus();
+          }, 220);
+        });
+        return;
+      }
+
+      sendFeedback({
+        type: "suggestion",
+        message: msg
+      })
+        .then(() => {
+          appendAssistantEntry({
+            userText: assistantLanguage === "ar" ? "إرسال الطلب" : "Send request",
+            answerEn: "Thanks, your message was sent to our team successfully.",
+            answerAr: "شكرًا، تم إرسال رسالتك إلى فريقنا بنجاح.",
+            action: "focus-message",
+            actionLabelEn: "Write another message",
+            actionLabelAr: "اكتب رسالة أخرى"
+          });
+          setPendingSupportMessage("");
+        })
+        .catch(() => {
+          appendAssistantEntry({
+            userText: assistantLanguage === "ar" ? "إرسال الطلب" : "Send request",
+            answerEn:
+              "The support server is taking longer than usual right now. Since we are using a free backend, please wait a few seconds and try again.",
+            answerAr:
+              "خادم الدعم يتأخر الآن أكثر من المعتاد. لأننا نستخدم خادمًا مجانيًا، انتظر بضع ثوانٍ ثم حاول مرة أخرى.",
+            action: "send-support",
+            actionLabelEn: "Try again",
+            actionLabelAr: "حاول مرة أخرى"
+          });
+        });
+      return;
+    }
+
     if (action === "focus-message") {
       requestAnimationFrame(() => {
         contactAssistantScrollRef.current?.scrollToEnd({ animated: true });
@@ -1103,27 +1652,7 @@ export default function App() {
   };
 
   const handleContactTopicPress = (topic) => {
-    setSelectedContactTopic(topic.key);
-    const entryId = `${topic.key}-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`;
-    setContactAssistantHistory((prev) => [...prev, { id: entryId, topicKey: topic.key, assistantVisible: false }]);
-    setAssistantTypingId(entryId);
-    const replyTimer = setTimeout(() => {
-      setContactAssistantHistory((prev) =>
-        prev.map((entry) => (entry.id === entryId ? { ...entry, assistantVisible: true } : entry))
-      );
-      setAssistantTypingId((current) => (current === entryId ? null : current));
-      requestAnimationFrame(() => {
-        setTimeout(() => {
-          contactAssistantScrollRef.current?.scrollToEnd({ animated: true });
-        }, 120);
-      });
-    }, 480);
-    assistantReplyTimersRef.current.push(replyTimer);
-    requestAnimationFrame(() => {
-      setTimeout(() => {
-        contactAssistantScrollRef.current?.scrollToEnd({ animated: true });
-      }, 160);
-    });
+    setSelectedContactTopic((prev) => (prev === topic.key ? "" : topic.key));
   };
 
   const openBusinessInquiry = (plan = "Premium") => {
@@ -1864,6 +2393,9 @@ export default function App() {
                 <View style={[styles.modalCard, styles.suggestCard, styles.sheetInner]}>
                   <View style={styles.sheetGlow} />
                   <View style={styles.sheetGlowSecondary} />
+                  <TouchableOpacity style={styles.sheetCloseBtn} onPress={() => setAddModalVisible(false)}>
+                    <Ionicons name="close" size={20} color="#7a4766" />
+                  </TouchableOpacity>
                   <ScrollView keyboardShouldPersistTaps="handled" showsVerticalScrollIndicator={false}>
                     <View style={styles.suggestHero}>
                       <View style={styles.suggestHeroBadge}>
@@ -1888,9 +2420,6 @@ export default function App() {
                       onChangeText={setNewHotlinePhone}
                     />
                     <View style={styles.modalActions}>
-                      <TouchableOpacity style={styles.modalBtnGhost} onPress={() => setAddModalVisible(false)}>
-                        <Text style={styles.modalBtnGhostText}>Cancel</Text>
-                      </TouchableOpacity>
                       <TouchableOpacity style={styles.modalBtnPrimary} onPress={handleAddHotlineSubmit}>
                         <Text style={styles.modalBtnPrimaryText}>Send</Text>
                       </TouchableOpacity>
@@ -1960,20 +2489,23 @@ export default function App() {
                   </TouchableOpacity>
                 </View>
 
-                <View style={styles.chatThread}>
-                  <View style={[styles.chatBubble, styles.chatBotBubble]}>
-                    <Text style={styles.chatBubbleLabel}>Hotline Assistant</Text>
-                    <Text style={styles.chatBubbleText}>
-                      {assistantLanguage === "ar"
-                        ? "اختر سؤالاً من الأسئلة التالية أو اكتب رسالتك بالأسفل."
-                        : "Hi, how can we help today? Choose a question below or type your message."}
-                    </Text>
-                  </View>
+                <View style={styles.assistantSectionHead}>
+                  <Text style={styles.assistantSectionTitle}>
+                    {assistantLanguage === "ar" ? "أسئلة سريعة" : "Quick questions"}
+                  </Text>
+                  <Text style={styles.assistantSectionSub}>
+                    {assistantLanguage === "ar"
+                      ? "اختصارات مفيدة لو تحب تبدأ بسرعة"
+                      : "Useful shortcuts if you want a fast start"}
+                  </Text>
+                </View>
 
-                  <View style={styles.chatQuickRow}>
-                    {CONTACT_ASSISTANT_TOPICS.map((topic) => (
+                <View style={styles.chatQuickRow}>
+                  {CONTACT_ASSISTANT_TOPICS.filter((topic) =>
+                    CONTACT_ASSISTANT_VISIBLE_TOPIC_KEYS.includes(topic.key)
+                  ).map((topic) => (
+                    <View key={topic.key} style={styles.chatQuestionBlock}>
                       <TouchableOpacity
-                        key={topic.key}
                         style={[
                           styles.chatQuickChip,
                           selectedContactTopic === topic.key && styles.chatQuickChipActive
@@ -1989,17 +2521,57 @@ export default function App() {
                           {assistantLanguage === "ar" ? topic.questionAr : topic.questionEn}
                         </Text>
                       </TouchableOpacity>
-                    ))}
+
+                      {selectedContactTopic === topic.key ? (
+                        <View style={[styles.chatBubble, styles.chatBotBubble, styles.chatInlineAnswer]}>
+                          <Text style={styles.chatBubbleLabel}>Hotline Assistant</Text>
+                          <Text style={styles.chatBubbleText}>
+                            {assistantLanguage === "ar" ? topic.answerAr : topic.answerEn}
+                          </Text>
+                          {topic.action ? (
+                            <TouchableOpacity
+                              style={styles.chatActionBtn}
+                              onPress={() => handleContactAssistantAction(topic.action)}
+                            >
+                              <Text style={styles.chatActionBtnText}>
+                                {assistantLanguage === "ar" ? topic.actionLabelAr : topic.actionLabelEn}
+                              </Text>
+                            </TouchableOpacity>
+                          ) : null}
+                        </View>
+                      ) : null}
+                    </View>
+                  ))}
+                </View>
+
+                <View style={[styles.assistantSectionHead, styles.chatAssistantSectionHead]}>
+                  <Text style={styles.assistantSectionTitle}>
+                    {assistantLanguage === "ar" ? "الدردشة مع المساعد الذكي" : "Chat with AI assistant"}
+                  </Text>
+                  <Text style={styles.assistantSectionSub}>
+                    {assistantLanguage === "ar"
+                      ? "اكتب سؤالك هنا مع المساعد الذكي أو أرسله للدعم الفني مباشرة"
+                      : "Ask your question here with the AI assistant, or send it directly to technical support"}
+                  </Text>
+                </View>
+
+                <View style={styles.chatThread}>
+                  <View style={[styles.chatBubble, styles.chatBotBubble]}>
+                    <Text style={styles.chatBubbleLabel}>Hotline Assistant</Text>
+                    <Text style={styles.chatBubbleText}>
+                      {assistantLanguage === "ar"
+                        ? "أنا هنا للمساعدة. اختر سؤالاً سريعاً أو اكتب رسالتك بالأسفل."
+                        : "I’m here to help. Choose a quick question or type your message below."}
+                    </Text>
                   </View>
 
                   {contactAssistantHistory.map((entry, index) => {
                     const topic = CONTACT_ASSISTANT_TOPICS.find((item) => item.key === entry.topicKey);
-                    if (!topic) return null;
                     return (
-                      <View key={entry.id || `${topic.key}-${index}`} style={styles.chatThreadPair}>
+                      <View key={entry.id || `${topic?.key || "entry"}-${index}`} style={styles.chatThreadPair}>
                         <View style={[styles.chatBubble, styles.chatUserBubble]}>
                           <Text style={[styles.chatBubbleText, styles.chatUserBubbleText]}>
-                            {assistantLanguage === "ar" ? topic.questionAr : topic.questionEn}
+                            {entry.userText || (assistantLanguage === "ar" ? topic?.questionAr : topic?.questionEn)}
                           </Text>
                         </View>
 
@@ -2013,15 +2585,15 @@ export default function App() {
                           <View style={[styles.chatBubble, styles.chatBotBubble]}>
                             <Text style={styles.chatBubbleLabel}>Hotline Assistant</Text>
                             <Text style={styles.chatBubbleText}>
-                              {assistantLanguage === "ar" ? topic.answerAr : topic.answerEn}
+                              {assistantLanguage === "ar" ? entry.answerAr : entry.answerEn}
                             </Text>
-                            {topic.action ? (
+                            {entry.action ? (
                               <TouchableOpacity
                                 style={styles.chatActionBtn}
-                                onPress={() => handleContactAssistantAction(topic.action)}
+                                onPress={() => handleContactAssistantAction(entry.action)}
                               >
                                 <Text style={styles.chatActionBtnText}>
-                                  {assistantLanguage === "ar" ? topic.actionLabelAr : topic.actionLabelEn}
+                                  {assistantLanguage === "ar" ? entry.actionLabelAr : entry.actionLabelEn}
                                 </Text>
                               </TouchableOpacity>
                             ) : null}
@@ -2032,6 +2604,9 @@ export default function App() {
                   })}
                 </View>
 
+                <Text style={styles.chatComposerHint}>
+                  {assistantLanguage === "ar" ? "أو اكتب رسالتك بنفسك هنا" : "Or write your own message here"}
+                </Text>
                 <TextInput
                   ref={contactComposerInputRef}
                   style={[styles.modalInput, styles.chatComposerInput]}
@@ -2046,15 +2621,22 @@ export default function App() {
                   value={contactMessage}
                   onChangeText={setContactMessage}
                 />
-                <View style={styles.modalActions}>
+                <View style={styles.contactFooterRow}>
                   <TouchableOpacity style={styles.modalBtnGhost} onPress={() => setContactModalVisible(false)}>
-                    <Text style={styles.modalBtnGhostText}>{assistantLanguage === "ar" ? "إغلاق" : "Cancel"}</Text>
+                    <Text style={styles.modalBtnGhostText}>Close</Text>
                   </TouchableOpacity>
-                  <TouchableOpacity style={styles.modalBtnPrimary} onPress={handleContactSubmit}>
-                    <Text style={styles.modalBtnPrimaryText}>
-                      {assistantLanguage === "ar" ? "إرسال الرسالة" : "Send message"}
-                    </Text>
-                  </TouchableOpacity>
+                  <View style={styles.contactPrimaryActions}>
+                    <TouchableOpacity style={styles.modalBtnPrimary} onPress={handleContactSubmit}>
+                      <Text style={styles.modalBtnPrimaryText}>
+                        {assistantLanguage === "ar" ? "اسأل المساعد الذكي" : "Ask assistant"}
+                      </Text>
+                    </TouchableOpacity>
+                    <TouchableOpacity style={styles.modalBtnPrimary} onPress={handleDirectContactSubmit}>
+                      <Text style={styles.modalBtnPrimaryText}>
+                        {assistantLanguage === "ar" ? "إرسال الطلب" : "Send request"}
+                      </Text>
+                    </TouchableOpacity>
+                  </View>
                 </View>
               </ScrollView>
             </View>
@@ -3444,6 +4026,20 @@ const styles = StyleSheet.create({
     borderBottomRightRadius: 22,
     paddingBottom: 22
   },
+  sheetCloseBtn: {
+    position: "absolute",
+    top: 14,
+    right: 14,
+    zIndex: 20,
+    width: 34,
+    height: 34,
+    borderRadius: 17,
+    backgroundColor: "rgba(255,255,255,0.94)",
+    borderWidth: 1,
+    borderColor: "#ead5e8",
+    alignItems: "center",
+    justifyContent: "center"
+  },
   sheetGlow: {
     position: "absolute",
     top: -40,
@@ -3469,7 +4065,22 @@ const styles = StyleSheet.create({
     overflow: "hidden",
     borderRadius: 22,
     backgroundColor: "rgba(255,255,255,0.95)",
-    borderColor: "rgba(255,255,255,0.82)"
+    borderColor: "rgba(255,255,255,0.82)",
+    paddingTop: 22
+  },
+  contactCloseBtn: {
+    position: "absolute",
+    top: 12,
+    right: 12,
+    zIndex: 20,
+    width: 34,
+    height: 34,
+    borderRadius: 17,
+    backgroundColor: "rgba(255,255,255,0.94)",
+    borderWidth: 1,
+    borderColor: "#ead5e8",
+    alignItems: "center",
+    justifyContent: "center"
   },
   suggestHero: {
     alignItems: "center",
@@ -3538,6 +4149,22 @@ const styles = StyleSheet.create({
   },
   assistantLanguageTextActive: {
     color: "#9a0f6f"
+  },
+  assistantSectionHead: {
+    marginBottom: 8
+  },
+  assistantSectionTitle: {
+    color: "#1f2937",
+    fontSize: 13,
+    fontWeight: "800",
+    textAlign: "center"
+  },
+  assistantSectionSub: {
+    color: "#7a4766",
+    fontSize: 11,
+    fontWeight: "600",
+    textAlign: "center",
+    marginTop: 2
   },
   modalInput: {
     backgroundColor: "rgba(255,255,255,0.95)",
@@ -3634,6 +4261,11 @@ const styles = StyleSheet.create({
     fontSize: 11.5,
     fontWeight: "800"
   },
+  chatInlineAnswer: {
+    alignSelf: "stretch",
+    maxWidth: "100%",
+    marginLeft: 8
+  },
   chatTypingBubble: {
     paddingVertical: 8,
     paddingHorizontal: 12
@@ -3644,33 +4276,63 @@ const styles = StyleSheet.create({
     fontWeight: "700",
     letterSpacing: 0.2
   },
+  chatComposerHint: {
+    color: "#7a4766",
+    fontSize: 11.5,
+    fontWeight: "700",
+    marginBottom: 6,
+    textAlign: "center"
+  },
   chatComposerInput: {
     minHeight: 64,
     borderRadius: 15,
     marginBottom: 8
   },
+  chatAssistantSectionHead: {
+    marginTop: 14
+  },
   modalActions: {
+    gap: 8,
+    marginBottom: 12
+  },
+  contactFooterRow: {
     flexDirection: "row",
-    justifyContent: "flex-end"
+    alignItems: "flex-end",
+    justifyContent: "space-between",
+    gap: 12,
+    marginBottom: 12
+  },
+  contactPrimaryActions: {
+    flex: 1,
+    gap: 8
   },
   modalBtnGhost: {
-    paddingHorizontal: 12,
-    paddingVertical: 8,
-    marginRight: 8
+    minWidth: 88,
+    paddingHorizontal: 14,
+    paddingVertical: 11,
+    borderRadius: 14,
+    borderWidth: 1,
+    borderColor: "#d8c7d5",
+    backgroundColor: "#ffffff",
+    alignItems: "center",
+    justifyContent: "center"
   },
   modalBtnGhostText: {
-    color: "#334155",
-    fontWeight: "700"
+    color: "#7a4766",
+    fontSize: 12.5,
+    fontWeight: "800"
   },
   modalBtnPrimary: {
     backgroundColor: "#4a56d7",
-    borderRadius: 10,
+    borderRadius: 14,
     paddingHorizontal: 14,
-    paddingVertical: 8
+    paddingVertical: 11
   },
   modalBtnPrimaryText: {
     color: "#fff",
-    fontWeight: "800"
+    fontSize: 13,
+    fontWeight: "800",
+    textAlign: "center"
   },
   introOverlay: {
     position: "absolute",
