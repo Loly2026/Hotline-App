@@ -148,11 +148,42 @@ const CONTACT_ASSISTANT_TOPICS = [
     answerAr: "وعليكم السلام وأهلاً بك. أنا هنا لمساعدتك في البحث، وإضافة الأرقام، وترويج النشاط، والدعم داخل التطبيق."
   },
   {
+    key: "compliment",
+    questionEn: "You are helpful",
+    questionAr: "أنت رائع",
+    answerEn: "Thank you. I’m glad to help, and I’ll do my best to support you clearly and respectfully.",
+    answerAr: "شكرًا لك. يسعدني أن أساعدك، وسأبذل أفضل ما عندي لدعمك بوضوح واحترام."
+  },
+  {
     key: "thanks",
     questionEn: "Thank you",
     questionAr: "شكرًا",
     answerEn: "You’re welcome. If you need anything else, I’m here to help.",
     answerAr: "العفو. إذا احتجت أي شيء آخر فأنا هنا للمساعدة."
+  },
+  {
+    key: "assistant-about",
+    questionEn: "Who are you?",
+    questionAr: "أنت مين؟",
+    answerEn: "I’m the Hotline App smart assistant. My role is to guide you inside the app, answer common questions, and help you reach the right action quickly.",
+    answerAr: "أنا المساعد الذكي لتطبيق Hotline App. دوري أن أوجّهك داخل التطبيق، وأجيب عن الأسئلة الشائعة، وأساعدك للوصول للخطوة المناسبة بسرعة."
+  },
+  {
+    key: "assistant-contact",
+    questionEn: "How do I contact the app team?",
+    questionAr: "كيف أتواصل مع البرنامج؟",
+    answerEn: "You can write your request here and press Send request. If you want us to contact you, include your phone number or email in the message.",
+    answerAr: "يمكنك كتابة طلبك هنا ثم الضغط على إرسال الطلب. وإذا كنت تريد أن نتواصل معك، أضف رقم هاتفك أو بريدك الإلكتروني داخل الرسالة."
+  },
+  {
+    key: "callback-request",
+    questionEn: "Please contact me",
+    questionAr: "أريد أن تتواصلوا معي",
+    answerEn: "Sure. Write your request and include your phone number or email, then press Send request so our team can review it and contact you if needed.",
+    answerAr: "بالتأكيد. اكتب طلبك وأضف رقم هاتفك أو بريدك الإلكتروني، ثم اضغط على إرسال الطلب ليقوم فريقنا بمراجعته والتواصل معك إذا لزم الأمر.",
+    action: "focus-message",
+    actionLabelEn: "Write your request",
+    actionLabelAr: "اكتب طلبك"
   },
   {
     key: "about",
@@ -280,17 +311,45 @@ const CONTACT_ASSISTANT_INTENTS = [
       "وعليكم السلام",
       "اهلا",
       "أهلا",
+      "اهلين",
+      "أهلين",
       "اهلا بيك",
+      "اهلا وسهلا",
+      "اهلا يا",
       "مرحبا",
+      "مرحبًا",
       "صباح الخير",
+      "صباح الفل",
       "صباح الورد",
       "مساء الخير",
       "مساء النور",
       "hello",
       "hi",
       "hey",
+      "good afternoon",
       "good morning",
       "good evening"
+    ]
+  },
+  {
+    topicKey: "compliment",
+    keywords: [
+      "انت جميل",
+      "أنت جميل",
+      "انت محترم",
+      "أنت محترم",
+      "انت رائع",
+      "أنت رائع",
+      "انت ممتاز",
+      "أنت ممتاز",
+      "انت كويس",
+      "أنت كويس",
+      "good bot",
+      "nice bot",
+      "smart bot",
+      "you are great",
+      "you are helpful",
+      "you are nice"
     ]
   },
   {
@@ -303,6 +362,66 @@ const CONTACT_ASSISTANT_INTENTS = [
       "thank you",
       "thanks",
       "thx"
+    ]
+  },
+  {
+    topicKey: "assistant-about",
+    keywords: [
+      "انت مين",
+      "أنت مين",
+      "بتعمل ايه",
+      "بتعمل إيه",
+      "دورك ايه",
+      "دورك إيه",
+      "بتفيدني ازاي",
+      "بتفيدني إزاي",
+      "اقدر استفيد ازاي",
+      "اقدر استفيد ازاي منك",
+      "اخبارك ايه",
+      "أخبارك إيه",
+      "طمني عليك",
+      "مين حضرتك",
+      "who are you",
+      "what do you do",
+      "what is your role",
+      "how can you help me",
+      "how can you benefit me",
+      "how are you"
+    ]
+  },
+  {
+    topicKey: "assistant-contact",
+    keywords: [
+      "ازاي اتواصل مع البرنامج",
+      "ازاي اتواصل مع التطبيق",
+      "كيف اتواصل مع البرنامج",
+      "كيف اتواصل مع التطبيق",
+      "اتواصل معاكم ازاي",
+      "اتواصل معكم ازاي",
+      "كيف اتواصل معكم",
+      "contact the app",
+      "contact the team",
+      "how do i contact you",
+      "how can i contact the app"
+    ]
+  },
+  {
+    topicKey: "callback-request",
+    keywords: [
+      "كلموني",
+      "كلموني لو سمحت",
+      "اريد التواصل",
+      "عايز حد يكلمني",
+      "عاوز حد يكلمني",
+      "تواصلوا معي",
+      "اتصلوا بي",
+      "اتصلو بيا",
+      "كلمني",
+      "هاتواصل ازاي",
+      "contact me",
+      "call me",
+      "reach me",
+      "get back to me"
     ]
   },
   {
@@ -522,9 +641,15 @@ const CONTACT_ASSISTANT_INTENTS = [
     keywords: [
       "غلط",
       "زفت",
+      "غبي",
+      "وحش",
       "سيء",
+      "سيئ",
       "مش عاجبني",
+      "مش كويس",
       "bad",
+      "awful",
+      "terrible",
       "stupid",
       "useless",
       "annoying"
@@ -534,6 +659,344 @@ const CONTACT_ASSISTANT_INTENTS = [
 const introLocal = require("./assets/intro.png");
 const CONTACTS_CACHE_PATH = `${FileSystem.cacheDirectory}contacts-cache.json`;
 const SUGGEST_HINT_PATH = `${FileSystem.documentDirectory}suggest-hint-seen.txt`;
+const ASSISTANT_LOOKUP_STOP_WORDS = [
+  "رقم",
+  "الرقم",
+  "ارقام",
+  "أرقام",
+  "نمره",
+  "نمرة",
+  "تليفون",
+  "هاتف",
+  "خدمه",
+  "خدمة",
+  "الخدمه",
+  "الخدمة",
+  "العملاء",
+  "عملاء",
+  "خدمة العملاء",
+  "خط",
+  "ساخن",
+  "الخط",
+  "الساخن",
+  "طوارئ",
+  "رقم الطوارئ",
+  "محتاج",
+  "عايز",
+  "عاوز",
+  "اريد",
+  "أريد",
+  "احتاج",
+  "أحتاج",
+  "لو",
+  "سمحت",
+  "لو سمحت",
+  "من",
+  "فضلك",
+  "هل",
+  "هو",
+  "هي",
+  "في",
+  "فيه",
+  "فيها",
+  "موجود",
+  "موجوده",
+  "موجودة",
+  "او",
+  "أو",
+  "ولا",
+  "ولا لا",
+  "للخدمة",
+  "للخدمه",
+  "للشركة",
+  "للشركه",
+  "للشركة",
+  "what",
+  "is",
+  "the",
+  "number",
+  "phone",
+  "hotline",
+  "customer",
+  "service",
+  "contact",
+  "line",
+  "emergency",
+  "do",
+  "you",
+  "have",
+  "is there",
+  "exists",
+  "available",
+  "for",
+  "of",
+  "please",
+  "need",
+  "want",
+  "i",
+  "me",
+  "tell",
+  "find",
+  "give",
+  "give me"
+];
+
+function escapeRegExp(value) {
+  return String(value || "").replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+}
+
+function buildAssistantLookupQuery(message) {
+  let cleaned = normalizeText(message);
+  ASSISTANT_LOOKUP_STOP_WORDS.forEach((word) => {
+    cleaned = cleaned.replace(new RegExp(`\\b${escapeRegExp(normalizeText(word))}\\b`, "g"), " ");
+  });
+  return cleaned.replace(/\s+/g, " ").trim();
+}
+
+function isAssistantLookupRequest(message) {
+  const normalized = normalizeText(message);
+  return [
+    "رقم",
+    "نمره",
+    "نمرة",
+    "هاتف",
+    "تليفون",
+    "خدمة العملاء",
+    "خط ساخن",
+    "طوارئ",
+    "number",
+    "phone",
+    "hotline",
+    "customer service",
+    "emergency",
+    "موجود",
+    "موجوده",
+    "موجودة",
+    "exists",
+    "available"
+  ].some((phrase) => normalized.includes(normalizeText(phrase)));
+}
+
+function getAssistantLookupReply(message, contacts) {
+  const normalized = normalizeText(message);
+  if (!normalized || !Array.isArray(contacts) || !contacts.length) return null;
+
+  const asksForNumber = [
+    "رقم",
+    "نمره",
+    "نمرة",
+    "هاتف",
+    "تليفون",
+    "خدمة العملاء",
+    "خط ساخن",
+    "طوارئ",
+    "number",
+    "phone",
+    "hotline",
+    "customer service",
+    "emergency"
+  ].some((phrase) => normalized.includes(normalizeText(phrase)));
+
+  const asksIfExists = [
+    "موجود",
+    "موجوده",
+    "موجودة",
+    "ولا لا",
+    "هل",
+    "exists",
+    "available",
+    "do you have",
+    "is there"
+  ].some((phrase) => normalized.includes(normalizeText(phrase)));
+
+  const asksWhereCategoryIs = [
+    "فين",
+    "مكان",
+    "فئة",
+    "قسم",
+    "تصنيف",
+    "category",
+    "section",
+    "where",
+    "which category"
+  ].some((phrase) => normalized.includes(normalizeText(phrase)));
+
+  const asksGenericNumberOnly = [
+    "عايز رقم",
+    "عاوز رقم",
+    "محتاج رقم",
+    "اريد رقم",
+    "أريد رقم",
+    "احتاج رقم",
+    "أحتاج رقم",
+    "need a number",
+    "i need a number",
+    "want a number",
+    "need hotline"
+  ].some((phrase) => {
+    const normalizedPhrase = normalizeText(phrase);
+    return normalized === normalizedPhrase || normalized.startsWith(`${normalizedPhrase} `) || normalized.includes(`${normalizedPhrase} `);
+  });
+
+  const lookupQuery = buildAssistantLookupQuery(message);
+  if ((!lookupQuery || lookupQuery.length < 2) && (asksForNumber || asksIfExists || asksWhereCategoryIs)) {
+    return {
+      answerEn:
+        "Which service do you need exactly? Write the service name and I’ll try to find its number or category for you.",
+      answerAr:
+        asksGenericNumberOnly
+          ? "محتاج رقم إيه؟ وأنا أساعدك."
+          : "أي خدمة تحتاجها تحديدًا؟ اكتب اسم الخدمة وسأحاول إيجاد رقمها أو الفئة الموجودة فيها."
+    };
+  }
+  if (!lookupQuery || lookupQuery.length < 2) return null;
+
+  const lookupWords = lookupQuery.split(" ").filter(Boolean);
+  let best = null;
+  let bestScore = 0;
+  const rankedMatches = [];
+
+  contacts.forEach((contact) => {
+    const normalizedName = normalizeText(contact?.name_ar);
+    const normalizedCategory = normalizeText(contact?.category_name_ar);
+    if (!normalizedName) return;
+
+    let score = 0;
+    if (normalizedName === lookupQuery) score += 12;
+    if (normalizedName.includes(lookupQuery)) score += 10;
+    if (lookupQuery.includes(normalizedName)) score += 7;
+    if (normalizedCategory && normalizedCategory.includes(lookupQuery)) score += 3;
+
+    const matchedWords = lookupWords.filter(
+      (word) =>
+        normalizedName.includes(word) ||
+        normalizedCategory.includes(word) ||
+        normalizedName.split(" ").some((nameWord) => nameWord.includes(word) || word.includes(nameWord))
+    ).length;
+
+    score += matchedWords * 2;
+
+    if (contact?.is_national) score += 0.6;
+    if (contact?.is_verified) score += 0.3;
+
+    if (score > bestScore) {
+      bestScore = score;
+      best = contact;
+    }
+    if (score > 0) {
+      rankedMatches.push({ contact, score });
+    }
+  });
+
+  if (!best || bestScore < 3.5) {
+    if (!asksForNumber && !asksIfExists) return null;
+    const suggestions = rankedMatches
+      .sort((a, b) => b.score - a.score)
+      .slice(0, 3)
+      .map((item) => item.contact?.name_ar)
+      .filter(Boolean);
+
+    let closestName = "";
+    let closestContact = null;
+    let closestDistance = 999;
+    contacts.forEach((contact) => {
+      const contactName = String(contact?.name_ar || "").trim();
+      if (!contactName) return;
+      const distance = levenshtein(lookupQuery, contactName);
+      if (distance < closestDistance) {
+        closestDistance = distance;
+        closestName = contactName;
+        closestContact = contact;
+      }
+    });
+
+    const closeEnoughForCorrection =
+      closestName && closestContact && closestDistance <= Math.max(2, Math.floor(lookupQuery.length / 4));
+
+    if (closeEnoughForCorrection && closestContact?.phone) {
+      const correctedGroupKey = resolveGroupForCategory(closestContact);
+      const correctedGroupTitle = GROUP_BY_KEY[correctedGroupKey]?.title || "Services";
+      const correctedGroupTitleAr = GROUP_AR[correctedGroupKey] || "خدمات متنوعة";
+      const correctedCategoryTitleAr = closestContact.category_name_ar || correctedGroupTitleAr;
+      return {
+        answerEn: `Did you mean ${closestContact.name_ar}? Its number is ${closestContact.phone}. You can also find it inside ${correctedGroupTitle} / ${closestContact.category_name_ar}.`,
+        answerAr: `هل تقصد ${closestContact.name_ar}؟ رقمه هو ${closestContact.phone}. ويمكنك أيضًا العثور عليه داخل فئة ${correctedGroupTitleAr} / ${correctedCategoryTitleAr}.`
+      };
+    }
+
+    const didYouMeanAr = closeEnoughForCorrection ? ` هل تقصد ${closestName}؟` : "";
+    const didYouMeanEn = closeEnoughForCorrection ? ` Did you mean ${closestName}?` : "";
+
+    const suggestionTextAr = suggestions.length
+      ? ` أقرب اقتراحات لطلبك: ${suggestions.join("، ")}.`
+      : "";
+    const suggestionTextEn = suggestions.length
+      ? ` Closest suggestions I found: ${suggestions.join(", ")}.`
+      : "";
+
+    return {
+      answerEn:
+        `I couldn’t find this number in the current app data.${didYouMeanEn}${suggestionTextEn} You can add it through Add Number and we will review it.`,
+      answerAr:
+        `لم أجد هذا الرقم في البيانات الحالية داخل التطبيق.${didYouMeanAr}${suggestionTextAr} يمكنك إضافته من خلال Add Number وسنراجعه.`,
+      action: "add-number",
+      actionLabelEn: "Open Add Number",
+      actionLabelAr: "افتح إضافة رقم"
+    };
+  }
+
+  const topMatches = rankedMatches
+    .sort((a, b) => b.score - a.score)
+    .filter((item, index, arr) => index === arr.findIndex((entry) => entry.contact?.id === item.contact?.id))
+    .slice(0, 3);
+
+  if (topMatches.length > 1 && topMatches[1].score >= bestScore - 1.4) {
+    const matchesAr = topMatches
+      .map((item) => `• ${item.contact.name_ar}: ${item.contact.phone || "غير متاح"}`)
+      .join("\n");
+    const matchesEn = topMatches
+      .map((item) => `• ${item.contact.name_ar}: ${item.contact.phone || "Unavailable"}`)
+      .join("\n");
+
+    return {
+      answerEn: `I found more than one close match for your request:\n${matchesEn}\nYou can also find them in their categories inside the app.`,
+      answerAr: `وجدت أكثر من نتيجة قريبة لطلبك:\n${matchesAr}\nويمكنك أيضًا العثور عليها داخل الفئات الخاصة بها في التطبيق.`
+    };
+  }
+
+  const groupKey = resolveGroupForCategory(best);
+  const groupTitle = GROUP_BY_KEY[groupKey]?.title || "Services";
+  const groupTitleAr = GROUP_AR[groupKey] || "خدمات متنوعة";
+  const categoryTitleAr = best.category_name_ar || groupTitleAr;
+  const categoryGuideAr = `يمكنك أيضًا العثور عليه داخل فئة ${groupTitleAr} / ${categoryTitleAr}.`;
+  const categoryGuideEn = `You can also find it inside ${groupTitle} / ${best.category_name_ar}.`;
+
+  if (asksWhereCategoryIs) {
+    return {
+      answerEn: `${best.name_ar} is available inside ${groupTitle} / ${best.category_name_ar}.${best.phone ? ` Its number is ${best.phone}.` : ""}`,
+      answerAr: `${best.name_ar} موجود داخل فئة ${groupTitleAr} / ${categoryTitleAr}.${best.phone ? ` ورقمه هو ${best.phone}.` : ""}`
+    };
+  }
+
+  if (best.is_non_phone) {
+    return {
+      answerEn: `I found ${best.name_ar}, but it does not have a direct phone number in the app right now. ${categoryGuideEn}`,
+      answerAr: `وجدت ${best.name_ar}، لكنه لا يملك رقم هاتف مباشر داخل التطبيق حاليًا. ${categoryGuideAr}`
+    };
+  }
+
+  if (asksIfExists && !asksForNumber) {
+    return {
+      answerEn: `Yes, ${best.name_ar} is available in the app and its number is ${best.phone}. ${categoryGuideEn}`,
+      answerAr: `نعم، ${best.name_ar} موجود داخل التطبيق ورقمه هو ${best.phone}. ${categoryGuideAr}`
+    };
+  }
+
+  return {
+    answerEn: `The number for ${best.name_ar} is ${best.phone}. ${categoryGuideEn}`,
+    answerAr: `رقم ${best.name_ar} هو ${best.phone}. ${categoryGuideAr}`
+  };
+}
 
 function resolveGroupForCategory(contact) {
   if (contact?.category_slug && CATEGORY_GROUP_OVERRIDES[contact.category_slug]) {
@@ -622,6 +1085,29 @@ function getAssistantNameReply(message) {
   };
 }
 
+function getAssistantContactLeadReply(message) {
+  const hasEmail = /[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}/i.test(message);
+  const hasPhone = /(\+?\d[\d\s\-()]{7,}\d)/.test(message);
+  const normalized = normalizeText(message);
+  const asksForFollowUp =
+    normalized.includes("كلمني") ||
+    normalized.includes("كلموني") ||
+    normalized.includes("اتصل") ||
+    normalized.includes("تواصل") ||
+    normalized.includes("call me") ||
+    normalized.includes("contact me") ||
+    normalized.includes("reach me");
+
+  if (!hasEmail && !hasPhone && !asksForFollowUp) return null;
+
+  return {
+    answerEn:
+      "Thanks. If you want our team to follow up with you, write your request clearly and include your phone number or email, then press Send request.",
+    answerAr:
+      "شكرًا لك. إذا كنت تريد أن يتواصل معك فريقنا، فاكتب طلبك بوضوح وأضف رقم هاتفك أو بريدك الإلكتروني، ثم اضغط على إرسال الطلب."
+  };
+}
+
 function getAssistantReplyForMessage(message, topic) {
   const normalized = normalizeText(message);
   if (!topic || !normalized) return null;
@@ -639,6 +1125,12 @@ function getAssistantReplyForMessage(message, topic) {
         answerAr: "صباح الفل والورد. يومك جميل إن شاء الله."
       };
     }
+    if (normalized.includes("صباح الفل")) {
+      return {
+        answerEn: "A lovely morning to you too. How can I help you today?",
+        answerAr: "صباح الفل عليك أيضًا. كيف أستطيع مساعدتك اليوم؟"
+      };
+    }
     if (normalized.includes("صباح الخير")) {
       return {
         answerEn: "Good morning. How can I help you today?",
@@ -651,12 +1143,25 @@ function getAssistantReplyForMessage(message, topic) {
         answerAr: "مساء النور. كيف أستطيع مساعدتك الليلة؟"
       };
     }
+    if (normalized.includes("مرحبا") || normalized.includes("مرحبا") || normalized.includes("اهلا") || normalized.includes("اهلين")) {
+      return {
+        answerEn: "Hello and welcome. How can I help you today?",
+        answerAr: "أهلاً وسهلاً بك. كيف أستطيع مساعدتك اليوم؟"
+      };
+    }
     if (normalized.includes("hello") || normalized === "hi" || normalized.includes("hey")) {
       return {
         answerEn: "Hello. I’m here to help you with anything inside the app.",
         answerAr: "مرحبًا. أنا هنا لمساعدتك في أي شيء داخل التطبيق."
       };
     }
+  }
+
+  if (topic.key === "compliment") {
+    return {
+      answerEn: "Thank you. I appreciate your kind words, and I’ll keep helping as clearly as I can.",
+      answerAr: "شكرًا لك. أقدّر كلامك الجميل، وسأواصل مساعدتك بأوضح شكل ممكن."
+    };
   }
 
   if (topic.key === "support") {
@@ -683,6 +1188,13 @@ function getAssistantReplyForMessage(message, topic) {
     }
   }
 
+  if (topic.key === "respect") {
+    return {
+      answerEn: "I’m sorry if something felt frustrating. I’m still here to help respectfully, so write your issue and we’ll work through it together.",
+      answerAr: "أنا آسف إذا كان هناك شيء سبب لك انزعاجًا. ما زلت هنا لمساعدتك باحترام، فاكتب المشكلة وسنعمل على حلها معًا."
+    };
+  }
+
   return null;
 }
 
@@ -699,6 +1211,7 @@ export default function App() {
   const isTablet = screenWidth >= 768;
   const isLargeTablet = screenWidth >= 1024;
   const isAndroid = Platform.OS === "android";
+  const isAndroidTablet = isAndroid && isTablet;
   const widthScale = Math.min(Math.max(screenWidth / (isTablet ? 900 : 390), 0.88), isTablet ? 1.08 : 1.12);
   const heightScale = Math.min(Math.max(screenHeight / (isTablet ? 1180 : 844), 0.9), 1.08);
   const uiScale = Math.min(widthScale, heightScale);
@@ -719,29 +1232,29 @@ export default function App() {
     : isTablet
       ? Math.min(screenWidth - contentHorizontalInset * 2, 800)
       : screenWidth;
-  const categoryColumns = isLargeTablet ? 2 : isTablet ? 3 : 2;
+  const categoryColumns = isTablet ? 2 : 2;
   const categoryRowCount = Math.ceil(GROUPS.length / categoryColumns);
   const heroIconSize = Math.round((isLargeTablet ? 46 : 38) * uiScale);
   const heroInfoIconSize = Math.round((isLargeTablet ? 22 : 20) * uiScale);
-  const categoryIconSize = Math.round((isLargeTablet ? 40 : isTablet ? 36 : 50) * uiScale);
-  const bottomSideIconSize = Math.round((isLargeTablet ? 28 : isTablet ? 26 : 32) * uiScale);
-  const bottomCenterIconSize = Math.round((isLargeTablet ? 22 : isTablet ? 20 : 24) * uiScale);
-  const largeTabletGridGap = Math.round(22 * heightScale);
-  const largeTabletGridAvailableHeight = Math.max(
+  const categoryIconSize = Math.round((isLargeTablet ? 40 : isAndroidTablet ? 42 : isTablet ? 38 : 50) * uiScale);
+  const bottomSideIconSize = Math.round((isLargeTablet ? 28 : isAndroidTablet ? 24 : isTablet ? 26 : 32) * uiScale);
+  const bottomCenterIconSize = Math.round((isLargeTablet ? 24 : isAndroidTablet ? 24 : isTablet ? 20 : 24) * uiScale);
+  const tabletGridGap = Math.round((isLargeTablet ? 22 : isAndroidTablet ? 20 : 18) * heightScale);
+  const tabletGridAvailableHeight = Math.max(
     screenHeight -
-      Math.round(320 * heightScale) -
-      Math.round(150 * heightScale) -
+      Math.round((isLargeTablet ? 320 : isAndroidTablet ? 300 : 304) * heightScale) -
+      Math.round((isLargeTablet ? 150 : isAndroidTablet ? 128 : 136) * heightScale) -
       androidBottomSafeOffset,
-    Math.round(620 * heightScale)
+    Math.round((isLargeTablet ? 620 : isAndroidTablet ? 560 : 520) * heightScale)
   );
-  const largeTabletCardHeight = Math.round(
+  const tabletCardHeight = Math.round(
     Math.min(
       Math.max(
-        (largeTabletGridAvailableHeight - largeTabletGridGap * Math.max(categoryRowCount - 1, 0)) /
+        (tabletGridAvailableHeight - tabletGridGap * Math.max(categoryRowCount - 1, 0)) /
           Math.max(categoryRowCount, 1),
-        180 * heightScale
+        (isLargeTablet ? 180 : isAndroidTablet ? 196 : 170) * heightScale
       ),
-      238 * heightScale
+      (isLargeTablet ? 238 : isAndroidTablet ? 236 : 208) * heightScale
     )
   );
   const scrollRef = useRef(null);
@@ -1198,6 +1711,60 @@ export default function App() {
       .sort((a, b) => sortCategoriesForGroup(a, b, selectedGroupKey));
   }, [allCategoryList, selectedGroupKey]);
 
+  const getAssistantCategoryReply = useCallback(
+    (message) => {
+      const normalized = normalizeText(message);
+      if (!normalized || !allCategoryList.length) return null;
+
+      const asksCategoryLocation = [
+        "فين",
+        "مكان",
+        "فئة",
+        "قسم",
+        "تصنيف",
+        "category",
+        "section",
+        "where"
+      ].some((phrase) => normalized.includes(normalizeText(phrase)));
+
+      if (!asksCategoryLocation) return null;
+
+      const query = buildAssistantLookupQuery(message);
+      if (!query || query.length < 2) return null;
+
+      let bestCategory = null;
+      let bestScore = 0;
+
+      allCategoryList.forEach((category) => {
+        const normalizedCategory = normalizeText(category.name);
+        let score = 0;
+        if (normalizedCategory === query) score += 10;
+        if (normalizedCategory.includes(query)) score += 8;
+        if (query.includes(normalizedCategory)) score += 5;
+
+        query.split(" ").filter(Boolean).forEach((word) => {
+          if (normalizedCategory.includes(word)) score += 1.2;
+        });
+
+        if (score > bestScore) {
+          bestScore = score;
+          bestCategory = category;
+        }
+      });
+
+      if (!bestCategory || bestScore < 2.6) return null;
+
+      const parentGroupTitle = GROUP_BY_KEY[bestCategory.group]?.title || "Services";
+      const parentGroupTitleAr = GROUP_AR[bestCategory.group] || "خدمات متنوعة";
+
+      return {
+        answerEn: `${bestCategory.name} is available under ${parentGroupTitle} in the app.`,
+        answerAr: `${bestCategory.name} موجودة داخل فئة ${parentGroupTitleAr} في التطبيق.`
+      };
+    },
+    [allCategoryList]
+  );
+
   useEffect(() => {
     if (!query.trim()) setQuickResult(null);
   }, [query]);
@@ -1559,6 +2126,45 @@ export default function App() {
       return;
     }
 
+    const contactLeadReply = getAssistantContactLeadReply(msg);
+    if (contactLeadReply) {
+      appendAssistantEntry({
+        userText: msg,
+        answerEn: contactLeadReply.answerEn,
+        answerAr: contactLeadReply.answerAr,
+        action: "focus-message",
+        actionLabelEn: "Write your request",
+        actionLabelAr: "اكتب طلبك"
+      });
+      setContactMessage("");
+      return;
+    }
+
+    const categoryReply = getAssistantCategoryReply(msg);
+    if (categoryReply) {
+      appendAssistantEntry({
+        userText: msg,
+        answerEn: categoryReply.answerEn,
+        answerAr: categoryReply.answerAr
+      });
+      setContactMessage("");
+      return;
+    }
+
+    const lookupReply = getAssistantLookupReply(msg, allContacts);
+    if (lookupReply) {
+      appendAssistantEntry({
+        userText: msg,
+        answerEn: lookupReply.answerEn,
+        answerAr: lookupReply.answerAr,
+        action: lookupReply.action,
+        actionLabelEn: lookupReply.actionLabelEn,
+        actionLabelAr: lookupReply.actionLabelAr
+      });
+      setContactMessage("");
+      return;
+    }
+
     const matchedTopic = detectAssistantTopic(msg);
     if (matchedTopic) {
       const customReply = getAssistantReplyForMessage(msg, matchedTopic);
@@ -1882,8 +2488,8 @@ export default function App() {
   };
 
   const gridRowResponsive = {
-    columnGap: isLargeTablet ? Math.round(22 * widthScale) : Math.round(16 * widthScale),
-    marginBottom: isLargeTablet ? largeTabletGridGap : Math.round(18 * heightScale)
+    columnGap: isLargeTablet ? Math.round(22 * widthScale) : isAndroidTablet ? Math.round(18 * widthScale) : Math.round(16 * widthScale),
+    marginBottom: isTablet ? tabletGridGap : Math.round(18 * heightScale)
   };
 
   const bottomBarResponsive = isTablet
@@ -1893,27 +2499,48 @@ export default function App() {
         width: Math.min(screenWidth - contentHorizontalInset * 2, isLargeTablet ? 760 : 680),
         alignSelf: "center",
         bottom: Math.round((isLargeTablet ? 20 : 16) * heightScale) + androidBottomSafeOffset,
-        height: Math.round((isLargeTablet ? 94 : 86) * heightScale),
-        paddingBottom: Math.round((isLargeTablet ? 10 : 8) * heightScale),
-        paddingTop: Math.round((isLargeTablet ? 10 : 8) * heightScale),
-        borderRadius: Math.round((isLargeTablet ? 30 : 28) * uiScale)
+        height: Math.round((isLargeTablet ? 94 : isAndroidTablet ? 88 : 86) * heightScale),
+        paddingBottom: Math.round((isLargeTablet ? 10 : isAndroidTablet ? 7 : 8) * heightScale),
+        paddingTop: Math.round((isLargeTablet ? 10 : isAndroidTablet ? 7 : 8) * heightScale),
+        borderRadius: Math.round((isLargeTablet ? 30 : 28) * uiScale),
+        shadowOpacity: isAndroid ? 0 : 0.2,
+        shadowRadius: isAndroid ? 0 : 14,
+        shadowOffset: isAndroid ? { width: 0, height: 0 } : { width: 0, height: 10 },
+        elevation: isAndroid ? 0 : 12
       }
     : isAndroid
       ? {
-          left: Math.round(10 * widthScale),
-          right: Math.round(10 * widthScale),
-          bottom: Math.round(8 * heightScale) + androidBottomSafeOffset,
-          height: Math.round(92 * heightScale),
-          paddingBottom: Math.round(8 * heightScale),
-          paddingTop: Math.round(8 * heightScale),
-          borderRadius: Math.round(22 * uiScale)
+          left: 0,
+          right: 0,
+          width: screenWidth,
+          alignSelf: "stretch",
+          bottom: 0,
+          height: Math.round(108 * heightScale) + androidBottomSafeOffset,
+          paddingBottom: Math.round(14 * heightScale) + androidBottomSafeOffset,
+          paddingTop: Math.round(10 * heightScale),
+          borderRadius: 0,
+          borderTopLeftRadius: Math.round(22 * uiScale),
+          borderTopRightRadius: Math.round(22 * uiScale),
+          shadowOpacity: 0,
+          shadowRadius: 0,
+          shadowOffset: { width: 0, height: 0 },
+          elevation: 0
         }
       : {};
 
+  const bottomBarSurfaceResponsive = isAndroid
+    ? {
+        shadowOpacity: 0,
+        shadowRadius: 0,
+        shadowOffset: { width: 0, height: 0 },
+        elevation: 0
+      }
+    : {};
+
   const bottomSideVisualSlotResponsive = {
-    width: Math.round((isLargeTablet ? 66 : isTablet ? 60 : 72) * widthScale),
-    height: Math.round((isLargeTablet ? 56 : isTablet ? 52 : 64) * heightScale),
-    marginBottom: Math.round((isLargeTablet ? 6 : isTablet ? 4 : isAndroid ? 6 : 8) * heightScale)
+    width: Math.round((isLargeTablet ? 66 : isAndroidTablet ? 58 : isTablet ? 60 : 72) * widthScale),
+    height: Math.round((isLargeTablet ? 56 : isAndroidTablet ? 48 : isTablet ? 52 : 64) * heightScale),
+    marginBottom: Math.round((isLargeTablet ? 4 : isAndroidTablet ? 2 : isTablet ? 4 : isAndroid ? 1 : 8) * heightScale)
   };
 
   const businessPlanVisualSlotResponsive = {
@@ -1921,15 +2548,15 @@ export default function App() {
   };
 
   const bottomTextResponsive = {
-    fontSize: Math.round((isLargeTablet ? 12.5 : isTablet ? 11.5 : 13.5) * uiScale),
-    marginTop: Math.round((isLargeTablet ? 2 : isTablet ? 1 : isAndroid ? 1 : -2) * heightScale),
+    fontSize: Math.round((isLargeTablet ? 12.5 : isAndroidTablet ? 11 : isTablet ? 11.5 : 12.5) * uiScale),
+    marginTop: Math.round((isLargeTablet ? 1 : isAndroidTablet ? 0 : isTablet ? 1 : isAndroid ? -2 : -2) * heightScale),
     textAlign: "center",
     paddingHorizontal: Math.round((isTablet ? 6 : 4) * widthScale),
-    lineHeight: Math.round((isLargeTablet ? 14 : isTablet ? 13 : 15) * uiScale)
+    lineHeight: Math.round((isLargeTablet ? 14 : isAndroidTablet ? 12 : isTablet ? 13 : 14) * uiScale)
   };
 
   const bottomSideTextResponsive = {
-    marginTop: Math.round((isTablet ? -1 : isAndroid ? -1 : -6) * heightScale)
+    marginTop: Math.round((isAndroidTablet ? -2 : isTablet ? -1 : isAndroid ? -4 : -6) * heightScale)
   };
 
   const bottomSubTextResponsive = {
@@ -1943,10 +2570,10 @@ export default function App() {
   };
 
   const bottomCenterBadgeResponsive = {
-    width: Math.round((isTablet ? 52 : isAndroid ? 58 : 64) * uiScale),
-    height: Math.round((isTablet ? 52 : isAndroid ? 58 : 64) * uiScale),
-    borderRadius: Math.round((isTablet ? 26 : isAndroid ? 29 : 32) * uiScale),
-    marginTop: Math.round((isTablet ? 0 : isAndroid ? -8 : -4) * heightScale)
+    width: Math.round((isLargeTablet ? 58 : isAndroidTablet ? 56 : isTablet ? 52 : isAndroid ? 66 : 64) * uiScale),
+    height: Math.round((isLargeTablet ? 58 : isAndroidTablet ? 56 : isTablet ? 52 : isAndroid ? 66 : 64) * uiScale),
+    borderRadius: Math.round((isLargeTablet ? 29 : isAndroidTablet ? 28 : isTablet ? 26 : isAndroid ? 33 : 32) * uiScale),
+    marginTop: Math.round((isLargeTablet ? -2 : isAndroidTablet ? -2 : isTablet ? 0 : isAndroid ? -4 : -4) * heightScale)
   };
 
   const bottomCenterBadgeShadowResponsive = {
@@ -1957,26 +2584,31 @@ export default function App() {
   };
 
   const bottomCenterTextResponsive = {
-    fontSize: Math.round((isTablet ? 10.5 : 12.5) * uiScale),
-    marginTop: Math.round((isTablet ? 2 : isAndroid ? 2 : 4) * heightScale),
+    fontSize: Math.round((isLargeTablet ? 11.5 : isAndroidTablet ? 10 : isTablet ? 10.5 : 11.5) * uiScale),
+    marginTop: Math.round((isLargeTablet ? 0 : isAndroidTablet ? -1 : isTablet ? 2 : isAndroid ? -2 : 4) * heightScale),
     textAlign: "center",
     paddingHorizontal: Math.round(6 * widthScale),
-    lineHeight: Math.round((isTablet ? 12 : 14) * uiScale)
+    lineHeight: Math.round((isLargeTablet ? 12 : isAndroidTablet ? 11 : isTablet ? 12 : 13) * uiScale)
   };
 
   const bottomCenterSubTextResponsive = {
-    fontSize: Math.round((isTablet ? 8.5 : 9.5) * uiScale),
-    marginTop: Math.round((isTablet ? 0 : 1) * heightScale),
+    fontSize: Math.round((isLargeTablet ? 8.5 : isAndroidTablet ? 8 : isTablet ? 8.5 : 8.5) * uiScale),
+    marginTop: Math.round((isLargeTablet ? -1 : isAndroidTablet ? -1 : isTablet ? 0 : isAndroid ? -2 : 0) * heightScale),
     textAlign: "center",
     color: isTablet ? "#ffd7f3" : "#ffd0f0"
   };
 
+  const bottomCenterFloatingResponsive = {
+    top: Math.round((isLargeTablet ? -10 : isAndroidTablet ? -8 : isAndroid ? -10 : -18) * heightScale),
+    transform: [{ translateX: Math.round((isLargeTablet ? -42 : isAndroidTablet ? -40 : -44) * widthScale) }]
+  };
+
   const categoryCardResponsive = {
-    height: isLargeTablet ? largeTabletCardHeight : Math.round((isTablet ? 148 : isAndroid ? 146 : 156) * heightScale),
-    paddingVertical: Math.round((isLargeTablet ? 18 : isTablet ? 13 : 12) * heightScale),
+    height: isTablet ? tabletCardHeight : Math.round((isAndroid ? 146 : 156) * heightScale),
+    paddingVertical: Math.round((isLargeTablet ? 18 : isAndroidTablet ? 16 : isTablet ? 13 : 12) * heightScale),
     borderRadius: Math.round((isTablet ? 22 : 26) * uiScale),
-    paddingHorizontal: Math.round((isLargeTablet ? 14 : isTablet ? 10 : 12) * widthScale),
-    marginBottom: isLargeTablet ? 0 : Math.round((isTablet ? 4 : 6) * heightScale)
+    paddingHorizontal: Math.round((isLargeTablet ? 14 : isAndroidTablet ? 12 : isTablet ? 10 : 12) * widthScale),
+    marginBottom: isTablet ? 0 : Math.round((isTablet ? 4 : 6) * heightScale)
   };
 
   const categoryBadgeResponsive = {
@@ -2368,7 +3000,7 @@ export default function App() {
 
       {!showIntro ? (
         <View style={[styles.bottomBarShell, bottomBarResponsive]} pointerEvents="box-none">
-          <LinearGradient colors={["#6c47f5", "#b30f7f"]} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={styles.bottomBar}>
+          <LinearGradient colors={["#6c47f5", "#b30f7f"]} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={[styles.bottomBar, bottomBarSurfaceResponsive]}>
             <TouchableOpacity style={[styles.bottomItem, businessPlanItemResponsive]} onPress={onPrimaryNavPress}>
               <View style={[styles.bottomVisualSlot, styles.bottomSideVisualSlot, bottomSideVisualSlotResponsive, businessPlanVisualSlotResponsive]}>
                 <Ionicons name="rocket-outline" size={bottomSideIconSize} color="#ffffff" />
@@ -2388,7 +3020,7 @@ export default function App() {
             </TouchableOpacity>
           </LinearGradient>
 
-          <TouchableOpacity style={[styles.bottomCenterFloating, styles.bottomCenterItem]} onPress={() => setContactModalVisible(true)}>
+          <TouchableOpacity style={[styles.bottomCenterFloating, styles.bottomCenterItem, bottomCenterFloatingResponsive]} onPress={() => setContactModalVisible(true)}>
             <View style={styles.bottomVisualSlot}>
               <View style={[styles.bottomCenterBadge, bottomCenterBadgeResponsive]}>
                 <Ionicons name="phone-portrait" size={bottomCenterIconSize + 1} color="#9a0f6f" />
@@ -2474,9 +3106,9 @@ export default function App() {
       </Modal>
 
       <Modal transparent visible={contactModalVisible} animationType="fade" onRequestClose={() => setContactModalVisible(false)}>
-        <KeyboardAvoidingView style={styles.flexOne} behavior={Platform.OS === "ios" ? "padding" : "height"}>
-          <View style={styles.modalBackdrop}>
-            <View style={[styles.modalCard, styles.suggestCard, styles.contactCard]}>
+        <KeyboardAvoidingView style={styles.flexOne} behavior={Platform.OS === "ios" ? "padding" : "padding"}>
+          <View style={[styles.modalBackdrop, isAndroid && styles.contactBackdropAndroid]}>
+            <View style={[styles.modalCard, styles.suggestCard, styles.contactCard, isAndroid && styles.contactCardAndroid]}>
               <View style={styles.sheetGlow} />
               <View style={styles.sheetGlowSecondary} />
               <ScrollView
@@ -2887,7 +3519,7 @@ export default function App() {
               <View style={styles.aboutSection}>
                 <Text style={styles.aboutHeading}>من نحن</Text>
                 <Text style={[styles.aboutBody, styles.aboutBodyAr]}>
-                  Hotline App هو دليل ذكي وسريع للوصول إلى أهم الخطوط الساخنة والأرقام المهمة في مصر بشكل منظم وسهل.
+                  ⁦Hotline App⁩ هو دليل ذكي وسريع للوصول إلى أهم الخطوط الساخنة والأرقام المهمة في مصر بشكل منظم وسهل.
                 </Text>
                 <Text style={[styles.aboutBody, styles.aboutBodyAr]}>
                   يوفر التطبيق تصنيفات واضحة تشمل الخدمات الحكومية، المستشفيات، المطاعم، الخدمات المالية، النقل، والخدمات المتنوعة، حتى تصل إلى الرقم الذي تحتاجه بسرعة.
@@ -2961,21 +3593,24 @@ export default function App() {
             <View style={styles.hintList}>
               <View style={styles.hintItem}>
                 <View style={[styles.hintMiniBadge, styles.hintMiniBusiness]}>
-                  <Ionicons name="rocket-outline" size={14} color="#7c3aed" />
+                  <Ionicons name="rocket-outline" size={15} color="#7c3aed" />
                 </View>
-                <Text style={[styles.hintItemText, styles.aboutBodyAr]}>Promote لعرض باقات الظهور المميز والتوثيق للأعمال.</Text>
+                <Text style={[styles.hintItemText, styles.aboutBodyAr]}>⁦Promote⁩ لعرض باقات الظهور المميز والتوثيق للأعمال.</Text>
               </View>
               <View style={styles.hintItem}>
                 <View style={[styles.hintMiniBadge, styles.hintMiniAdd]}>
-                  <Ionicons name="sparkles" size={14} color="#b30f7f" />
+                  <Ionicons name="add-circle-outline" size={15} color="#b30f7f" />
                 </View>
-                <Text style={[styles.hintItemText, styles.aboutBodyAr]}>Add Number لإضافة رقم جديد أو اقتراح جهة جديدة داخل التطبيق.</Text>
+                <Text style={[styles.hintItemText, styles.aboutBodyAr]}>⁦Add Number⁩ لإضافة رقم جديد أو اقتراح جهة جديدة داخل التطبيق.</Text>
               </View>
               <View style={styles.hintItem}>
                 <View style={[styles.hintMiniBadge, styles.hintMiniContact]}>
-                  <Ionicons name="chatbubble-ellipses-outline" size={14} color="#0f766e" />
+                  <Ionicons name="phone-portrait" size={14} color="#9a0f6f" />
+                  <View style={styles.hintMiniContactSparkles}>
+                    <Ionicons name="sparkles" size={7} color="#ffffff" />
+                  </View>
                 </View>
-                <Text style={[styles.hintItemText, styles.aboutBodyAr]}>Contact us لإرسال ملاحظة أو اقتراح يساعدنا في تحسين الخدمة.</Text>
+                <Text style={[styles.hintItemText, styles.aboutBodyAr]}>⁦Contact us⁩ لإرسال ملاحظة أو اقتراح يساعدنا في تحسين الخدمة.</Text>
               </View>
             </View>
             <TouchableOpacity style={styles.hintBtn} onPress={dismissSuggestHint}>
@@ -3083,18 +3718,20 @@ const styles = StyleSheet.create({
   },
   phoneIconWrap: {
     marginRight: 10,
-    width: 56,
-    height: 56,
-    borderRadius: 16,
-    backgroundColor: "#c53a95",
-    padding: 4,
+    width: 48,
+    height: 48,
+    borderRadius: 14,
+    backgroundColor: "transparent",
+    padding: 0,
     shadowColor: "#0f1b66",
-    shadowOpacity: 0.08,
-    shadowRadius: 4,
-    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.04,
+    shadowRadius: 2,
+    shadowOffset: { width: 0, height: 1 },
     elevation: 0,
-    borderWidth: 1,
-    borderColor: "#d96fb2"
+    borderWidth: 0,
+    borderColor: "transparent",
+    alignItems: "center",
+    justifyContent: "center"
   },
   phoneIconImage: {
     width: "100%",
@@ -4132,6 +4769,18 @@ const styles = StyleSheet.create({
     borderColor: "rgba(255,255,255,0.82)",
     paddingTop: 22
   },
+  contactBackdropAndroid: {
+    justifyContent: "flex-end",
+    paddingHorizontal: 0
+  },
+  contactCardAndroid: {
+    borderBottomLeftRadius: 0,
+    borderBottomRightRadius: 0,
+    borderTopLeftRadius: 24,
+    borderTopRightRadius: 24,
+    paddingBottom: 10,
+    maxHeight: "82%"
+  },
   contactCloseBtn: {
     position: "absolute",
     top: 12,
@@ -4611,7 +5260,8 @@ const styles = StyleSheet.create({
     borderRadius: 14,
     alignItems: "center",
     justifyContent: "center",
-    marginTop: 2
+    marginTop: 2,
+    position: "relative"
   },
   hintMiniBusiness: {
     backgroundColor: "#f3e8ff"
@@ -4620,7 +5270,18 @@ const styles = StyleSheet.create({
     backgroundColor: "#fde7f7"
   },
   hintMiniContact: {
-    backgroundColor: "#dff7f4"
+    backgroundColor: "#fde7f7"
+  },
+  hintMiniContactSparkles: {
+    position: "absolute",
+    right: -2,
+    top: -2,
+    width: 12,
+    height: 12,
+    borderRadius: 6,
+    backgroundColor: "#d21695",
+    alignItems: "center",
+    justifyContent: "center"
   },
   hintItemText: {
     flex: 1,
