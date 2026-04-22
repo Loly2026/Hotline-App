@@ -740,17 +740,124 @@ const ASSISTANT_LOOKUP_STOP_WORDS = [
   "give",
   "give me"
 ];
+const ASSISTANT_GENERIC_HELP_TOKENS = [
+  "ساعدني",
+  "ساعدنى",
+  "ساعد",
+  "مساعده",
+  "مساعدة",
+  "help",
+  "help me",
+  "عايز",
+  "عاوز",
+  "محتاج",
+  "اريد",
+  "أريد",
+  "احتاج",
+  "أحتاج",
+  "لو سمحت",
+  "من فضلك",
+  "please"
+];
+const ASSISTANT_LOOKUP_ALIASES = [
+  { patterns: ["المطافي", "مطافي", "المطافي", "مطافي", "اطفاء", "إطفاء", "حريق", "الحمايه المدنيه", "الحماية المدنية"], replacement: "المطافئ" },
+  { patterns: ["النجده", "نجده", "النجدة", "نجدة", "الشرطه", "الشرطة"], replacement: "شرطة النجدة" },
+  { patterns: ["الاسعاف", "اسعاف", "الإسعاف", "إسعاف"], replacement: "هيئة الإسعاف المصرية" },
+  { patterns: ["فودافون", "فودافو", "vodafone"], replacement: "فودافون مصر" },
+  { patterns: ["اتصالات", "اتصلات", "etisalat"], replacement: "اتصالات مصر" },
+  { patterns: ["وي", "we"], replacement: "المصرية للاتصالات we" }
+];
 
 function escapeRegExp(value) {
   return String(value || "").replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
 }
 
+function applyAssistantAliases(value) {
+  let normalizedValue = normalizeText(value);
+  ASSISTANT_LOOKUP_ALIASES.forEach((alias) => {
+    alias.patterns.forEach((pattern) => {
+      const normalizedPattern = normalizeText(pattern);
+      if (!normalizedPattern) return;
+      normalizedValue = normalizedValue.replace(
+        new RegExp(`\\b${escapeRegExp(normalizedPattern)}\\b`, "g"),
+        normalizeText(alias.replacement)
+      );
+    });
+  });
+  return normalizedValue.replace(/\s+/g, " ").trim();
+}
+
 function buildAssistantLookupQuery(message) {
   let cleaned = normalizeText(message);
+  const requestPrefixes = [
+    "عايز رقم",
+    "عاوز رقم",
+    "محتاج رقم",
+    "اريد رقم",
+    "أريد رقم",
+    "احتاج رقم",
+    "أحتاج رقم",
+    "ساعدني في رقم",
+    "ساعدنى في رقم",
+    "رقم",
+    "number of",
+    "number for",
+    "phone number for",
+    "phone number of",
+    "need a number for",
+    "need number for",
+    "what is the number of"
+  ];
+
+  requestPrefixes.forEach((prefix) => {
+    const normalizedPrefix = normalizeText(prefix);
+    if (cleaned.startsWith(`${normalizedPrefix} `)) {
+      cleaned = cleaned.slice(normalizedPrefix.length).trim();
+    } else if (cleaned === normalizedPrefix) {
+      cleaned = "";
+    }
+  });
+
   ASSISTANT_LOOKUP_STOP_WORDS.forEach((word) => {
     cleaned = cleaned.replace(new RegExp(`\\b${escapeRegExp(normalizeText(word))}\\b`, "g"), " ");
   });
-  return cleaned.replace(/\s+/g, " ").trim();
+  cleaned = cleaned.replace(/\s+/g, " ").trim();
+  return applyAssistantAliases(cleaned);
+}
+
+function hasMeaningfulTokenOverlap(query, candidate) {
+  const queryWords = normalizeText(query).split(" ").filter((word) => word.length >= 2);
+  const candidateWords = normalizeText(candidate).split(" ").filter((word) => word.length >= 2);
+  if (!queryWords.length || !candidateWords.length) return false;
+
+  return queryWords.some((queryWord) =>
+    candidateWords.some(
+      (candidateWord) =>
+        candidateWord.startsWith(queryWord) ||
+        queryWord.startsWith(candidateWord) ||
+        candidateWord.includes(queryWord) ||
+        queryWord.includes(candidateWord)
+    )
+  );
+}
+
+function isGenericLookupQuery(query) {
+  const normalizedQuery = normalizeText(query);
+  if (!normalizedQuery) return true;
+
+  const words = normalizedQuery.split(" ").filter(Boolean);
+  if (!words.length) return true;
+
+  return words.every((word) =>
+    ASSISTANT_GENERIC_HELP_TOKENS.some((token) => {
+      const normalizedToken = normalizeText(token);
+      return (
+        word === normalizedToken ||
+        normalizedToken.includes(word) ||
+        word.includes(normalizedToken)
+      );
+    })
+  );
 }
 
 function isAssistantLookupRequest(message) {
@@ -821,31 +928,37 @@ function getAssistantLookupReply(message, contacts) {
     "which category"
   ].some((phrase) => normalized.includes(normalizeText(phrase)));
 
-  const asksGenericNumberOnly = [
-    "عايز رقم",
-    "عاوز رقم",
-    "محتاج رقم",
-    "اريد رقم",
-    "أريد رقم",
-    "احتاج رقم",
-    "أحتاج رقم",
-    "need a number",
-    "i need a number",
-    "want a number",
-    "need hotline"
-  ].some((phrase) => {
-    const normalizedPhrase = normalizeText(phrase);
-    return normalized === normalizedPhrase || normalized.startsWith(`${normalizedPhrase} `) || normalized.includes(`${normalizedPhrase} `);
-  });
-
   const lookupQuery = buildAssistantLookupQuery(message);
-  if ((!lookupQuery || lookupQuery.length < 2) && (asksForNumber || asksIfExists || asksWhereCategoryIs)) {
+  const asksGenericNumberOnly =
+    asksForNumber &&
+    (
+      [
+        "رقم",
+        "عايز رقم",
+        "عاوز رقم",
+        "محتاج رقم",
+        "اريد رقم",
+        "أريد رقم",
+        "احتاج رقم",
+        "أحتاج رقم",
+        "ساعدني في رقم",
+        "ساعدنى في رقم",
+        "need a number",
+        "i need a number",
+        "want a number",
+        "need hotline"
+      ].some((phrase) => normalized === normalizeText(phrase)) ||
+      !lookupQuery ||
+      isGenericLookupQuery(lookupQuery)
+    );
+
+  if (((!lookupQuery || lookupQuery.length < 2) || isGenericLookupQuery(lookupQuery)) && (asksForNumber || asksIfExists || asksWhereCategoryIs)) {
     return {
       answerEn:
         "Which service do you need exactly? Write the service name and I’ll try to find its number or category for you.",
       answerAr:
         asksGenericNumberOnly
-          ? "محتاج رقم إيه؟ وأنا أساعدك."
+          ? "عايز رقم أي خدمة؟"
           : "أي خدمة تحتاجها تحديدًا؟ اكتب اسم الخدمة وسأحاول إيجاد رقمها أو الفئة الموجودة فيها."
     };
   }
@@ -859,6 +972,8 @@ function getAssistantLookupReply(message, contacts) {
   contacts.forEach((contact) => {
     const normalizedName = normalizeText(contact?.name_ar);
     const normalizedCategory = normalizeText(contact?.category_name_ar);
+    const aliasedName = applyAssistantAliases(contact?.name_ar);
+    const aliasedCategory = applyAssistantAliases(contact?.category_name_ar);
     if (!normalizedName) return;
 
     let score = 0;
@@ -866,11 +981,17 @@ function getAssistantLookupReply(message, contacts) {
     if (normalizedName.includes(lookupQuery)) score += 10;
     if (lookupQuery.includes(normalizedName)) score += 7;
     if (normalizedCategory && normalizedCategory.includes(lookupQuery)) score += 3;
+    if (aliasedName === lookupQuery) score += 12;
+    if (aliasedName.includes(lookupQuery)) score += 10;
+    if (lookupQuery.includes(aliasedName)) score += 7;
+    if (aliasedCategory && aliasedCategory.includes(lookupQuery)) score += 3;
 
     const matchedWords = lookupWords.filter(
       (word) =>
         normalizedName.includes(word) ||
         normalizedCategory.includes(word) ||
+        aliasedName.includes(word) ||
+        aliasedCategory.includes(word) ||
         normalizedName.split(" ").some((nameWord) => nameWord.includes(word) || word.includes(nameWord))
     ).length;
 
@@ -902,7 +1023,10 @@ function getAssistantLookupReply(message, contacts) {
     contacts.forEach((contact) => {
       const contactName = String(contact?.name_ar || "").trim();
       if (!contactName) return;
-      const distance = levenshtein(lookupQuery, contactName);
+      const distance = Math.min(
+        levenshtein(lookupQuery, contactName),
+        levenshtein(lookupQuery, applyAssistantAliases(contactName))
+      );
       if (distance < closestDistance) {
         closestDistance = distance;
         closestName = contactName;
@@ -911,7 +1035,10 @@ function getAssistantLookupReply(message, contacts) {
     });
 
     const closeEnoughForCorrection =
-      closestName && closestContact && closestDistance <= Math.max(2, Math.floor(lookupQuery.length / 4));
+      closestName &&
+      closestContact &&
+      closestDistance <= Math.max(2, Math.floor(lookupQuery.length / 4)) &&
+      hasMeaningfulTokenOverlap(lookupQuery, closestName);
 
     if (closeEnoughForCorrection && closestContact?.phone) {
       const correctedGroupKey = resolveGroupForCategory(closestContact);
@@ -933,6 +1060,15 @@ function getAssistantLookupReply(message, contacts) {
     const suggestionTextEn = suggestions.length
       ? ` Closest suggestions I found: ${suggestions.join(", ")}.`
       : "";
+
+    if (!suggestions.length && !closeEnoughForCorrection) {
+      return {
+        answerEn:
+          "I couldn’t match a clear service name yet. Tell me the exact service you need and I’ll try again.",
+        answerAr:
+          "لم أستطع مطابقة اسم خدمة واضح حتى الآن. اكتب اسم الخدمة بشكل أقرب وسأحاول مرة أخرى."
+      };
+    }
 
     return {
       answerEn:
