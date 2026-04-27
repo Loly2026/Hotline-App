@@ -3,6 +3,7 @@ import cors from "cors";
 import nodemailer from "nodemailer";
 import "dotenv/config";
 import { createStore } from "./store.js";
+import { importEmbassies } from "./import-visahq-embassies.js";
 
 const store = createStore();
 await store.initSchema();
@@ -303,6 +304,16 @@ app.delete("/api/admin/requests/:id", adminAuth, async (req, res) => {
   if (!exists) return res.status(404).json({ error: "Request not found" });
   await store.deletePending(id);
   res.json({ ok: true });
+});
+
+app.post("/api/admin/import/embassies", adminAuth, async (_req, res) => {
+  try {
+    const result = await importEmbassies();
+    res.json({ ok: true, ...result });
+  } catch (error) {
+    console.error("embassy import error:", error);
+    res.status(500).json({ error: "Failed to import embassies" });
+  }
 });
 
 app.post("/api/admin/requests/:id/approve", adminAuth, async (req, res) => {

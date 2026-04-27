@@ -7,6 +7,7 @@
     "seed": "node src/seed.js",
     "import:csv": "node src/import-csv.js",
     "import:hotlinesegypt": "node src/import-hotlinesegypt.js",
+    "import:embassies": "node src/import-visahq-embassies.js",
     "report:coverage": "node src/report-coverage.js",
     "clean:hotlines": "node src/clean-hotlines-data.js",
     "start": "node src/server.js",

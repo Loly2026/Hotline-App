@@ -32,21 +32,285 @@ import { API_BASE_URL } from "./src/config/api";
 import FALLBACK_CONTACTS from "./src/data/fallbackContacts";
 
 const GROUPS = [
-  { key: "gov", title: "Emergency", icon: "🚨" },
-  { key: "health", title: "Hospital", icon: "🏨" },
-  { key: "food", title: "Food & Malls", icon: "🍽️" },
-  { key: "finance", title: "Finance & Realty", icon: "💳" },
-  { key: "mobility", title: "Cars & Transport", icon: "🚗" },
-  { key: "retail", title: "Services", icon: "🧰" }
+  { key: "gov", icon: "🚨" },
+  { key: "health", icon: "🏨" },
+  { key: "food", icon: "🍽️" },
+  { key: "finance", icon: "💳" },
+  { key: "mobility", icon: "🚗" },
+  { key: "retail", icon: "🧰" },
+  { key: "sports", icon: "🏅" },
+  { key: "foreign", icon: "🌍" }
 ];
-const GROUP_AR = {
-  gov: "طوارئ وخدمات حكومية",
-  health: "مستشفيات وخدمات طبية",
-  food: "مطاعم ومولات",
-  finance: "مال وعقارات",
-  mobility: "سيارات ومواصلات وشحن",
-  retail: "خدمات متنوعة"
+const GROUP_LABELS = {
+  gov: {
+    titleEn: "Emergency",
+    titleAr: "طوارئ",
+    subtitleEn: "Emergency and public services",
+    subtitleAr: "طوارئ وخدمات حكومية"
+  },
+  health: {
+    titleEn: "Hospital",
+    titleAr: "مستشفيات",
+    subtitleEn: "Hospitals and medical services",
+    subtitleAr: "مستشفيات وخدمات طبية"
+  },
+  food: {
+    titleEn: "Food & Malls",
+    titleAr: "طعام ومولات",
+    subtitleEn: "Restaurants, cafes, and malls",
+    subtitleAr: "مطاعم ومولات"
+  },
+  finance: {
+    titleEn: "Finance & Realty",
+    titleAr: "مال وعقارات",
+    subtitleEn: "Finance, banking, and realty",
+    subtitleAr: "مال وعقارات"
+  },
+  mobility: {
+    titleEn: "Cars & Transport",
+    titleAr: "سيارات ونقل",
+    subtitleEn: "Cars, transport, and shipping",
+    subtitleAr: "سيارات ومواصلات وشحن"
+  },
+  retail: {
+    titleEn: "Services",
+    titleAr: "خدمات",
+    subtitleEn: "Mobile, retail, and useful services",
+    subtitleAr: "خدمات متنوعة"
+  },
+  sports: {
+    titleEn: "Sports",
+    titleAr: "رياضة",
+    subtitleEn: "Gyms, sportswear, and equipment",
+    subtitleAr: "جيم وملابس وأجهزة رياضية"
+  },
+  foreign: {
+    titleEn: "Foreign Services",
+    titleAr: "خدمات الأجانب",
+    subtitleEn: "Embassies, tourism, and visitor help",
+    subtitleAr: "سفارات وسياحة وخدمات للزوار"
+  }
 };
+
+const UI_TEXT = {
+  welcomeTitle: { en: "Welcome to", ar: "مرحبًا بك في" },
+  welcomeSub: { en: "Hotline app", ar: "تطبيق Hotline" },
+  back: { en: "Back", ar: "رجوع" },
+  searchPlaceholder: { en: "Search hotline", ar: "ابحث عن خدمة أو رقم" },
+  searchCaption: { en: "Search by name or hotline number", ar: "ابحث بالاسم أو برقم الخدمة" },
+  languageArabic: { en: "AR", ar: "ع" },
+  languageEnglish: { en: "EN", ar: "EN" },
+  tapToView: { en: "Tap to view", ar: "اضغط للعرض" },
+  didYouMeanPrefix: { en: "Did you mean:", ar: "هل تقصد:" },
+  nonPhone: { en: "Non-phone / app-based", ar: "غير هاتفي / عبر التطبيق" },
+  noCategoryData: { en: "No data is available for this category right now.", ar: "لا توجد بيانات متاحة لهذه الفئة حالياً." },
+  suggestNumberTitle: { en: "Suggest A Number", ar: "اقترح رقمًا" },
+  suggestNumberSub: { en: "Send a new hotline and we will review it.", ar: "أرسل رقمًا جديدًا وسنراجعه." },
+  suggestNamePlaceholder: { en: "Place or organization", ar: "اسم الجهة أو المكان" },
+  suggestPhonePlaceholder: { en: "Phone or hotline number", ar: "رقم الهاتف أو الخط الساخن" },
+  send: { en: "Send", ar: "إرسال" },
+  contactModalTitle: { en: "Contact us (AI assistant)", ar: "تواصل معنا (مساعد ذكي)" },
+  contactModalSub: { en: "Quick answers, helpful prompts, and direct support in one place.", ar: "إجابات سريعة وإرشاد مباشر ودعم في مكان واحد." },
+  quickQuestionsTitle: { en: "Quick questions", ar: "أسئلة سريعة" },
+  quickQuestionsSub: { en: "Useful shortcuts if you want a fast start", ar: "اختصارات مفيدة لو تحب تبدأ بسرعة" },
+  assistantChatTitle: { en: "Chat with AI assistant", ar: "الدردشة مع المساعد الذكي" },
+  assistantChatSub: { en: "Ask your question here with the AI assistant, or send it directly to technical support", ar: "اكتب سؤالك هنا مع المساعد الذكي أو أرسله للدعم الفني مباشرة" },
+  assistantGreeting: { en: "I’m here to help. Choose a quick question or type your message below.", ar: "أنا هنا للمساعدة. اختر سؤالاً سريعاً أو اكتب رسالتك بالأسفل." },
+  writeOwnMessage: { en: "Or write your own message here", ar: "أو اكتب رسالتك بنفسك هنا" },
+  messagePlaceholder: { en: "Still need help? Type your message here", ar: "ما زلت تحتاج مساعدة؟ اكتب رسالتك هنا" },
+  close: { en: "Close", ar: "اغلاق" },
+  askAssistant: { en: "Ask assistant", ar: "اسأل المساعد الذكي" },
+  sendRequest: { en: "Send request", ar: "إرسال الطلب" },
+  businessRequestTitle: { en: "Business Request", ar: "طلب تجاري" },
+  businessRequestSub: { en: "Tell us about your business and the plan you want.", ar: "أخبرنا عن نشاطك والباقـة التي تريدها." },
+  yourName: { en: "Your name", ar: "اسمك" },
+  businessName: { en: "Business name", ar: "اسم النشاط" },
+  phoneOrWhatsapp: { en: "Phone or WhatsApp", ar: "الهاتف أو واتساب" },
+  requestDetails: { en: "Request details", ar: "تفاصيل الطلب" },
+  cancel: { en: "Cancel", ar: "إلغاء" },
+  businessPlansTitle: { en: "Business Plans", ar: "باقات الأعمال" },
+  businessPlansSub: { en: "Plans for businesses that want stronger visibility inside the app.", ar: "باقات للأنشطة التي تريد ظهورًا أقوى داخل التطبيق." },
+  forBusiness: { en: "For Business", ar: "للأعمال" },
+  businessIntroAr1: { en: "If you run a restaurant, hospital, or service business, you can request stronger placement inside the app to increase reach and trust.", ar: "إذا كنت تمثل مطعماً أو مستشفى أو شركة خدمة، يمكنك طلب ظهور مميز داخل التطبيق لزيادة الوصول والثقة." },
+  businessIntroAr2: { en: "Businesses can request featured placement, verified status, and higher visibility inside search and category results.", ar: "يمكن للشركات طلب ظهور مميز، وحالة موثقة، ووضوح أكبر داخل نتائج البحث والفئات." },
+  featuredPlacement: { en: "Featured placement", ar: "ظهور مميز" },
+  verifiedBadge: { en: "Verified badge", ar: "شارة موثقة" },
+  priorityRanking: { en: "Priority ranking", ar: "أولوية أعلى" },
+  requestThisPlan: { en: "Request this plan", ar: "اطلب هذه الباقة" },
+  aboutUsTitle: { en: "About Us", ar: "من نحن" },
+  aboutUsSub: { en: "What the app offers and how it helps.", ar: "ماذا يقدم التطبيق وكيف يساعدك." },
+  aboutAr1: { en: "Hotline App is a smart and fast directory for the most important hotlines and service numbers in Egypt.", ar: "Hotline App هو دليل ذكي وسريع للوصول إلى أهم الخطوط الساخنة والأرقام المهمة في مصر بشكل منظم وسهل." },
+  aboutAr2: { en: "It offers clear categories for government services, hospitals, food, finance, transport, and many other useful services.", ar: "يوفر التطبيق تصنيفات واضحة تشمل الخدمات الحكومية، المستشفيات، المطاعم، الخدمات المالية، النقل، والخدمات المتنوعة، حتى تصل إلى الرقم الذي تحتاجه بسرعة." },
+  aboutAr3: { en: "It also lets you suggest new numbers and send feedback so the database can keep improving.", ar: "كما يتيح لك التطبيق اقتراح أرقام جديدة وإرسال الملاحظات للمساعدة في تطوير قاعدة البيانات وتحسين الخدمة باستمرار." },
+  fastAccess: { en: "Fast access", ar: "وصول سريع" },
+  usefulNumbers: { en: "Useful numbers", ar: "أرقام مفيدة" },
+  communityUpdates: { en: "Community updates", ar: "تحديثات المجتمع" },
+  aboutEnHeading: { en: "About Hotline App", ar: "عن Hotline App" },
+  aboutEn1: { en: "Hotline App is a smart and fast directory designed to help users reach important hotlines and service numbers in Egypt with ease.", ar: "Hotline App هو دليل ذكي وسريع يساعد المستخدم على الوصول إلى الأرقام والخدمات المهمة في مصر بسهولة." },
+  aboutEn2: { en: "The app offers organized categories including emergency services, hospitals, food, finance, transport, and many other useful services.", ar: "يقدم التطبيق تصنيفات منظمة تشمل الطوارئ، المستشفيات، الطعام، المال، النقل، وخدمات مفيدة أخرى." },
+  aboutEn3: { en: "It also lets users suggest new numbers and send feedback so the database stays useful and up to date.", ar: "كما يتيح للمستخدمين اقتراح أرقام جديدة وإرسال الملاحظات حتى تظل قاعدة البيانات مفيدة ومحدثة." },
+  quickServicesTitle: { en: "Quick services", ar: "الخدمات السريعة" },
+  quickServicesPromoteShort: { en: "Promote to view business plans.", ar: "⁦Promote⁩ لعرض باقات الظهور للأعمال." },
+  quickServicesPromoteLong: { en: "Promote to explore featured, verified, and premium business plans.", ar: "⁦Promote⁩ لعرض باقات الظهور المميز والتوثيق للأعمال." },
+  quickServicesAddShort: { en: "Add Number to suggest a new number.", ar: "⁦Add Number⁩ لإضافة رقم أو جهة جديدة." },
+  quickServicesAddLong: { en: "Add Number to send a new hotline or suggest a new listing.", ar: "⁦Add Number⁩ لإضافة رقم جديد أو اقتراح جهة جديدة داخل التطبيق." },
+  quickServicesContactShort: { en: "Contact us to send a note or suggestion.", ar: "⁦Contact us⁩ لإرسال ملاحظة أو اقتراح." },
+  quickServicesContactLong: { en: "Contact us to send a note or suggestion that helps us improve the service.", ar: "⁦Contact us⁩ لإرسال ملاحظة أو اقتراح يساعدنا في تحسين الخدمة." },
+  gotIt: { en: "Got it", ar: "فهمت" },
+  hotlineAssistantLabel: { en: "Hotline Assistant", ar: "مساعد Hotline" },
+  typing: { en: "Typing...", ar: "جارٍ الكتابة..." },
+  assistantLanguageArabic: { en: "Arabic", ar: "العربية" },
+  assistantLanguageEnglish: { en: "English", ar: "الإنجليزية" },
+  featuredBadgeSmall: { en: "Featured", ar: "مميزة" },
+  verifiedBadgeSmall: { en: "Verified", ar: "موثقة" },
+  selectedPlanSuffix: { en: "plan", ar: "باقة" },
+  addressLabel: { en: "Address", ar: "العنوان" },
+  detailsLabel: { en: "Details", ar: "تفاصيل" },
+  emailLabel: { en: "Email", ar: "البريد الإلكتروني" }
+  ,
+  loadingCachedData: { en: "Showing the local cached copy of the data right now.", ar: "يتم عرض نسخة محلية من البيانات حالياً." },
+  loadingSavedData: { en: "Showing the latest saved copy of the data right now.", ar: "يتم عرض آخر نسخة محفوظة من البيانات حالياً." },
+  loadingFailedSaved: { en: "Could not load live data. Showing the latest saved copy.", ar: "تعذر تحميل البيانات المباشرة. يتم عرض آخر نسخة محفوظة." },
+  errorTitle: { en: "Error", ar: "خطأ" },
+  doneTitle: { en: "Done", ar: "تم" },
+  missingDataTitle: { en: "Missing Data", ar: "بيانات ناقصة" },
+  missingMessageTitle: { en: "Missing Message", ar: "الرسالة ناقصة" },
+  invalidContactTitle: { en: "Invalid Contact", ar: "وسيلة تواصل غير صحيحة" },
+  missingNameAndNumber: { en: "Please enter both name and hotline number.", ar: "يرجى إدخال اسم الجهة والرقم معًا." },
+  missingNameAndNumberCompact: { en: "Enter the name and number.", ar: "أدخل الاسم والرقم." },
+  requestSent: { en: "Your request was sent successfully.", ar: "تم إرسال طلبك بنجاح." },
+  requestSentCompact: { en: "Request sent successfully.", ar: "تم الإرسال بنجاح." },
+  failedToSendRequest: { en: "Failed to send request.", ar: "تعذر إرسال الطلب." },
+  serverSlow: { en: "Server is taking too long to respond. If you are using Render free tier, wait a few seconds and try again.", ar: "الخادم يستغرق وقتًا أطول من المعتاد. إذا كنت تستخدم Render المجانية، انتظر بضع ثوانٍ ثم حاول مرة أخرى." },
+  writeSuggestionFirst: { en: "Please write your suggestion first.", ar: "يرجى كتابة اقتراحك أولًا." },
+  writeSuggestionFirstCompact: { en: "Write your suggestion first.", ar: "اكتب اقتراحك أولًا." },
+  writeMessageFirst: { en: "Please write your message first.", ar: "يرجى كتابة رسالتك أولًا." },
+  writeMessageFirstCompact: { en: "Write your message first.", ar: "اكتب رسالتك أولًا." },
+  messageSentDirectly: { en: "Your message was sent directly to our team successfully.", ar: "تم إرسال رسالتك مباشرة إلى فريقنا بنجاح." },
+  writeAnotherMessage: { en: "Write another message", ar: "اكتب رسالة أخرى" },
+  supportServerSlow: { en: "The support server is taking longer than usual right now. Because we use a free backend, please wait a few seconds and try sending again.", ar: "خادم الدعم يتأخر الآن أكثر من المعتاد. لأننا نستخدم خادمًا مجانيًا، انتظر بضع ثوانٍ ثم حاول الإرسال مرة أخرى." },
+  supportServerSlowRetry: { en: "The support server is taking longer than usual right now. Since we are using a free backend, please wait a few seconds and try again.", ar: "خادم الدعم يتأخر الآن أكثر من المعتاد. لأننا نستخدم خادمًا مجانيًا، انتظر بضع ثوانٍ ثم حاول مرة أخرى." },
+  tryAgain: { en: "Try again", ar: "حاول مرة أخرى" },
+  thanksMessageSent: { en: "Thanks, your message was sent to our team successfully.", ar: "شكرًا، تم إرسال رسالتك إلى فريقنا بنجاح." },
+  enterBusinessBasics: { en: "Please enter your name, business name, and phone or WhatsApp number.", ar: "يرجى إدخال اسمك واسم النشاط ورقم الهاتف أو واتساب." },
+  enterBusinessBasicsCompact: { en: "Enter your name, business, and contact.", ar: "أدخل اسمك واسم النشاط ووسيلة التواصل." },
+  validPhoneRequired: { en: "Please enter a valid phone or WhatsApp number so we can contact you.", ar: "يرجى إدخال رقم هاتف أو واتساب صحيح حتى نتمكن من التواصل معك." },
+  validPhoneRequiredCompact: { en: "Enter a valid phone or WhatsApp number.", ar: "أدخل رقم هاتف أو واتساب صحيح." },
+  businessRequestSent: { en: "Your business request was sent successfully.", ar: "تم إرسال طلبك التجاري بنجاح." },
+  businessRequestSentCompact: { en: "Business request sent successfully.", ar: "تم إرسال الطلب التجاري بنجاح." },
+  failedToSendBusinessRequest: { en: "Failed to send business request.", ar: "تعذر إرسال الطلب التجاري." },
+  writeYourRequest: { en: "Write your request", ar: "اكتب طلبك" }
+};
+
+function detectDeviceLanguage() {
+  try {
+    const locale = Intl.DateTimeFormat().resolvedOptions().locale || "";
+    return String(locale).toLowerCase().startsWith("ar") ? "ar" : "en";
+  } catch {
+    return "ar";
+  }
+}
+
+function getGroupTitle(key, language) {
+  const group = GROUP_LABELS[key];
+  if (!group) return "";
+  return language === "ar" ? group.titleAr : group.titleEn;
+}
+
+function getGroupSubtitle(key, language) {
+  const group = GROUP_LABELS[key];
+  if (!group) return "";
+  return language === "ar" ? group.subtitleAr : group.subtitleEn;
+}
+
+function getCategoryDisplayName(slug, fallbackAr, language) {
+  const translated = CATEGORY_TRANSLATIONS[slug];
+  if (translated) {
+    return language === "ar" ? translated.ar : translated.en;
+  }
+  return fallbackAr || "";
+}
+
+const EMBASSY_COUNTRY_TRANSLATIONS = {
+  afghanistan: { en: "Afghanistan", ar: "أفغانستان" },
+  albania: { en: "Albania", ar: "ألبانيا" },
+  algeria: { en: "Algeria", ar: "الجزائر" },
+  "american-samoa": { en: "American Samoa", ar: "ساموا الأمريكية" },
+  angola: { en: "Angola", ar: "أنغولا" },
+  anguilla: { en: "Anguilla", ar: "أنغويلا" },
+  "antigua-barbuda": { en: "Antigua and Barbuda", ar: "أنتيغوا وباربودا" },
+  argentina: { en: "Argentina", ar: "الأرجنتين" },
+  armenia: { en: "Armenia", ar: "أرمينيا" },
+  aruba: { en: "Aruba", ar: "أروبا" },
+  australia: { en: "Australia", ar: "أستراليا" },
+  austria: { en: "Austria", ar: "النمسا" },
+  azerbaijan: { en: "Azerbaijan", ar: "أذربيجان" },
+  bahamas: { en: "Bahamas", ar: "الباهاما" },
+  bahrain: { en: "Bahrain", ar: "البحرين" },
+  bangladesh: { en: "Bangladesh", ar: "بنغلاديش" },
+  barbados: { en: "Barbados", ar: "بربادوس" },
+  belarus: { en: "Belarus", ar: "بيلاروسيا" },
+  belgium: { en: "Belgium", ar: "بلجيكا" },
+  bermuda: { en: "Bermuda", ar: "برمودا" },
+  bolivia: { en: "Bolivia", ar: "بوليفيا" },
+  "bosnia-herzegovina": { en: "Bosnia and Herzegovina", ar: "البوسنة والهرسك" },
+  botswana: { en: "Botswana", ar: "بوتسوانا" },
+  brazil: { en: "Brazil", ar: "البرازيل" },
+  "british-virgin-islands": { en: "British Virgin Islands", ar: "جزر فيرجن البريطانية" },
+  "brunei-darussalam": { en: "Brunei Darussalam", ar: "بروناي دار السلام" },
+  bulgaria: { en: "Bulgaria", ar: "بلغاريا" },
+  "burkina-faso": { en: "Burkina Faso", ar: "بوركينا فاسو" }
+};
+
+function formatCountrySlugEn(slug) {
+  return String(slug || "")
+    .split("-")
+    .filter(Boolean)
+    .map((part) => part.charAt(0).toUpperCase() + part.slice(1))
+    .join(" ");
+}
+
+function getEmbassyCountrySlug(contact) {
+  const sourceUrl = String(contact?.source_url || "");
+  const match = sourceUrl.match(/\/en\/([^/]+)\/embassy\/egypt\/?$/i);
+  return match ? match[1].toLowerCase() : "";
+}
+
+function getEmbassyCountryName(contact, language) {
+  const slug = getEmbassyCountrySlug(contact);
+  if (!slug) return "";
+  const translated = EMBASSY_COUNTRY_TRANSLATIONS[slug];
+  if (translated) return language === "ar" ? translated.ar : translated.en;
+  return formatCountrySlugEn(slug);
+}
+
+function getContactDisplayName(contact, language) {
+  if (contact?.category_slug === "embassies") {
+    const countryName = getEmbassyCountryName(contact, language);
+    if (countryName) {
+      return language === "ar" ? `سفارة ${countryName}` : `${countryName} Embassy`;
+    }
+  }
+  return String(contact?.name_ar || "").trim();
+}
+
+function getContactSearchTexts(contact) {
+  const baseName = String(contact?.name_ar || "").trim();
+  const texts = new Set([baseName]);
+  const embassyAr = getContactDisplayName(contact, "ar");
+  const embassyEn = getContactDisplayName(contact, "en");
+  if (embassyAr) texts.add(embassyAr);
+  if (embassyEn) texts.add(embassyEn);
+  return [...texts].filter(Boolean);
+}
+
+function contactMatchesQuery(contact, normalizedQuery, rawQuery) {
+  if (!normalizedQuery && !rawQuery) return false;
+  const categoryName = normalizeText(contact?.category_name_ar);
+  const matchesName = getContactSearchTexts(contact).some((text) => normalizeText(text).includes(normalizedQuery));
+  return matchesName || categoryName.includes(normalizedQuery) || String(contact?.phone || "").includes(rawQuery);
+}
+
 function normalizeText(value) {
   return String(value || "")
     .toLowerCase()
@@ -85,6 +349,8 @@ function detectGroup(categoryName) {
   if (n.includes("مطاعم") || n.includes("كافيهات") || n.includes("مخابز") || n.includes("حلويات")) return "food";
   if (n.includes("بنوك") || n.includes("تمويل") || n.includes("تأمين") || n.includes("ماليه") || n.includes("تداول")) return "finance";
   if (n.includes("سيارات") || n.includes("نقل") || n.includes("مواصلات") || n.includes("طيران") || n.includes("وقود")) return "mobility";
+  if (n.includes("رياض") || n.includes("جيم") || n.includes("ملابس رياضي") || n.includes("اجهزه رياضي") || n.includes("مكملات")) return "sports";
+  if (n.includes("سفارات") || n.includes("سياحي") || n.includes("مطارات") || n.includes("ترجمه") || n.includes("اجانب")) return "foreign";
   return "retail";
 }
 
@@ -99,7 +365,9 @@ const ICONS = {
   food: { set: "ion", name: "fast-food", color: "#ff9800" },
   finance: { set: "ion", name: "cash", color: "#0ea5e9" },
   mobility: { set: "ion", name: "car-sport", color: "#22c55e" },
-  retail: { set: "mci", name: "toolbox-outline", color: "#8b5cf6" }
+  retail: { set: "mci", name: "toolbox-outline", color: "#8b5cf6" },
+  sports: { set: "ion", name: "fitness", color: "#f97316" },
+  foreign: { set: "ion", name: "globe-outline", color: "#0f766e" }
 };
 const GROUP_COLORS = {
   gov: { accent: "#ef4444", card: "#fde2e2", cardActive: "#f9c9c9" },
@@ -107,7 +375,9 @@ const GROUP_COLORS = {
   food: { accent: "#f59e0b", card: "#feedd1", cardActive: "#f9ddb0" },
   finance: { accent: "#0ea5e9", card: "#dcedfb", cardActive: "#c2e2fb" },
   mobility: { accent: "#22c55e", card: "#deefe0", cardActive: "#cae8d0" },
-  retail: { accent: "#8b5cf6", card: "#ebe0ff", cardActive: "#dbcafc" }
+  retail: { accent: "#8b5cf6", card: "#ebe0ff", cardActive: "#dbcafc" },
+  sports: { accent: "#f97316", card: "#ffe7d6", cardActive: "#ffd3b5" },
+  foreign: { accent: "#0f766e", card: "#dbf4ef", cardActive: "#c4eae2" }
 };
 const CATEGORY_GROUP_OVERRIDES = {
   emergency: "gov",
@@ -130,15 +400,89 @@ const CATEGORY_GROUP_OVERRIDES = {
   apps: "retail",
   charity: "retail",
   syndicates: "retail",
-  education: "retail"
+  education: "retail",
+  sportswear: "sports",
+  gym: "sports",
+  "sports-equipment": "sports",
+  "sports-clubs": "sports",
+  supplements: "sports",
+  embassies: "foreign",
+  "tourist-attractions": "foreign",
+  airports: "foreign",
+  "translation-services": "foreign",
+  "travel-agencies": "foreign",
+  "visitor-hotels": "foreign",
+  "foreign-medical": "foreign"
 };
 const CATEGORY_ORDER_BY_GROUP = {
   retail: {
     "mobile-internet": 1,
     appliances: 2,
     apps: 3
+  },
+  sports: {
+    sportswear: 1,
+    gym: 2,
+    "sports-equipment": 3,
+    supplements: 4,
+    "sports-clubs": 5
+  },
+  foreign: {
+    embassies: 1,
+    "tourist-attractions": 2,
+    "translation-services": 3,
+    "travel-agencies": 4,
+    "tourist-help": 5,
+    "residency-immigration": 6
   }
 };
+const CATEGORY_TRANSLATIONS = {
+  emergency: { en: "Emergency", ar: "طوارئ" },
+  hospitals: { en: "Hospitals", ar: "مستشفيات" },
+  labs: { en: "Labs", ar: "معامل" },
+  pharmacies: { en: "Pharmacies", ar: "صيدليات" },
+  restaurants: { en: "Restaurants", ar: "مطاعم" },
+  "cafes-desserts": { en: "Cafes & Desserts", ar: "كافيهات وحلويات" },
+  banks: { en: "Banks", ar: "بنوك" },
+  "finance-payments": { en: "Finance & Payments", ar: "مدفوعات وتمويل" },
+  "mobile-internet": { en: "Mobile & Internet", ar: "محمول وإنترنت" },
+  shipping: { en: "Shipping", ar: "شحن" },
+  "auto-service": { en: "Auto Service", ar: "خدمات السيارات" },
+  airlines: { en: "Airlines", ar: "طيران" },
+  furniture: { en: "Furniture", ar: "أثاث" },
+  appliances: { en: "Appliances", ar: "أجهزة منزلية" },
+  supermarkets: { en: "Supermarkets & Malls", ar: "سوبر ماركت ومولات" },
+  hotels: { en: "Hotels", ar: "فنادق" },
+  realestate: { en: "Real Estate", ar: "عقارات" },
+  apps: { en: "Apps & Digital Services", ar: "تطبيقات وخدمات رقمية" },
+  charity: { en: "Charities", ar: "جمعيات خيرية" },
+  syndicates: { en: "Syndicates", ar: "نقابات" },
+  education: { en: "Education", ar: "تعليم" },
+  sportswear: { en: "Sportswear", ar: "ملابس رياضية" },
+  gym: { en: "Gyms", ar: "جيم" },
+  "sports-equipment": { en: "Sports Equipment", ar: "أجهزة رياضية" },
+  "sports-clubs": { en: "Sports Clubs", ar: "أندية رياضية" },
+  supplements: { en: "Supplements", ar: "مكملات غذائية" },
+  embassies: { en: "Embassies", ar: "سفارات" },
+  "tourist-attractions": { en: "Tourist Attractions", ar: "مزارات سياحية" },
+  "translation-services": { en: "Translation Services", ar: "خدمات ترجمة" },
+  "travel-agencies": { en: "Travel Agencies", ar: "شركات سياحة" },
+  "tourist-help": { en: "Tourist Help", ar: "مساعدة سياحية" },
+  "residency-immigration": { en: "Residency & Immigration", ar: "إقامة وهجرة" }
+};
+const VIRTUAL_CATEGORY_DEFINITIONS = [
+  { slug: "sportswear", group: "sports" },
+  { slug: "gym", group: "sports" },
+  { slug: "sports-equipment", group: "sports" },
+  { slug: "supplements", group: "sports" },
+  { slug: "sports-clubs", group: "sports" },
+  { slug: "embassies", group: "foreign" },
+  { slug: "tourist-attractions", group: "foreign" },
+  { slug: "translation-services", group: "foreign" },
+  { slug: "travel-agencies", group: "foreign" },
+  { slug: "tourist-help", group: "foreign" },
+  { slug: "residency-immigration", group: "foreign" }
+];
 const CONTACT_ASSISTANT_TOPICS = [
   {
     key: "greeting",
@@ -970,9 +1314,13 @@ function getAssistantLookupReply(message, contacts) {
   const rankedMatches = [];
 
   contacts.forEach((contact) => {
-    const normalizedName = normalizeText(contact?.name_ar);
+    const displayNameEn = getContactDisplayName(contact, "en");
+    const displayNameAr = getContactDisplayName(contact, "ar");
+    const normalizedName = normalizeText(displayNameEn);
+    const normalizedAltName = normalizeText(displayNameAr);
     const normalizedCategory = normalizeText(contact?.category_name_ar);
-    const aliasedName = applyAssistantAliases(contact?.name_ar);
+    const aliasedName = applyAssistantAliases(displayNameEn);
+    const aliasedAltName = applyAssistantAliases(displayNameAr);
     const aliasedCategory = applyAssistantAliases(contact?.category_name_ar);
     if (!normalizedName) return;
 
@@ -980,17 +1328,25 @@ function getAssistantLookupReply(message, contacts) {
     if (normalizedName === lookupQuery) score += 12;
     if (normalizedName.includes(lookupQuery)) score += 10;
     if (lookupQuery.includes(normalizedName)) score += 7;
+    if (normalizedAltName === lookupQuery) score += 12;
+    if (normalizedAltName.includes(lookupQuery)) score += 10;
+    if (lookupQuery.includes(normalizedAltName)) score += 7;
     if (normalizedCategory && normalizedCategory.includes(lookupQuery)) score += 3;
     if (aliasedName === lookupQuery) score += 12;
     if (aliasedName.includes(lookupQuery)) score += 10;
     if (lookupQuery.includes(aliasedName)) score += 7;
+    if (aliasedAltName === lookupQuery) score += 12;
+    if (aliasedAltName.includes(lookupQuery)) score += 10;
+    if (lookupQuery.includes(aliasedAltName)) score += 7;
     if (aliasedCategory && aliasedCategory.includes(lookupQuery)) score += 3;
 
     const matchedWords = lookupWords.filter(
       (word) =>
         normalizedName.includes(word) ||
+        normalizedAltName.includes(word) ||
         normalizedCategory.includes(word) ||
         aliasedName.includes(word) ||
+        aliasedAltName.includes(word) ||
         aliasedCategory.includes(word) ||
         normalizedName.split(" ").some((nameWord) => nameWord.includes(word) || word.includes(nameWord))
     ).length;
@@ -1014,18 +1370,21 @@ function getAssistantLookupReply(message, contacts) {
     const suggestions = rankedMatches
       .sort((a, b) => b.score - a.score)
       .slice(0, 3)
-      .map((item) => item.contact?.name_ar)
+      .map((item) => getContactDisplayName(item.contact, "ar"))
       .filter(Boolean);
 
     let closestName = "";
     let closestContact = null;
     let closestDistance = 999;
     contacts.forEach((contact) => {
-      const contactName = String(contact?.name_ar || "").trim();
+      const contactName = getContactDisplayName(contact, "en");
+      const contactNameAr = getContactDisplayName(contact, "ar");
       if (!contactName) return;
       const distance = Math.min(
         levenshtein(lookupQuery, contactName),
-        levenshtein(lookupQuery, applyAssistantAliases(contactName))
+        levenshtein(lookupQuery, applyAssistantAliases(contactName)),
+        levenshtein(lookupQuery, contactNameAr),
+        levenshtein(lookupQuery, applyAssistantAliases(contactNameAr))
       );
       if (distance < closestDistance) {
         closestDistance = distance;
@@ -1042,12 +1401,14 @@ function getAssistantLookupReply(message, contacts) {
 
     if (closeEnoughForCorrection && closestContact?.phone) {
       const correctedGroupKey = resolveGroupForCategory(closestContact);
-      const correctedGroupTitle = GROUP_BY_KEY[correctedGroupKey]?.title || "Services";
-      const correctedGroupTitleAr = GROUP_AR[correctedGroupKey] || "خدمات متنوعة";
+      const correctedGroupTitle = getGroupTitle(correctedGroupKey, "en") || "Services";
+      const correctedGroupTitleAr = getGroupTitle(correctedGroupKey, "ar") || "خدمات";
       const correctedCategoryTitleAr = closestContact.category_name_ar || correctedGroupTitleAr;
+      const correctedNameEn = getContactDisplayName(closestContact, "en");
+      const correctedNameAr = getContactDisplayName(closestContact, "ar");
       return {
-        answerEn: `Did you mean ${closestContact.name_ar}? Its number is ${closestContact.phone}. You can also find it inside ${correctedGroupTitle} / ${closestContact.category_name_ar}.`,
-        answerAr: `هل تقصد ${closestContact.name_ar}؟ رقمه هو ${closestContact.phone}. ويمكنك أيضًا العثور عليه داخل فئة ${correctedGroupTitleAr} / ${correctedCategoryTitleAr}.`
+        answerEn: `Did you mean ${correctedNameEn}? Its number is ${closestContact.phone}. You can also find it inside ${correctedGroupTitle} / ${closestContact.category_name_ar}.`,
+        answerAr: `هل تقصد ${correctedNameAr}؟ رقمه هو ${closestContact.phone}. ويمكنك أيضًا العثور عليه داخل فئة ${correctedGroupTitleAr} / ${correctedCategoryTitleAr}.`
       };
     }
 
@@ -1088,10 +1449,10 @@ function getAssistantLookupReply(message, contacts) {
 
   if (topMatches.length > 1 && topMatches[1].score >= bestScore - 1.4) {
     const matchesAr = topMatches
-      .map((item) => `• ${item.contact.name_ar}: ${item.contact.phone || "غير متاح"}`)
+      .map((item) => `• ${getContactDisplayName(item.contact, "ar")}: ${item.contact.phone || "غير متاح"}`)
       .join("\n");
     const matchesEn = topMatches
-      .map((item) => `• ${item.contact.name_ar}: ${item.contact.phone || "Unavailable"}`)
+      .map((item) => `• ${getContactDisplayName(item.contact, "en")}: ${item.contact.phone || "Unavailable"}`)
       .join("\n");
 
     return {
@@ -1101,36 +1462,38 @@ function getAssistantLookupReply(message, contacts) {
   }
 
   const groupKey = resolveGroupForCategory(best);
-  const groupTitle = GROUP_BY_KEY[groupKey]?.title || "Services";
-  const groupTitleAr = GROUP_AR[groupKey] || "خدمات متنوعة";
+  const groupTitle = getGroupTitle(groupKey, "en") || "Services";
+  const groupTitleAr = getGroupTitle(groupKey, "ar") || "خدمات";
   const categoryTitleAr = best.category_name_ar || groupTitleAr;
   const categoryGuideAr = `يمكنك أيضًا العثور عليه داخل فئة ${groupTitleAr} / ${categoryTitleAr}.`;
   const categoryGuideEn = `You can also find it inside ${groupTitle} / ${best.category_name_ar}.`;
+  const bestNameEn = getContactDisplayName(best, "en");
+  const bestNameAr = getContactDisplayName(best, "ar");
 
   if (asksWhereCategoryIs) {
     return {
-      answerEn: `${best.name_ar} is available inside ${groupTitle} / ${best.category_name_ar}.${best.phone ? ` Its number is ${best.phone}.` : ""}`,
-      answerAr: `${best.name_ar} موجود داخل فئة ${groupTitleAr} / ${categoryTitleAr}.${best.phone ? ` ورقمه هو ${best.phone}.` : ""}`
+      answerEn: `${bestNameEn} is available inside ${groupTitle} / ${best.category_name_ar}.${best.phone ? ` Its number is ${best.phone}.` : ""}`,
+      answerAr: `${bestNameAr} موجود داخل فئة ${groupTitleAr} / ${categoryTitleAr}.${best.phone ? ` ورقمه هو ${best.phone}.` : ""}`
     };
   }
 
   if (best.is_non_phone) {
     return {
-      answerEn: `I found ${best.name_ar}, but it does not have a direct phone number in the app right now. ${categoryGuideEn}`,
-      answerAr: `وجدت ${best.name_ar}، لكنه لا يملك رقم هاتف مباشر داخل التطبيق حاليًا. ${categoryGuideAr}`
+      answerEn: `I found ${bestNameEn}, but it does not have a direct phone number in the app right now. ${categoryGuideEn}`,
+      answerAr: `وجدت ${bestNameAr}، لكنه لا يملك رقم هاتف مباشر داخل التطبيق حاليًا. ${categoryGuideAr}`
     };
   }
 
   if (asksIfExists && !asksForNumber) {
     return {
-      answerEn: `Yes, ${best.name_ar} is available in the app and its number is ${best.phone}. ${categoryGuideEn}`,
-      answerAr: `نعم، ${best.name_ar} موجود داخل التطبيق ورقمه هو ${best.phone}. ${categoryGuideAr}`
+      answerEn: `Yes, ${bestNameEn} is available in the app and its number is ${best.phone}. ${categoryGuideEn}`,
+      answerAr: `نعم، ${bestNameAr} موجود داخل التطبيق ورقمه هو ${best.phone}. ${categoryGuideAr}`
     };
   }
 
   return {
-    answerEn: `The number for ${best.name_ar} is ${best.phone}. ${categoryGuideEn}`,
-    answerAr: `رقم ${best.name_ar} هو ${best.phone}. ${categoryGuideAr}`
+    answerEn: `The number for ${bestNameEn} is ${best.phone}. ${categoryGuideEn}`,
+    answerAr: `رقم ${bestNameAr} هو ${best.phone}. ${categoryGuideAr}`
   };
 }
 
@@ -1339,22 +1702,37 @@ function sortCategoriesForGroup(a, b, groupKey) {
   const aOrder = orderMap[a.slug] || 999;
   const bOrder = orderMap[b.slug] || 999;
   if (aOrder !== bOrder) return aOrder - bOrder;
-  return String(a.name || "").localeCompare(String(b.name || ""), "ar");
+  return String(a.slug || "").localeCompare(String(b.slug || ""), "en");
 }
 
 export default function App() {
   const { width: screenWidth, height: screenHeight } = useWindowDimensions();
+  const REFERENCE_PHONE_WIDTH = 428;
+  const REFERENCE_PHONE_HEIGHT = 926;
+  const REFERENCE_TABLET_WIDTH = 900;
+  const REFERENCE_TABLET_HEIGHT = 1180;
   const isTablet = screenWidth >= 768;
   const isLargeTablet = screenWidth >= 1024;
   const isAndroid = Platform.OS === "android";
   const isAndroidTablet = isAndroid && isTablet;
-  const widthScale = Math.min(Math.max(screenWidth / (isTablet ? 900 : 390), 0.88), isTablet ? 1.08 : 1.12);
-  const heightScale = Math.min(Math.max(screenHeight / (isTablet ? 1180 : 844), 0.9), 1.08);
-  const uiScale = Math.min(widthScale, heightScale);
+  const phoneWidthRatio = screenWidth / REFERENCE_PHONE_WIDTH;
+  const phoneHeightRatio = screenHeight / REFERENCE_PHONE_HEIGHT;
+  const isSmallPhone = !isTablet && (screenWidth <= 375 || screenHeight <= 780);
+  const widthScale = isTablet
+    ? Math.min(Math.max(screenWidth / REFERENCE_TABLET_WIDTH, 0.88), 1.08)
+    : Math.min(Math.max(phoneWidthRatio, 0.84), 1.02);
+  const heightScale = isTablet
+    ? Math.min(Math.max(screenHeight / REFERENCE_TABLET_HEIGHT, 0.9), 1.08)
+    : Math.min(Math.max(phoneHeightRatio, 0.84), 1.02);
+  const uiScale = isTablet
+    ? Math.min(widthScale, heightScale)
+    : Math.min(Math.max(phoneWidthRatio * 0.55 + phoneHeightRatio * 0.45, 0.86), 1.02);
   const physicalScreenHeight = Dimensions.get("screen").height;
   const androidSystemInset = isAndroid ? Math.max(physicalScreenHeight - screenHeight, 0) : 0;
   const androidBottomSafeOffset = isAndroid
-    ? Math.max(androidSystemInset, Math.round((isTablet ? 28 : 22) * heightScale))
+    ? isSmallPhone
+      ? 0
+      : Math.max(androidSystemInset, Math.round((isTablet ? 28 : 22) * heightScale))
     : 0;
   const contentHorizontalInset = Math.round((isLargeTablet ? 32 : isTablet ? 22 : 14) * widthScale);
   const swipeThreshold = screenWidth * 0.25;
@@ -1370,11 +1748,11 @@ export default function App() {
       : screenWidth;
   const categoryColumns = isTablet ? 2 : 2;
   const categoryRowCount = Math.ceil(GROUPS.length / categoryColumns);
-  const heroIconSize = Math.round((isLargeTablet ? 46 : 38) * uiScale);
+  const heroIconSize = Math.round((isLargeTablet ? 46 : isSmallPhone ? 30 : 38) * uiScale);
   const heroInfoIconSize = Math.round((isLargeTablet ? 22 : 20) * uiScale);
   const categoryIconSize = Math.round((isLargeTablet ? 40 : isAndroidTablet ? 42 : isTablet ? 38 : 50) * uiScale);
   const bottomSideIconSize = Math.round((isLargeTablet ? 28 : isAndroidTablet ? 24 : isTablet ? 26 : 32) * uiScale);
-  const bottomCenterIconSize = Math.round((isLargeTablet ? 24 : isAndroidTablet ? 24 : isTablet ? 20 : 24) * uiScale);
+  const bottomCenterIconSize = Math.round((isLargeTablet ? 24 : isAndroidTablet ? 24 : isTablet ? 20 : isSmallPhone ? 26 : 24) * uiScale);
   const tabletGridGap = Math.round((isLargeTablet ? 22 : isAndroidTablet ? 20 : 18) * heightScale);
   const tabletGridAvailableHeight = Math.max(
     screenHeight -
@@ -1411,7 +1789,8 @@ export default function App() {
   const [pendingScrollContactId, setPendingScrollContactId] = useState(null);
   const [addModalVisible, setAddModalVisible] = useState(false);
   const [contactModalVisible, setContactModalVisible] = useState(false);
-  const [assistantLanguage, setAssistantLanguage] = useState("ar");
+  const [appLanguage, setAppLanguage] = useState(() => detectDeviceLanguage());
+  const [assistantLanguage, setAssistantLanguage] = useState(() => detectDeviceLanguage());
   const [selectedContactTopic, setSelectedContactTopic] = useState("");
   const [quickQuestionsExpanded, setQuickQuestionsExpanded] = useState(false);
   const [contactAssistantHistory, setContactAssistantHistory] = useState([]);
@@ -1445,6 +1824,15 @@ export default function App() {
   const [introLoaded, setIntroLoaded] = useState(true);
   const [suggestHintReady, setSuggestHintReady] = useState(false);
   const [showSuggestHint, setShowSuggestHint] = useState(false);
+  const isArabicUi = appLanguage === "ar";
+  const t = useCallback(
+    (key) => UI_TEXT[key]?.[appLanguage] ?? UI_TEXT[key]?.ar ?? key,
+    [appLanguage]
+  );
+  const tAssistant = useCallback(
+    (key) => UI_TEXT[key]?.[assistantLanguage] ?? UI_TEXT[key]?.ar ?? key,
+    [assistantLanguage]
+  );
   const canNavigateBack =
     showIntro ||
     showSuggestHint ||
@@ -1612,7 +2000,7 @@ export default function App() {
   const loadContacts = useCallback(async ({ seedFromCache = false, silent = false } = {}) => {
     let seededFromLocal = false;
 
-    if (seedFromCache) {
+      if (seedFromCache) {
       try {
         const cacheInfo = await FileSystem.getInfoAsync(CONTACTS_CACHE_PATH);
         if (cacheInfo.exists) {
@@ -1630,7 +2018,7 @@ export default function App() {
 
       if (!seededFromLocal) {
         setAllContacts(sortContacts(FALLBACK_CONTACTS));
-        setError("يتم عرض نسخة محلية من البيانات حالياً.");
+        setError(t("loadingCachedData"));
       }
     }
 
@@ -1655,18 +2043,18 @@ export default function App() {
         lastContactsRefreshRef.current = Date.now();
         await FileSystem.writeAsStringAsync(CONTACTS_CACHE_PATH, JSON.stringify(sorted));
       } else if (!seededFromLocal) {
-        setError("يتم عرض آخر نسخة محفوظة من البيانات حالياً.");
+        setError(t("loadingSavedData"));
       }
     } catch {
       if (!seededFromLocal) {
-        setError(`تعذر تحميل البيانات من ${API_BASE_URL} - يتم عرض آخر نسخة محفوظة.`);
+        setError(`${t("loadingFailedSaved")} (${API_BASE_URL})`);
       }
     } finally {
       clearTimeout(timeoutId);
       hasLoadedContactsRef.current = true;
       setLoading(false);
     }
-  }, []);
+  }, [t]);
 
   useEffect(() => {
     loadContacts({ seedFromCache: true });
@@ -1729,6 +2117,10 @@ export default function App() {
   }, [contactModalVisible]);
 
   useEffect(() => {
+    setAssistantLanguage(appLanguage);
+  }, [appLanguage]);
+
+  useEffect(() => {
     return () => {
       assistantReplyTimersRef.current.forEach(clearTimeout);
       assistantReplyTimersRef.current = [];
@@ -1738,7 +2130,7 @@ export default function App() {
   const nameTerms = useMemo(() => {
     const s = new Set();
     allContacts.forEach((c) => {
-      if (c.name_ar) s.add(c.name_ar);
+      getContactSearchTexts(c).forEach((text) => s.add(text));
     });
     return [...s];
   }, [allContacts]);
@@ -1748,7 +2140,7 @@ export default function App() {
     const raw = query.trim();
     if ((!q || q.length < 2) && raw.length < 2) return [];
 
-    const byName = allContacts.filter((c) => q && normalizeText(c.name_ar).includes(q));
+    const byName = allContacts.filter((c) => q && contactMatchesQuery(c, q, raw));
     const byPhone = allContacts.filter((c) => raw && String(c.phone || "").includes(raw));
     const merged = [...byName, ...byPhone].filter(
       (item, index, arr) => arr.findIndex((entry) => entry.id === item.id) === index
@@ -1780,11 +2172,7 @@ export default function App() {
       if (!passGroup) return false;
       if (!passCategory) return false;
       if (!q) return true;
-      return (
-        normalizeText(c.name_ar).includes(q) ||
-        normalizeText(c.category_name_ar).includes(q) ||
-        String(c.phone || "").includes(query.trim())
-      );
+      return contactMatchesQuery(c, q, query.trim());
     });
   }, [allContacts, query, activeGroup, activeCategorySlug]);
 
@@ -1793,11 +2181,7 @@ export default function App() {
     return allContacts.filter((c) => {
       if (c.category_slug !== slug) return false;
       if (!q) return true;
-      return (
-        normalizeText(c.name_ar).includes(q) ||
-        normalizeText(c.category_name_ar).includes(q) ||
-        String(c.phone || "").includes(query.trim())
-      );
+      return contactMatchesQuery(c, q, query.trim());
     });
   };
 
@@ -1807,8 +2191,18 @@ export default function App() {
       if (!map.has(c.category_slug)) {
         map.set(c.category_slug, {
           slug: c.category_slug,
-          name: c.category_name_ar,
+          name: getCategoryDisplayName(c.category_slug, c.category_name_ar, appLanguage),
           group: resolveGroupForCategory(c)
+        });
+      }
+    });
+    VIRTUAL_CATEGORY_DEFINITIONS.forEach((category) => {
+      if (!map.has(category.slug)) {
+        map.set(category.slug, {
+          slug: category.slug,
+          name: getCategoryDisplayName(category.slug, "", appLanguage),
+          group: category.group,
+          isVirtual: true
         });
       }
     });
@@ -1816,7 +2210,7 @@ export default function App() {
     const selectedGroup = detailGroup || activeGroup;
     if (selectedGroup === "all") return arr;
     return arr.filter((c) => c.group === selectedGroup);
-  }, [allContacts, activeGroup, detailGroup]);
+  }, [allContacts, activeGroup, detailGroup, appLanguage]);
 
   const groupedCategories = useMemo(() => {
     const grouped = GROUPS.map((group) => ({ ...group, items: [] }));
@@ -1873,13 +2267,17 @@ export default function App() {
 
       allCategoryList.forEach((category) => {
         const normalizedCategory = normalizeText(category.name);
+        const normalizedCategoryAlt = normalizeText(getCategoryDisplayName(category.slug, category.name, appLanguage === "ar" ? "en" : "ar"));
         let score = 0;
         if (normalizedCategory === query) score += 10;
         if (normalizedCategory.includes(query)) score += 8;
         if (query.includes(normalizedCategory)) score += 5;
+        if (normalizedCategoryAlt === query) score += 10;
+        if (normalizedCategoryAlt.includes(query)) score += 8;
+        if (query.includes(normalizedCategoryAlt)) score += 5;
 
         query.split(" ").filter(Boolean).forEach((word) => {
-          if (normalizedCategory.includes(word)) score += 1.2;
+          if (normalizedCategory.includes(word) || normalizedCategoryAlt.includes(word)) score += 1.2;
         });
 
         if (score > bestScore) {
@@ -1890,8 +2288,8 @@ export default function App() {
 
       if (!bestCategory || bestScore < 2.6) return null;
 
-      const parentGroupTitle = GROUP_BY_KEY[bestCategory.group]?.title || "Services";
-      const parentGroupTitleAr = GROUP_AR[bestCategory.group] || "خدمات متنوعة";
+      const parentGroupTitle = getGroupTitle(bestCategory.group, "en") || "Services";
+      const parentGroupTitleAr = getGroupTitle(bestCategory.group, "ar") || "خدمات";
 
       return {
         answerEn: `${bestCategory.name} is available under ${parentGroupTitle} in the app.`,
@@ -1983,14 +2381,36 @@ export default function App() {
     if (canOpen) await Linking.openURL(url);
   };
 
+  const openEmailAddress = async (value) => {
+    const email = String(value || "").trim();
+    if (!email) return;
+    const url = `mailto:${email}`;
+    const canOpen = await Linking.canOpenURL(url);
+    if (canOpen) await Linking.openURL(url);
+  };
+
+  const extractEmailFromNotes = (value) => {
+    const text = String(value || "").trim();
+    if (!text) return "";
+    const match = text.match(/[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}/i);
+    return match ? match[0] : "";
+  };
+
+  const showUiAlert = useCallback(
+    (title, message, compactMessage = message) => {
+      Alert.alert(title, isSmallPhone ? compactMessage : message);
+    },
+    [isSmallPhone]
+  );
+
   const handleIntroContinue = async () => {
     setShowIntro(false);
   };
 
   const renderContactBadges = (item, compact = false) => {
     const badges = [];
-    if (item?.is_featured) badges.push({ key: "featured", label: "Featured", style: styles.featuredBadge, text: styles.featuredBadgeText });
-    if (item?.is_verified) badges.push({ key: "verified", label: "Verified", style: styles.verifiedBadge, text: styles.verifiedBadgeText });
+    if (item?.is_featured) badges.push({ key: "featured", label: t("featuredBadgeSmall"), style: styles.featuredBadge, text: styles.featuredBadgeText });
+    if (item?.is_verified) badges.push({ key: "verified", label: t("verifiedBadgeSmall"), style: styles.verifiedBadge, text: styles.verifiedBadgeText });
     if (!badges.length) return null;
     return (
       <View style={[styles.contactBadgeRow, compact && styles.contactBadgeRowCompact]}>
@@ -2003,14 +2423,44 @@ export default function App() {
     );
   };
 
-  const dismissSuggestHint = async () => {
+  const renderContactMeta = (item, compact = false) => {
+    const address = String(item?.address || "").trim();
+    const notes = String(item?.notes || "").trim();
+    const email = extractEmailFromNotes(notes);
+    const plainNotes = email ? notes.replace(email, "").replace(/\s*[-–—:|]\s*$/, "").trim() : notes;
+    if (!address && !notes) return null;
+    return (
+      <View style={[styles.contactMetaWrap, compact && styles.contactMetaWrapCompact]}>
+        {address ? (
+          <View style={styles.contactMetaRow}>
+            <Text style={styles.contactMetaLabel}>{t("addressLabel")}:</Text>
+            <Text style={styles.contactMetaValue}>{address}</Text>
+          </View>
+        ) : null}
+        {email ? (
+          <View style={styles.contactMetaRow}>
+            <Text style={styles.contactMetaLabel}>{t("emailLabel")}:</Text>
+            <TouchableOpacity onPress={() => openEmailAddress(email)} activeOpacity={0.8}>
+              <Text style={[styles.contactMetaValue, styles.contactMetaLink]}>{email}</Text>
+            </TouchableOpacity>
+          </View>
+        ) : null}
+        {plainNotes ? (
+          <View style={styles.contactMetaRow}>
+            <Text style={styles.contactMetaLabel}>{t("detailsLabel")}:</Text>
+            <Text style={styles.contactMetaValue}>{plainNotes}</Text>
+          </View>
+        ) : null}
+      </View>
+    );
+  };
+
+  const dismissSuggestHint = () => {
     setShowSuggestHint(false);
     setSuggestHintReady(false);
-    try {
-      await FileSystem.writeAsStringAsync(SUGGEST_HINT_PATH, "seen");
-    } catch {
+    FileSystem.writeAsStringAsync(SUGGEST_HINT_PATH, "seen").catch(() => {
       // Ignore persistence failure; UI already dismissed.
-    }
+    });
   };
 
   const scrollToResults = () => {
@@ -2073,10 +2523,10 @@ export default function App() {
               numberOfLines={2}
               style={[styles.categoryText, categoryTextResponsive, selected && styles.categoryTextActive]}
             >
-              {item.title}
+              {getGroupTitle(item.key, appLanguage)}
             </Text>
             <Text numberOfLines={2} style={[styles.categoryTextSub, categoryTextSubResponsive]}>
-              {GROUP_AR[item.key]}
+              {getGroupSubtitle(item.key, appLanguage)}
             </Text>
           </View>
         </Pressable>
@@ -2085,15 +2535,15 @@ export default function App() {
   };
 
   const handlePredictionPress = (value) => {
-    const pickedValue = typeof value === "string" ? value : value?.name_ar || "";
+    const pickedValue = typeof value === "string" ? value : getContactDisplayName(value, appLanguage) || value?.name_ar || "";
     setQuery(pickedValue);
     const q = normalizeText(pickedValue);
     const rawPhone = typeof value === "object" ? String(value.phone || "").trim() : "";
     const match =
       (typeof value === "object" && value?.id ? allContacts.find((c) => c.id === value.id) : null) ||
-      allContacts.find((c) => normalizeText(c.name_ar) === q) ||
+      allContacts.find((c) => getContactSearchTexts(c).some((text) => normalizeText(text) === q)) ||
       allContacts.find((c) => rawPhone && String(c.phone || "").trim() === rawPhone) ||
-      allContacts.find((c) => normalizeText(c.name_ar).includes(q));
+      allContacts.find((c) => getContactSearchTexts(c).some((text) => normalizeText(text).includes(q)));
 
     if (match) {
       const matchedSlug = typeof match.category_slug === "string" ? match.category_slug : "";
@@ -2174,11 +2624,11 @@ export default function App() {
       });
       const data = await res.json().catch(() => ({}));
       if (!res.ok) {
-        throw new Error(data.error || "Failed to send");
+        throw new Error(data.error || t("failedToSendRequest"));
       }
     } catch (err) {
       if (err?.name === "AbortError" || /Network request failed/i.test(String(err?.message || ""))) {
-        throw new Error("Server is taking too long to respond. If you are using Render free tier, wait a few seconds and try again.");
+        throw new Error(t("serverSlow"));
       }
       throw err;
     } finally {
@@ -2190,7 +2640,7 @@ export default function App() {
     const name = newHotlineName.trim();
     const phone = newHotlinePhone.trim();
     if (!name || !phone) {
-      Alert.alert("Missing Data", "Please enter both name and hotline number.");
+      showUiAlert(t("missingDataTitle"), t("missingNameAndNumber"), t("missingNameAndNumberCompact"));
       return;
     }
     try {
@@ -2202,9 +2652,9 @@ export default function App() {
       setAddModalVisible(false);
       setNewHotlineName("");
       setNewHotlinePhone("");
-      Alert.alert("Done", "Your request was sent successfully.");
+      showUiAlert(t("doneTitle"), t("requestSent"), t("requestSentCompact"));
     } catch (err) {
-      Alert.alert("Error", err.message || "Failed to send request.");
+      showUiAlert(t("errorTitle"), err.message || t("failedToSendRequest"), t("failedToSendRequest"));
     }
   };
 
@@ -2247,7 +2697,7 @@ export default function App() {
   const handleContactSubmit = async () => {
     const msg = contactMessage.trim();
     if (!msg) {
-      Alert.alert("Missing Message", "Please write your suggestion first.");
+      showUiAlert(tAssistant("missingMessageTitle"), tAssistant("writeSuggestionFirst"), tAssistant("writeSuggestionFirstCompact"));
       return;
     }
 
@@ -2269,8 +2719,8 @@ export default function App() {
         answerEn: contactLeadReply.answerEn,
         answerAr: contactLeadReply.answerAr,
         action: "focus-message",
-        actionLabelEn: "Write your request",
-        actionLabelAr: "اكتب طلبك"
+        actionLabelEn: UI_TEXT.writeYourRequest.en,
+        actionLabelAr: UI_TEXT.writeYourRequest.ar
       });
       setContactMessage("");
       return;
@@ -2322,8 +2772,8 @@ export default function App() {
       answerAr:
         "لمزيد من الاستفسارات والمعلومات، يمكنك إرسال طلبك مباشرة إلى فريقنا.",
       action: "send-support",
-      actionLabelEn: "Send request",
-      actionLabelAr: "إرسال الطلب"
+      actionLabelEn: UI_TEXT.sendRequest.en,
+      actionLabelAr: UI_TEXT.sendRequest.ar
     });
     setContactMessage("");
   };
@@ -2331,7 +2781,7 @@ export default function App() {
   const handleDirectContactSubmit = async () => {
     const msg = contactMessage.trim();
     if (!msg) {
-      Alert.alert("Missing Message", "Please write your message first.");
+      showUiAlert(tAssistant("missingMessageTitle"), tAssistant("writeMessageFirst"), tAssistant("writeMessageFirstCompact"));
       return;
     }
 
@@ -2342,24 +2792,22 @@ export default function App() {
       });
       appendAssistantEntry({
         userText: msg,
-        answerEn: "Your message was sent directly to our team successfully.",
-        answerAr: "تم إرسال رسالتك مباشرة إلى فريقنا بنجاح.",
+        answerEn: UI_TEXT.messageSentDirectly.en,
+        answerAr: UI_TEXT.messageSentDirectly.ar,
         action: "focus-message",
-        actionLabelEn: "Write another message",
-        actionLabelAr: "اكتب رسالة أخرى"
+        actionLabelEn: UI_TEXT.writeAnotherMessage.en,
+        actionLabelAr: UI_TEXT.writeAnotherMessage.ar
       });
       setPendingSupportMessage("");
       setContactMessage("");
     } catch {
       appendAssistantEntry({
         userText: msg,
-        answerEn:
-          "The support server is taking longer than usual right now. Because we use a free backend, please wait a few seconds and try sending again.",
-        answerAr:
-          "خادم الدعم يتأخر الآن أكثر من المعتاد. لأننا نستخدم خادمًا مجانيًا، انتظر بضع ثوانٍ ثم حاول الإرسال مرة أخرى.",
+        answerEn: UI_TEXT.supportServerSlow.en,
+        answerAr: UI_TEXT.supportServerSlow.ar,
         action: "send-support",
-        actionLabelEn: "Try again",
-        actionLabelAr: "حاول مرة أخرى"
+        actionLabelEn: UI_TEXT.tryAgain.en,
+        actionLabelAr: UI_TEXT.tryAgain.ar
       });
       setPendingSupportMessage(msg);
       setContactMessage("");
@@ -2386,24 +2834,22 @@ export default function App() {
         .then(() => {
           appendAssistantEntry({
             userText: assistantLanguage === "ar" ? "إرسال الطلب" : "Send request",
-            answerEn: "Thanks, your message was sent to our team successfully.",
-            answerAr: "شكرًا، تم إرسال رسالتك إلى فريقنا بنجاح.",
+            answerEn: UI_TEXT.thanksMessageSent.en,
+            answerAr: UI_TEXT.thanksMessageSent.ar,
             action: "focus-message",
-            actionLabelEn: "Write another message",
-            actionLabelAr: "اكتب رسالة أخرى"
+            actionLabelEn: UI_TEXT.writeAnotherMessage.en,
+            actionLabelAr: UI_TEXT.writeAnotherMessage.ar
           });
           setPendingSupportMessage("");
         })
         .catch(() => {
           appendAssistantEntry({
             userText: assistantLanguage === "ar" ? "إرسال الطلب" : "Send request",
-            answerEn:
-              "The support server is taking longer than usual right now. Since we are using a free backend, please wait a few seconds and try again.",
-            answerAr:
-              "خادم الدعم يتأخر الآن أكثر من المعتاد. لأننا نستخدم خادمًا مجانيًا، انتظر بضع ثوانٍ ثم حاول مرة أخرى.",
+            answerEn: UI_TEXT.supportServerSlowRetry.en,
+            answerAr: UI_TEXT.supportServerSlowRetry.ar,
             action: "send-support",
-            actionLabelEn: "Try again",
-            actionLabelAr: "حاول مرة أخرى"
+            actionLabelEn: UI_TEXT.tryAgain.en,
+            actionLabelAr: UI_TEXT.tryAgain.ar
           });
         });
       return;
@@ -2455,12 +2901,20 @@ export default function App() {
     const phoneDigits = phone.replace(/[^\d+]/g, "");
 
     if (!requesterName || !shopName || !phone) {
-      Alert.alert("Missing Data", "Please enter your name, business name, and phone or WhatsApp number.");
+      showUiAlert(
+        t("missingDataTitle"),
+        t("enterBusinessBasics"),
+        t("enterBusinessBasicsCompact")
+      );
       return;
     }
 
     if (phoneDigits.length < 7) {
-      Alert.alert("Invalid Contact", "Please enter a valid phone or WhatsApp number so we can contact you.");
+      showUiAlert(
+        t("invalidContactTitle"),
+        t("validPhoneRequired"),
+        t("validPhoneRequiredCompact")
+      );
       return;
     }
 
@@ -2478,9 +2932,9 @@ export default function App() {
       setBusinessName("");
       setBusinessPhone("");
       setBusinessNote("");
-      Alert.alert("Done", "Your business request was sent successfully.");
+      showUiAlert(t("doneTitle"), t("businessRequestSent"), t("businessRequestSentCompact"));
     } catch (err) {
-      Alert.alert("Error", err.message || "Failed to send business request.");
+      showUiAlert(t("errorTitle"), err.message || t("failedToSendBusinessRequest"), t("failedToSendBusinessRequest"));
     }
   };
 
@@ -2523,17 +2977,17 @@ export default function App() {
   };
 
   const welcomeTitleResponsive = {
-    fontSize: Math.round((isLargeTablet ? 28 : isTablet ? 24 : isAndroid ? 34 : 38) * uiScale)
+    fontSize: Math.round((isLargeTablet ? 28 : isTablet ? 24 : isSmallPhone ? 19.5 : isAndroid ? 34 : 38) * uiScale)
   };
 
   const welcomeSubResponsive = {
-    fontSize: Math.round((isLargeTablet ? 18 : isTablet ? 16 : isAndroid ? 22 : 24) * uiScale)
+    fontSize: Math.round((isLargeTablet ? 18 : isTablet ? 16 : isSmallPhone ? 14 : isAndroid ? 22 : 24) * uiScale)
   };
 
   const searchBarResponsive = {
-    minHeight: Math.round((isLargeTablet ? 62 : isTablet ? 56 : isAndroid ? 58 : 64) * heightScale),
+    minHeight: Math.round((isLargeTablet ? 62 : isTablet ? 56 : isSmallPhone ? 46 : isAndroid ? 58 : 64) * heightScale),
     borderRadius: Math.round((isLargeTablet ? 24 : isTablet ? 22 : 26) * uiScale),
-    paddingHorizontal: Math.round((isLargeTablet ? 18 : 16) * widthScale)
+    paddingHorizontal: Math.round((isLargeTablet ? 18 : isSmallPhone ? 14 : 16) * widthScale)
   };
 
   const searchShellAnimatedStyle = {
@@ -2556,7 +3010,7 @@ export default function App() {
   };
 
   const searchInputResponsive = {
-    fontSize: Math.round((isLargeTablet ? 17 : isTablet ? 15 : 17) * uiScale)
+    fontSize: Math.round((isLargeTablet ? 17 : isTablet ? 15 : isSmallPhone ? 13.5 : 17) * uiScale)
   };
 
   const searchIconBadgeResponsive = {
@@ -2603,9 +3057,9 @@ export default function App() {
 
   const contentResponsive = {
     alignItems: "center",
-    paddingTop: Math.round((isLargeTablet ? 22 : isTablet ? 18 : 14) * heightScale),
+    paddingTop: Math.round((isLargeTablet ? 22 : isTablet ? 18 : isSmallPhone ? 6 : 14) * heightScale),
     paddingBottom:
-      Math.round((isLargeTablet ? 116 : isTablet ? 108 : isAndroid ? 96 : 116) * heightScale) +
+      Math.round((isLargeTablet ? 116 : isTablet ? 108 : isSmallPhone ? 82 : isAndroid ? 96 : 116) * heightScale) +
       androidBottomSafeOffset +
       (isTablet ? 14 : 8)
   };
@@ -2651,9 +3105,9 @@ export default function App() {
           width: screenWidth,
           alignSelf: "stretch",
           bottom: 0,
-          height: Math.round(108 * heightScale) + androidBottomSafeOffset,
-          paddingBottom: Math.round(14 * heightScale) + androidBottomSafeOffset,
-          paddingTop: Math.round(10 * heightScale),
+          height: Math.round((isSmallPhone ? 90 : 108) * heightScale) + androidSystemInset,
+          paddingBottom: Math.round((isSmallPhone ? 6 : 14) * heightScale) + androidSystemInset,
+          paddingTop: Math.round((isSmallPhone ? 4 : 10) * heightScale),
           borderRadius: 0,
           borderTopLeftRadius: Math.round(22 * uiScale),
           borderTopRightRadius: Math.round(22 * uiScale),
@@ -2666,6 +3120,9 @@ export default function App() {
 
   const bottomBarSurfaceResponsive = isAndroid
     ? {
+        borderRadius: 0,
+        borderTopLeftRadius: Math.round(22 * uiScale),
+        borderTopRightRadius: Math.round(22 * uiScale),
         shadowOpacity: 0,
         shadowRadius: 0,
         shadowOffset: { width: 0, height: 0 },
@@ -2674,9 +3131,9 @@ export default function App() {
     : {};
 
   const bottomSideVisualSlotResponsive = {
-    width: Math.round((isLargeTablet ? 66 : isAndroidTablet ? 58 : isTablet ? 60 : 72) * widthScale),
-    height: Math.round((isLargeTablet ? 56 : isAndroidTablet ? 48 : isTablet ? 52 : 64) * heightScale),
-    marginBottom: Math.round((isLargeTablet ? 4 : isAndroidTablet ? 2 : isTablet ? 4 : isAndroid ? 1 : 8) * heightScale)
+    width: Math.round((isLargeTablet ? 66 : isAndroidTablet ? 58 : isTablet ? 60 : isSmallPhone ? 50 : 72) * widthScale),
+    height: Math.round((isLargeTablet ? 56 : isAndroidTablet ? 48 : isTablet ? 52 : isSmallPhone ? 40 : 64) * heightScale),
+    marginBottom: Math.round((isLargeTablet ? 4 : isAndroidTablet ? 2 : isTablet ? 4 : isSmallPhone ? -4 : isAndroid ? 1 : 8) * heightScale)
   };
 
   const businessPlanVisualSlotResponsive = {
@@ -2684,15 +3141,15 @@ export default function App() {
   };
 
   const bottomTextResponsive = {
-    fontSize: Math.round((isLargeTablet ? 12.5 : isAndroidTablet ? 11 : isTablet ? 11.5 : 12.5) * uiScale),
-    marginTop: Math.round((isLargeTablet ? 1 : isAndroidTablet ? 0 : isTablet ? 1 : isAndroid ? -2 : -2) * heightScale),
+    fontSize: Math.round((isLargeTablet ? 12.5 : isAndroidTablet ? 11 : isTablet ? 11.5 : isSmallPhone ? 8.6 : 12.5) * uiScale),
+    marginTop: Math.round((isLargeTablet ? 1 : isAndroidTablet ? 0 : isTablet ? 1 : isSmallPhone ? 1 : isAndroid ? -2 : -2) * heightScale),
     textAlign: "center",
-    paddingHorizontal: Math.round((isTablet ? 6 : 4) * widthScale),
-    lineHeight: Math.round((isLargeTablet ? 14 : isAndroidTablet ? 12 : isTablet ? 13 : 14) * uiScale)
+    paddingHorizontal: Math.round((isTablet ? 6 : isSmallPhone ? 1 : 4) * widthScale),
+    lineHeight: Math.round((isLargeTablet ? 14 : isAndroidTablet ? 12 : isTablet ? 13 : isSmallPhone ? 9.2 : 14) * uiScale)
   };
 
   const bottomSideTextResponsive = {
-    marginTop: Math.round((isAndroidTablet ? -2 : isTablet ? -1 : isAndroid ? -4 : -6) * heightScale)
+    marginTop: Math.round((isAndroidTablet ? -2 : isTablet ? -1 : isSmallPhone ? 1 : isAndroid ? -4 : -6) * heightScale)
   };
 
   const bottomSubTextResponsive = {
@@ -2706,10 +3163,10 @@ export default function App() {
   };
 
   const bottomCenterBadgeResponsive = {
-    width: Math.round((isLargeTablet ? 58 : isAndroidTablet ? 56 : isTablet ? 52 : isAndroid ? 66 : 64) * uiScale),
-    height: Math.round((isLargeTablet ? 58 : isAndroidTablet ? 56 : isTablet ? 52 : isAndroid ? 66 : 64) * uiScale),
-    borderRadius: Math.round((isLargeTablet ? 29 : isAndroidTablet ? 28 : isTablet ? 26 : isAndroid ? 33 : 32) * uiScale),
-    marginTop: Math.round((isLargeTablet ? -2 : isAndroidTablet ? -2 : isTablet ? 0 : isAndroid ? -4 : -4) * heightScale)
+    width: Math.round((isLargeTablet ? 58 : isAndroidTablet ? 56 : isTablet ? 52 : isSmallPhone ? 48 : isAndroid ? 66 : 64) * uiScale),
+    height: Math.round((isLargeTablet ? 58 : isAndroidTablet ? 56 : isTablet ? 52 : isSmallPhone ? 48 : isAndroid ? 66 : 64) * uiScale),
+    borderRadius: Math.round((isLargeTablet ? 29 : isAndroidTablet ? 28 : isTablet ? 26 : isSmallPhone ? 24 : isAndroid ? 33 : 32) * uiScale),
+    marginTop: Math.round((isLargeTablet ? -2 : isAndroidTablet ? -2 : isTablet ? 0 : isSmallPhone ? -7 : isAndroid ? -4 : -4) * heightScale)
   };
 
   const bottomCenterBadgeShadowResponsive = {
@@ -2720,28 +3177,28 @@ export default function App() {
   };
 
   const bottomCenterTextResponsive = {
-    fontSize: Math.round((isLargeTablet ? 11.5 : isAndroidTablet ? 10 : isTablet ? 10.5 : 11.5) * uiScale),
-    marginTop: Math.round((isLargeTablet ? 0 : isAndroidTablet ? -1 : isTablet ? 2 : isAndroid ? -2 : 4) * heightScale),
+    fontSize: Math.round((isLargeTablet ? 11.5 : isAndroidTablet ? 10 : isTablet ? 10.5 : isSmallPhone ? 7.6 : 11.5) * uiScale),
+    marginTop: Math.round((isLargeTablet ? 0 : isAndroidTablet ? -1 : isTablet ? 2 : isSmallPhone ? -5 : isAndroid ? -2 : 4) * heightScale),
     textAlign: "center",
-    paddingHorizontal: Math.round(6 * widthScale),
-    lineHeight: Math.round((isLargeTablet ? 12 : isAndroidTablet ? 11 : isTablet ? 12 : 13) * uiScale)
+    paddingHorizontal: Math.round((isSmallPhone ? 0 : 6) * widthScale),
+    lineHeight: Math.round((isLargeTablet ? 12 : isAndroidTablet ? 11 : isTablet ? 12 : isSmallPhone ? 8 : 13) * uiScale)
   };
 
   const bottomCenterSubTextResponsive = {
-    fontSize: Math.round((isLargeTablet ? 8.5 : isAndroidTablet ? 8 : isTablet ? 8.5 : 8.5) * uiScale),
-    marginTop: Math.round((isLargeTablet ? -1 : isAndroidTablet ? -1 : isTablet ? 0 : isAndroid ? -2 : 0) * heightScale),
+    fontSize: Math.round((isLargeTablet ? 8.5 : isAndroidTablet ? 8 : isTablet ? 8.5 : isSmallPhone ? 7.2 : 8.5) * uiScale),
+    marginTop: Math.round((isLargeTablet ? -1 : isAndroidTablet ? -1 : isTablet ? 0 : isSmallPhone ? -3 : isAndroid ? -2 : 0) * heightScale),
     textAlign: "center",
     color: isTablet ? "#ffd7f3" : "#ffd0f0"
   };
 
   const bottomCenterFloatingResponsive = {
-    top: Math.round((isLargeTablet ? -10 : isAndroidTablet ? -8 : isAndroid ? -10 : -18) * heightScale),
+    top: Math.round((isLargeTablet ? -10 : isAndroidTablet ? -8 : isSmallPhone ? -14 : isAndroid ? -10 : -18) * heightScale),
     transform: [{ translateX: Math.round((isLargeTablet ? -42 : isAndroidTablet ? -40 : -44) * widthScale) }]
   };
 
   const categoryCardResponsive = {
-    height: isTablet ? tabletCardHeight : Math.round((isAndroid ? 146 : 156) * heightScale),
-    paddingVertical: Math.round((isLargeTablet ? 18 : isAndroidTablet ? 16 : isTablet ? 13 : 12) * heightScale),
+    height: isTablet ? tabletCardHeight : Math.round((isSmallPhone ? 146 : isAndroid ? 146 : 156) * heightScale),
+    paddingVertical: Math.round((isLargeTablet ? 18 : isAndroidTablet ? 16 : isTablet ? 13 : isSmallPhone ? 8 : 12) * heightScale),
     borderRadius: Math.round((isTablet ? 22 : 26) * uiScale),
     paddingHorizontal: Math.round((isLargeTablet ? 14 : isAndroidTablet ? 12 : isTablet ? 10 : 12) * widthScale),
     marginBottom: isTablet ? 0 : Math.round((isTablet ? 4 : 6) * heightScale)
@@ -2765,14 +3222,14 @@ export default function App() {
   };
 
   const categoryTextResponsive = {
-    fontSize: Math.round((isLargeTablet ? 18 : isTablet ? 14 : 15) * uiScale),
-    minHeight: Math.round((isLargeTablet ? 34 : isTablet ? 26 : 28) * heightScale)
+    fontSize: Math.round((isLargeTablet ? 18 : isTablet ? 14 : isSmallPhone ? 11.8 : 15) * uiScale),
+    minHeight: Math.round((isLargeTablet ? 34 : isTablet ? 26 : isSmallPhone ? 22 : 28) * heightScale)
   };
 
   const categoryTextSubResponsive = {
-    fontSize: Math.round((isLargeTablet ? 13 : isTablet ? 11 : 12) * uiScale),
-    lineHeight: Math.round((isLargeTablet ? 17 : isTablet ? 14 : 16) * uiScale),
-    minHeight: Math.round((isLargeTablet ? 26 : isTablet ? 18 : 22) * heightScale)
+    fontSize: Math.round((isLargeTablet ? 13 : isTablet ? 11 : isSmallPhone ? 8 : 12) * uiScale),
+    lineHeight: Math.round((isLargeTablet ? 17 : isTablet ? 14 : isSmallPhone ? 9.8 : 16) * uiScale),
+    minHeight: Math.round((isLargeTablet ? 26 : isTablet ? 18 : isSmallPhone ? 24 : 22) * heightScale)
   };
 
   const detailPageResponsive = {
@@ -2825,15 +3282,15 @@ export default function App() {
   };
 
   const hintOverlayResponsive = {
-    paddingBottom: Math.round((isTablet ? 96 : 138) * heightScale),
-    paddingHorizontal: Math.round((isTablet ? 20 : 24) * widthScale)
+    paddingBottom: Math.round((isTablet ? 96 : isSmallPhone ? 88 : 138) * heightScale),
+    paddingHorizontal: Math.round((isTablet ? 20 : isSmallPhone ? 12 : 24) * widthScale)
   };
 
   const hintCardResponsive = {
-    maxWidth: isTablet ? 330 : 340,
-    paddingHorizontal: Math.round((isTablet ? 16 : 18) * widthScale),
-    paddingTop: Math.round((isTablet ? 14 : 16) * heightScale),
-    paddingBottom: Math.round((isTablet ? 12 : 14) * heightScale)
+    maxWidth: isTablet ? 330 : isSmallPhone ? 252 : 340,
+    paddingHorizontal: Math.round((isTablet ? 16 : isSmallPhone ? 10 : 18) * widthScale),
+    paddingTop: Math.round((isTablet ? 14 : isSmallPhone ? 8 : 16) * heightScale),
+    paddingBottom: Math.round((isTablet ? 12 : isSmallPhone ? 8 : 14) * heightScale)
   };
 
   const bottomCenterVisualSlotResponsive = null;
@@ -2882,12 +3339,12 @@ export default function App() {
             <Ionicons name="phone-portrait" size={heroIconSize} color="#fff" />
           </Animated.View>
           <View style={styles.welcomeTextWrap}>
-            <Text style={[styles.welcomeTitle, welcomeTitleResponsive]}>Welcome to</Text>
-            <Text style={[styles.welcomeSub, welcomeSubResponsive]}>Hotline app</Text>
+            <Text numberOfLines={1} style={[styles.welcomeTitle, welcomeTitleResponsive]}>{t("welcomeTitle")}</Text>
+            <Text numberOfLines={1} style={[styles.welcomeSub, welcomeSubResponsive]}>{t("welcomeSub")}</Text>
           </View>
           {detailGroup ? (
             <Pressable style={styles.heroBackBtn} onPress={closeDetailView}>
-              <Text style={styles.heroBackText}>Back</Text>
+              <Text style={styles.heroBackText}>{t("back")}</Text>
             </Pressable>
           ) : (
             <Pressable style={styles.heroInfoBtn} onPress={() => setAboutModalVisible(true)}>
@@ -2907,7 +3364,7 @@ export default function App() {
             ref={searchInputRef}
             value={query}
             onChangeText={setQuery}
-            placeholder="Search hotline"
+            placeholder={t("searchPlaceholder")}
             placeholderTextColor="#8b8b8b"
             style={[styles.searchInput, searchInputResponsive]}
           />
@@ -2920,7 +3377,29 @@ export default function App() {
             <Text style={[styles.searchIcon, searchIconTextResponsive]}>🔎</Text>
           </TouchableOpacity>
           </View>
-          <Text style={styles.searchCaption}>Search by name or hotline number</Text>
+          <View style={styles.searchMetaRow}>
+            <Text style={styles.searchCaption}>{t("searchCaption")}</Text>
+            <View style={styles.appLanguageToggle}>
+              <TouchableOpacity
+                style={[styles.appLanguageBtn, appLanguage === "ar" && styles.appLanguageBtnActive]}
+                onPress={() => setAppLanguage("ar")}
+                activeOpacity={0.86}
+              >
+                <Text style={[styles.appLanguageBtnText, appLanguage === "ar" && styles.appLanguageBtnTextActive]}>
+                  {t("languageArabic")}
+                </Text>
+              </TouchableOpacity>
+              <TouchableOpacity
+                style={[styles.appLanguageBtn, appLanguage === "en" && styles.appLanguageBtnActive]}
+                onPress={() => setAppLanguage("en")}
+                activeOpacity={0.86}
+              >
+                <Text style={[styles.appLanguageBtnText, appLanguage === "en" && styles.appLanguageBtnTextActive]}>
+                  {t("languageEnglish")}
+                </Text>
+              </TouchableOpacity>
+            </View>
+          </View>
         </Animated.View>
       </Animated.View>
 
@@ -2952,14 +3431,16 @@ export default function App() {
             {predictions.map((p) => (
               <TouchableOpacity key={p.id} style={[styles.suggestItem, suggestItemResponsive]} onPress={() => handlePredictionPress(p)}>
                 <View style={styles.suggestMeta}>
-                  <Text style={[styles.suggestText, suggestTextResponsive]}>{p.name_ar}</Text>
+                  <Text style={[styles.suggestText, suggestTextResponsive]}>{getContactDisplayName(p, appLanguage)}</Text>
                   {renderContactBadges(p, true)}
-                  <Text style={[styles.suggestCategoryPreview, suggestCategoryPreviewResponsive]}>{p.category_name_ar}</Text>
+                  <Text style={[styles.suggestCategoryPreview, suggestCategoryPreviewResponsive]}>
+                    {getCategoryDisplayName(p.category_slug, p.category_name_ar, appLanguage)}
+                  </Text>
                   <View style={styles.suggestBottomRow}>
                     <TouchableOpacity style={[styles.suggestPhoneBadge, suggestPhoneBadgeResponsive]} onPress={() => callNumber(p)} disabled={!!p.is_non_phone}>
                       <Text style={[styles.suggestPhonePreview, suggestPhonePreviewResponsive]}>{p.phone || "--"}</Text>
                     </TouchableOpacity>
-                    <Text style={styles.suggestHint}>Tap to view</Text>
+                    <Text style={styles.suggestHint}>{t("tapToView")}</Text>
                   </View>
                 </View>
               </TouchableOpacity>
@@ -2970,17 +3451,20 @@ export default function App() {
 
         {!predictions.length && typoSuggestion ? (
           <TouchableOpacity style={[styles.typoBox, fullWidthCard]} onPress={() => handlePredictionPress(typoSuggestion)}>
-            <Text style={styles.typoText}>Did you mean: {typoSuggestion} ?</Text>
+            <Text style={styles.typoText}>{t("didYouMeanPrefix")} {typoSuggestion} ?</Text>
           </TouchableOpacity>
         ) : null}
 
         {quickResult ? (
           <View style={[styles.quickResultCard, fullWidthCard]}>
-            <Text style={styles.quickResultTitle}>{quickResult.name_ar}</Text>
+            <Text style={styles.quickResultTitle}>{getContactDisplayName(quickResult, appLanguage)}</Text>
             {renderContactBadges(quickResult)}
-            <Text style={styles.quickResultSub}>{quickResult.category_name_ar}</Text>
+            <Text style={styles.quickResultSub}>
+              {getCategoryDisplayName(quickResult.category_slug, quickResult.category_name_ar, appLanguage)}
+            </Text>
+            {renderContactMeta(quickResult, true)}
             {quickResult.is_non_phone ? (
-              <Text style={styles.nonPhone}>غير هاتفي / عبر التطبيق</Text>
+              <Text style={styles.nonPhone}>{t("nonPhone")}</Text>
             ) : (
               <View style={styles.quickActionRow}>
                 <TouchableOpacity style={[styles.callBtn, styles.quickActionBtn]} onPress={() => callNumber(quickResult)}>
@@ -3027,7 +3511,7 @@ export default function App() {
             <View style={styles.focusedHeader}>
               <Text style={styles.focusedIcon}>{focusedGroup.icon}</Text>
               <Text style={styles.focusedTitle} numberOfLines={1} ellipsizeMode="tail">
-                {focusedGroup.title} / {GROUP_AR[focusedGroup.key]}
+                {getGroupTitle(focusedGroup.key, appLanguage)} / {getGroupSubtitle(focusedGroup.key, appLanguage)}
               </Text>
             </View>
 
@@ -3039,7 +3523,7 @@ export default function App() {
                   return <ActivityIndicator size="large" color="#5d67e8" style={styles.loader} />;
                 }
                 if (!groupItems.length) {
-                  return <Text style={styles.error}>لا توجد بيانات متاحة لهذه الفئة حالياً.</Text>;
+                  return <Text style={styles.error}>{t("noCategoryData")}</Text>;
                 }
                 return groupItems.map((cat) => {
                   const opened = detailCategory === cat.slug;
@@ -3098,11 +3582,14 @@ export default function App() {
                                   ]}
                                 >
                                   <View style={styles.hotlineBody}>
-                                    <Text style={styles.hotlineName}>{item.name_ar}</Text>
+                                    <Text style={styles.hotlineName}>{getContactDisplayName(item, appLanguage)}</Text>
                                     {renderContactBadges(item)}
-                                    <Text style={styles.hotlineSub}>{item.category_name_ar}</Text>
+                                    <Text style={styles.hotlineSub}>
+                                      {getCategoryDisplayName(item.category_slug, item.category_name_ar, appLanguage)}
+                                    </Text>
+                                    {renderContactMeta(item)}
                                     {item.is_non_phone ? (
-                                      <Text style={styles.nonPhone}>غير هاتفي / عبر التطبيق</Text>
+                                      <Text style={styles.nonPhone}>{t("nonPhone")}</Text>
                                     ) : (
                                       <View style={styles.contactActionRow}>
                                         <Pressable
@@ -3141,8 +3628,8 @@ export default function App() {
               <View style={[styles.bottomVisualSlot, styles.bottomSideVisualSlot, bottomSideVisualSlotResponsive, businessPlanVisualSlotResponsive]}>
                 <Ionicons name="rocket-outline" size={bottomSideIconSize} color="#ffffff" />
               </View>
-              <Text style={[styles.bottomText, styles.bottomSideText, bottomTextResponsive, bottomSideTextResponsive]}>
-                Promote
+              <Text numberOfLines={1} style={[styles.bottomText, styles.bottomSideText, bottomTextResponsive, bottomSideTextResponsive]}>
+                {isArabicUi ? "ترويج" : "Promote"}
               </Text>
             </TouchableOpacity>
             <View style={styles.bottomCenterSpacer} />
@@ -3150,8 +3637,8 @@ export default function App() {
               <View style={[styles.bottomVisualSlot, styles.bottomSideVisualSlot, bottomSideVisualSlotResponsive]}>
                 <Ionicons name="add-circle-outline" size={bottomSideIconSize} color="#ffffff" />
               </View>
-              <Text style={[styles.bottomText, styles.bottomSideText, bottomTextResponsive, bottomSideTextResponsive]}>
-                Add Number
+              <Text numberOfLines={1} style={[styles.bottomText, styles.bottomSideText, bottomTextResponsive, bottomSideTextResponsive]}>
+                {isArabicUi ? "إضافة رقم" : "Add Number"}
               </Text>
             </TouchableOpacity>
           </LinearGradient>
@@ -3165,8 +3652,9 @@ export default function App() {
                 </View>
               </View>
             </View>
-            <Text style={[styles.bottomCenterText, bottomCenterTextResponsive]}>Contact us</Text>
-            <Text style={[styles.bottomCenterSubText, bottomCenterSubTextResponsive]}>AI assistant</Text>
+            <Text numberOfLines={1} style={[styles.bottomCenterText, bottomCenterTextResponsive]}>
+              {isArabicUi ? "تواصل معنا " : "Contact us "}<Text style={styles.bottomCenterAiText}>(AI)</Text>
+            </Text>
           </TouchableOpacity>
         </View>
       ) : null}
@@ -3210,19 +3698,19 @@ export default function App() {
                       <View style={styles.suggestHeroBadge}>
                         <Ionicons name="sparkles" size={22} color="#9a0f6f" />
                       </View>
-                      <Text style={styles.modalTitle}>Suggest A Number</Text>
-                      <Text style={styles.modalSubTitle}>Send a new hotline / أرسل رقمًا جديدًا وسنراجعه.</Text>
+                      <Text style={styles.modalTitle}>{t("suggestNumberTitle")}</Text>
+                      <Text style={styles.modalSubTitle}>{t("suggestNumberSub")}</Text>
                     </View>
                     <TextInput
                       style={[styles.modalInput, styles.suggestInput]}
-                      placeholder="Place or organization / المكان أو الجهة"
+                      placeholder={t("suggestNamePlaceholder")}
                       placeholderTextColor="#7b8799"
                       value={newHotlineName}
                       onChangeText={setNewHotlineName}
                     />
                     <TextInput
                       style={[styles.modalInput, styles.suggestInput]}
-                      placeholder="Phone or hotline number / رقم الهاتف أو الخط الساخن"
+                      placeholder={t("suggestPhonePlaceholder")}
                       placeholderTextColor="#7b8799"
                       keyboardType="phone-pad"
                       value={newHotlinePhone}
@@ -3230,7 +3718,7 @@ export default function App() {
                     />
                     <View style={styles.modalActions}>
                       <TouchableOpacity style={styles.modalBtnPrimary} onPress={handleAddHotlineSubmit}>
-                        <Text style={styles.modalBtnPrimaryText}>Send</Text>
+                        <Text style={styles.modalBtnPrimaryText}>{t("send")}</Text>
                       </TouchableOpacity>
                     </View>
                   </ScrollView>
@@ -3259,8 +3747,8 @@ export default function App() {
                       <Ionicons name="sparkles" size={10} color="#ffffff" />
                     </View>
                   </View>
-                  <Text style={styles.modalTitle}>Contact us (AI assistant)</Text>
-                  <Text style={styles.modalSubTitle}>Quick answers, helpful prompts, and direct support in one place.</Text>
+                  <Text style={styles.modalTitle}>{tAssistant("contactModalTitle")}</Text>
+                  <Text style={styles.modalSubTitle}>{tAssistant("contactModalSub")}</Text>
                 </View>
 
                 <View style={styles.assistantLanguageRow}>
@@ -3277,7 +3765,7 @@ export default function App() {
                         assistantLanguage === "ar" && styles.assistantLanguageTextActive
                       ]}
                     >
-                      العربية
+                      {tAssistant("assistantLanguageArabic")}
                     </Text>
                   </TouchableOpacity>
                   <TouchableOpacity
@@ -3293,7 +3781,7 @@ export default function App() {
                         assistantLanguage === "en" && styles.assistantLanguageTextActive
                       ]}
                     >
-                      English
+                      {tAssistant("assistantLanguageEnglish")}
                     </Text>
                   </TouchableOpacity>
                 </View>
@@ -3311,12 +3799,10 @@ export default function App() {
                 >
                   <View style={styles.quickQuestionsToggleTextWrap}>
                     <Text style={styles.assistantSectionTitle}>
-                      {assistantLanguage === "ar" ? "أسئلة سريعة" : "Quick questions"}
+                      {tAssistant("quickQuestionsTitle")}
                     </Text>
                     <Text style={styles.assistantSectionSub}>
-                      {assistantLanguage === "ar"
-                        ? "اختصارات مفيدة لو تحب تبدأ بسرعة"
-                        : "Useful shortcuts if you want a fast start"}
+                      {tAssistant("quickQuestionsSub")}
                     </Text>
                   </View>
                   <Ionicons
@@ -3374,22 +3860,18 @@ export default function App() {
 
                 <View style={[styles.assistantSectionHead, styles.chatAssistantSectionHead]}>
                   <Text style={styles.assistantSectionTitle}>
-                    {assistantLanguage === "ar" ? "الدردشة مع المساعد الذكي" : "Chat with AI assistant"}
+                    {tAssistant("assistantChatTitle")}
                   </Text>
                   <Text style={styles.assistantSectionSub}>
-                    {assistantLanguage === "ar"
-                      ? "اكتب سؤالك هنا مع المساعد الذكي أو أرسله للدعم الفني مباشرة"
-                      : "Ask your question here with the AI assistant, or send it directly to technical support"}
+                    {tAssistant("assistantChatSub")}
                   </Text>
                 </View>
 
                 <View style={styles.chatThread}>
                   <View style={[styles.chatBubble, styles.chatBotBubble]}>
-                    <Text style={styles.chatBubbleLabel}>Hotline Assistant</Text>
+                    <Text style={styles.chatBubbleLabel}>{tAssistant("hotlineAssistantLabel")}</Text>
                     <Text style={styles.chatBubbleText}>
-                      {assistantLanguage === "ar"
-                        ? "أنا هنا للمساعدة. اختر سؤالاً سريعاً أو اكتب رسالتك بالأسفل."
-                        : "I’m here to help. Choose a quick question or type your message below."}
+                      {tAssistant("assistantGreeting")}
                     </Text>
                   </View>
 
@@ -3405,13 +3887,13 @@ export default function App() {
 
                         {assistantTypingId === entry.id && !entry.assistantVisible ? (
                           <View style={[styles.chatBubble, styles.chatBotBubble, styles.chatTypingBubble]}>
-                            <Text style={styles.chatTypingText}>Typing...</Text>
+                            <Text style={styles.chatTypingText}>{tAssistant("typing")}</Text>
                           </View>
                         ) : null}
 
                         {entry.assistantVisible ? (
                           <View style={[styles.chatBubble, styles.chatBotBubble]}>
-                            <Text style={styles.chatBubbleLabel}>Hotline Assistant</Text>
+                            <Text style={styles.chatBubbleLabel}>{tAssistant("hotlineAssistantLabel")}</Text>
                             <Text style={styles.chatBubbleText}>
                               {assistantLanguage === "ar" ? entry.answerAr : entry.answerEn}
                             </Text>
@@ -3433,16 +3915,12 @@ export default function App() {
                 </View>
 
                 <Text style={styles.chatComposerHint}>
-                  {assistantLanguage === "ar" ? "أو اكتب رسالتك بنفسك هنا" : "Or write your own message here"}
+                  {tAssistant("writeOwnMessage")}
                 </Text>
                 <TextInput
                   ref={contactComposerInputRef}
                   style={[styles.modalInput, styles.chatComposerInput]}
-                  placeholder={
-                    assistantLanguage === "ar"
-                      ? "ما زلت تحتاج مساعدة؟ اكتب رسالتك هنا"
-                      : "Still need help? Type your message here"
-                  }
+                  placeholder={tAssistant("messagePlaceholder")}
                   placeholderTextColor="#7b8799"
                   multiline
                   textAlignVertical="top"
@@ -3451,18 +3929,14 @@ export default function App() {
                 />
                 <View style={styles.contactFooterRow}>
                   <TouchableOpacity style={styles.modalBtnGhost} onPress={() => setContactModalVisible(false)}>
-                    <Text style={styles.modalBtnGhostText}>{assistantLanguage === "ar" ? "اغلاق" : "Close"}</Text>
+                    <Text style={styles.modalBtnGhostText}>{tAssistant("close")}</Text>
                   </TouchableOpacity>
                   <View style={styles.contactPrimaryActions}>
                     <TouchableOpacity style={styles.modalBtnPrimary} onPress={handleContactSubmit}>
-                      <Text style={styles.modalBtnPrimaryText}>
-                        {assistantLanguage === "ar" ? "اسأل المساعد الذكي" : "Ask assistant"}
-                      </Text>
+                      <Text style={styles.modalBtnPrimaryText}>{tAssistant("askAssistant")}</Text>
                     </TouchableOpacity>
                     <TouchableOpacity style={styles.modalBtnPrimary} onPress={handleDirectContactSubmit}>
-                      <Text style={styles.modalBtnPrimaryText}>
-                        {assistantLanguage === "ar" ? "إرسال الطلب" : "Send request"}
-                      </Text>
+                      <Text style={styles.modalBtnPrimaryText}>{tAssistant("sendRequest")}</Text>
                     </TouchableOpacity>
                   </View>
                 </View>
@@ -3483,29 +3957,31 @@ export default function App() {
                   <View style={[styles.suggestHeroBadge, styles.businessHeroBadge]}>
                     <Ionicons name="briefcase" size={22} color="#9a0f6f" />
                   </View>
-                  <Text style={styles.modalTitle}>Business Request</Text>
-                  <Text style={styles.modalSubTitle}>Tell us about your business and the plan you want.</Text>
+                  <Text style={styles.modalTitle}>{t("businessRequestTitle")}</Text>
+                  <Text style={styles.modalSubTitle}>{t("businessRequestSub")}</Text>
                 </View>
                 <View style={styles.planSelectedBadge}>
-                  <Text style={styles.planSelectedBadgeText}>{selectedBusinessPlan} plan</Text>
+                  <Text style={styles.planSelectedBadgeText}>
+                    {selectedBusinessPlan} {t("selectedPlanSuffix")}
+                  </Text>
                 </View>
                 <TextInput
                   style={[styles.modalInput, styles.suggestInput]}
-                  placeholder="Your name"
+                  placeholder={t("yourName")}
                   placeholderTextColor="#7b8799"
                   value={businessRequesterName}
                   onChangeText={setBusinessRequesterName}
                 />
                 <TextInput
                   style={[styles.modalInput, styles.suggestInput]}
-                  placeholder="Business name"
+                  placeholder={t("businessName")}
                   placeholderTextColor="#7b8799"
                   value={businessName}
                   onChangeText={setBusinessName}
                 />
                 <TextInput
                   style={[styles.modalInput, styles.suggestInput]}
-                  placeholder="Phone or WhatsApp"
+                  placeholder={t("phoneOrWhatsapp")}
                   placeholderTextColor="#7b8799"
                   keyboardType="phone-pad"
                   value={businessPhone}
@@ -3513,7 +3989,7 @@ export default function App() {
                 />
                 <TextInput
                   style={[styles.modalInput, styles.modalTextArea]}
-                  placeholder="Request details"
+                  placeholder={t("requestDetails")}
                   placeholderTextColor="#7b8799"
                   multiline
                   textAlignVertical="top"
@@ -3522,10 +3998,10 @@ export default function App() {
                 />
                 <View style={styles.modalActions}>
                   <TouchableOpacity style={styles.modalBtnGhost} onPress={() => setBusinessRequestVisible(false)}>
-                    <Text style={styles.modalBtnGhostText}>Cancel</Text>
+                    <Text style={styles.modalBtnGhostText}>{t("cancel")}</Text>
                   </TouchableOpacity>
                   <TouchableOpacity style={styles.modalBtnPrimary} onPress={handleBusinessRequestSubmit}>
-                    <Text style={styles.modalBtnPrimaryText}>Send</Text>
+                    <Text style={styles.modalBtnPrimaryText}>{t("send")}</Text>
                   </TouchableOpacity>
                 </View>
               </ScrollView>
@@ -3541,8 +4017,8 @@ export default function App() {
               <View style={styles.aboutHeroBadge}>
                   <Ionicons name="megaphone" size={24} color="#ffffff" />
               </View>
-                <Text style={styles.modalTitle}>Business Plans</Text>
-                <Text style={styles.modalSubTitle}>Plans for businesses that want stronger visibility inside the app.</Text>
+                <Text style={styles.modalTitle}>{t("businessPlansTitle")}</Text>
+                <Text style={styles.modalSubTitle}>{t("businessPlansSub")}</Text>
             </View>
             <ScrollView showsVerticalScrollIndicator={false}>
               <View style={[styles.aboutSection, styles.businessSection]}>
@@ -3550,27 +4026,23 @@ export default function App() {
                   <View style={styles.businessBadge}>
                     <Ionicons name="briefcase" size={18} color="#9a0f6f" />
                   </View>
-                  <Text style={styles.aboutHeading}>For Business</Text>
+                  <Text style={styles.aboutHeading}>{t("forBusiness")}</Text>
                 </View>
-                <Text style={[styles.aboutBody, styles.aboutBodyAr]}>
-                  إذا كنت تمثل مطعماً أو مستشفى أو شركة خدمة، يمكنك طلب ظهور مميز داخل التطبيق لزيادة الوصول والثقة.
-                </Text>
-                <Text style={styles.aboutBody}>
-                  Businesses can request featured placement, verified status, and higher visibility inside search and category results.
-                </Text>
+                <Text style={[styles.aboutBody, isArabicUi && styles.aboutBodyAr]}>{t("businessIntroAr1")}</Text>
+                <Text style={styles.aboutBody}>{t("businessIntroAr2")}</Text>
 
                 <View style={styles.businessFeatureList}>
                   <View style={styles.businessFeatureItem}>
                     <Ionicons name="star" size={15} color="#d97706" />
-                    <Text style={styles.businessFeatureText}>Featured placement</Text>
+                    <Text style={styles.businessFeatureText}>{t("featuredPlacement")}</Text>
                   </View>
                   <View style={styles.businessFeatureItem}>
                     <Ionicons name="shield-checkmark" size={15} color="#15803d" />
-                    <Text style={styles.businessFeatureText}>Verified badge</Text>
+                    <Text style={styles.businessFeatureText}>{t("verifiedBadge")}</Text>
                   </View>
                   <View style={styles.businessFeatureItem}>
                     <Ionicons name="trending-up" size={15} color="#7c3aed" />
-                    <Text style={styles.businessFeatureText}>Priority ranking</Text>
+                    <Text style={styles.businessFeatureText}>{t("priorityRanking")}</Text>
                   </View>
                 </View>
 
@@ -3586,10 +4058,10 @@ export default function App() {
                       </View>
                     </View>
                     <Text style={styles.planPrice}>100 EGP / month</Text>
-                    <Text style={[styles.planBody, styles.planBodyAr]}>شارة موثقة لنشاطك التجاري لزيادة الثقة والاعتماد داخل التطبيق.</Text>
-                    <Text style={styles.planBody}>Trusted badge for your business and stronger customer confidence.</Text>
+                    <Text style={[styles.planBody, styles.planBodyAr]}>{isArabicUi ? "شارة موثقة لنشاطك التجاري لزيادة الثقة والاعتماد داخل التطبيق." : "Trusted badge for your business and stronger customer confidence."}</Text>
+                    <Text style={styles.planBody}>{isArabicUi ? "حضور موثوق يزيد ثقة العملاء داخل التطبيق." : "Trusted badge for your business and stronger customer confidence."}</Text>
                     <TouchableOpacity style={styles.planBtn} onPress={() => openBusinessInquiry("Verified")}>
-                      <Text style={styles.planBtnText}>اطلب هذه الباقة{"\n"}Request this plan</Text>
+                      <Text style={styles.planBtnText}>{t("requestThisPlan")}</Text>
                     </TouchableOpacity>
                   </View>
 
@@ -3604,10 +4076,10 @@ export default function App() {
                       </View>
                     </View>
                     <Text style={styles.planPrice}>200 EGP / month</Text>
-                    <Text style={[styles.planBody, styles.planBodyAr]}>ظهور أقوى داخل الفئات وترتيب أفضل في نتائج البحث.</Text>
-                    <Text style={styles.planBody}>Higher visibility inside categories and better placement in search results.</Text>
+                    <Text style={[styles.planBody, styles.planBodyAr]}>{isArabicUi ? "ظهور أقوى داخل الفئات وترتيب أفضل في نتائج البحث." : "Higher visibility inside categories and better placement in search results."}</Text>
+                    <Text style={styles.planBody}>{isArabicUi ? "ترتيب أوضح داخل الفئات والنتائج." : "Higher visibility inside categories and better placement in search results."}</Text>
                     <TouchableOpacity style={styles.planBtn} onPress={() => openBusinessInquiry("Featured")}>
-                      <Text style={styles.planBtnText}>اطلب هذه الباقة{"\n"}Request this plan</Text>
+                      <Text style={styles.planBtnText}>{t("requestThisPlan")}</Text>
                     </TouchableOpacity>
                   </View>
 
@@ -3622,10 +4094,10 @@ export default function App() {
                       </View>
                     </View>
                     <Text style={styles.planPrice}>400 EGP / month</Text>
-                    <Text style={[styles.planBody, styles.planBodyAr]}>ظهور مميز + شارة موثقة + أولوية أعلى لأقوى حضور داخل التطبيق.</Text>
-                    <Text style={styles.planBody}>Featured + Verified + top priority for the strongest exposure in the app.</Text>
+                    <Text style={[styles.planBody, styles.planBodyAr]}>{isArabicUi ? "ظهور مميز + شارة موثقة + أولوية أعلى لأقوى حضور داخل التطبيق." : "Featured + Verified + top priority for the strongest exposure in the app."}</Text>
+                    <Text style={styles.planBody}>{isArabicUi ? "أقوى باقة للظهور والثقة والأولوية." : "Featured + Verified + top priority for the strongest exposure in the app."}</Text>
                     <TouchableOpacity style={[styles.planBtn, styles.planBtnPremium]} onPress={() => openBusinessInquiry("Premium")}>
-                      <Text style={styles.planBtnText}>اطلب هذه الباقة{"\n"}Request this plan</Text>
+                      <Text style={styles.planBtnText}>{t("requestThisPlan")}</Text>
                     </TouchableOpacity>
                   </View>
                 </View>
@@ -3634,7 +4106,7 @@ export default function App() {
             </ScrollView>
             <View style={styles.modalActions}>
               <TouchableOpacity style={styles.modalBtnPrimary} onPress={() => setBusinessModalVisible(false)}>
-                <Text style={styles.modalBtnPrimaryText}>Close</Text>
+                <Text style={styles.modalBtnPrimaryText}>{t("close")}</Text>
               </TouchableOpacity>
             </View>
           </View>
@@ -3648,54 +4120,42 @@ export default function App() {
               <View style={styles.aboutHeroBadge}>
                 <Ionicons name="information-circle" size={26} color="#ffffff" />
               </View>
-              <Text style={styles.modalTitle}>About Us</Text>
-              <Text style={styles.modalSubTitle}>What the app offers and how it helps.</Text>
+              <Text style={styles.modalTitle}>{t("aboutUsTitle")}</Text>
+              <Text style={styles.modalSubTitle}>{t("aboutUsSub")}</Text>
             </View>
             <ScrollView showsVerticalScrollIndicator={false}>
               <View style={styles.aboutSection}>
-                <Text style={styles.aboutHeading}>من نحن</Text>
-                <Text style={[styles.aboutBody, styles.aboutBodyAr]}>
-                  ⁦Hotline App⁩ هو دليل ذكي وسريع للوصول إلى أهم الخطوط الساخنة والأرقام المهمة في مصر بشكل منظم وسهل.
-                </Text>
-                <Text style={[styles.aboutBody, styles.aboutBodyAr]}>
-                  يوفر التطبيق تصنيفات واضحة تشمل الخدمات الحكومية، المستشفيات، المطاعم، الخدمات المالية، النقل، والخدمات المتنوعة، حتى تصل إلى الرقم الذي تحتاجه بسرعة.
-                </Text>
-                <Text style={[styles.aboutBody, styles.aboutBodyAr]}>
-                  كما يتيح لك التطبيق اقتراح أرقام جديدة وإرسال الملاحظات للمساعدة في تطوير قاعدة البيانات وتحسين الخدمة باستمرار.
-                </Text>
+                <Text style={styles.aboutHeading}>{t("aboutUsTitle")}</Text>
+                <Text style={[styles.aboutBody, isArabicUi && styles.aboutBodyAr]}>{t("aboutAr1")}</Text>
+                <Text style={[styles.aboutBody, isArabicUi && styles.aboutBodyAr]}>{t("aboutAr2")}</Text>
+                <Text style={[styles.aboutBody, isArabicUi && styles.aboutBodyAr]}>{t("aboutAr3")}</Text>
               </View>
 
               <View style={styles.aboutPillRow}>
                 <View style={styles.aboutPill}>
                   <Ionicons name="flash" size={15} color="#7c3aed" />
-                  <Text style={styles.aboutPillText}>Fast access</Text>
+                  <Text style={styles.aboutPillText}>{t("fastAccess")}</Text>
                 </View>
                 <View style={styles.aboutPill}>
                   <Ionicons name="call" size={15} color="#7c3aed" />
-                  <Text style={styles.aboutPillText}>Useful numbers</Text>
+                  <Text style={styles.aboutPillText}>{t("usefulNumbers")}</Text>
                 </View>
                 <View style={styles.aboutPill}>
                   <Ionicons name="sparkles" size={15} color="#7c3aed" />
-                  <Text style={styles.aboutPillText}>Community updates</Text>
+                  <Text style={styles.aboutPillText}>{t("communityUpdates")}</Text>
                 </View>
               </View>
 
               <View style={styles.aboutSection}>
-                <Text style={styles.aboutHeading}>About Hotline App</Text>
-                <Text style={styles.aboutBody}>
-                  Hotline App is a smart and fast directory designed to help users reach important hotlines and service numbers in Egypt with ease.
-                </Text>
-                <Text style={styles.aboutBody}>
-                  The app offers organized categories including emergency services, hospitals, food, finance, transport, and many other useful services.
-                </Text>
-                <Text style={styles.aboutBody}>
-                  It also lets users suggest new numbers and send feedback so the database stays useful and up to date.
-                </Text>
+                <Text style={styles.aboutHeading}>{t("aboutEnHeading")}</Text>
+                <Text style={styles.aboutBody}>{t("aboutEn1")}</Text>
+                <Text style={styles.aboutBody}>{t("aboutEn2")}</Text>
+                <Text style={styles.aboutBody}>{t("aboutEn3")}</Text>
               </View>
             </ScrollView>
             <View style={styles.modalActions}>
               <TouchableOpacity style={styles.modalBtnPrimary} onPress={() => setAboutModalVisible(false)}>
-                <Text style={styles.modalBtnPrimaryText}>Close</Text>
+                <Text style={styles.modalBtnPrimaryText}>{t("close")}</Text>
               </TouchableOpacity>
             </View>
           </View>
@@ -3703,41 +4163,48 @@ export default function App() {
       </Modal>
 
       {showIntro ? (
-        <Pressable style={styles.introOverlay} onPress={handleIntroContinue}>
-          <ImageBackground source={introLocal} style={[styles.introImage, introImageResponsive]} resizeMode={introResizeMode}>
-            <View style={[styles.introTint, introTintResponsive]} />
+        <TouchableOpacity activeOpacity={1} style={styles.introOverlay} onPress={handleIntroContinue}>
+          <ImageBackground pointerEvents="none" source={introLocal} style={[styles.introImage, introImageResponsive]} resizeMode={introResizeMode}>
+            <View pointerEvents="none" style={[styles.introTint, introTintResponsive]} />
             {showIntroBrandOverlay ? (
-              <View style={[styles.introBrandWrap, introBrandWrapResponsive]}>
+              <View pointerEvents="none" style={[styles.introBrandWrap, introBrandWrapResponsive]}>
                 <View style={styles.introBrandBadge}>
                   <Ionicons name="call" size={18} color="#ffffff" />
                 </View>
                 <Text style={[styles.introBrandTitle, introBrandTitleResponsive]}>Hotline App</Text>
-                <Text style={[styles.introBrandSub, introBrandSubResponsive]}>Fast access to important numbers in Egypt</Text>
+                <Text style={[styles.introBrandSub, introBrandSubResponsive]}>
+                  {isArabicUi ? "وصول سريع إلى الأرقام المهمة في مصر" : "Fast access to important numbers in Egypt"}
+                </Text>
               </View>
             ) : null}
           </ImageBackground>
-        </Pressable>
+        </TouchableOpacity>
       ) : null}
 
       {showSuggestHint ? (
-        <Pressable style={[styles.hintOverlay, hintOverlayResponsive]} onPress={dismissSuggestHint}>
-          <View style={[styles.hintCard, hintCardResponsive]}>
+        <View style={[styles.hintOverlay, hintOverlayResponsive]} pointerEvents="box-none">
+          <Pressable style={styles.hintBackdropFill} onPress={dismissSuggestHint} />
+          <TouchableOpacity activeOpacity={0.98} style={[styles.hintCard, hintCardResponsive]} onPress={dismissSuggestHint}>
             <View style={styles.hintBadge}>
               <Ionicons name="sparkles" size={20} color="#b30f7f" />
             </View>
-            <Text style={styles.hintTitle}>الخدمات السريعة</Text>
+            <Text style={styles.hintTitle}>{t("quickServicesTitle")}</Text>
             <View style={styles.hintList}>
               <View style={styles.hintItem}>
                 <View style={[styles.hintMiniBadge, styles.hintMiniBusiness]}>
                   <Ionicons name="rocket-outline" size={15} color="#7c3aed" />
                 </View>
-                <Text style={[styles.hintItemText, styles.aboutBodyAr]}>⁦Promote⁩ لعرض باقات الظهور المميز والتوثيق للأعمال.</Text>
+                <Text style={[styles.hintItemText, isArabicUi && styles.aboutBodyAr]}>
+                  {isSmallPhone ? t("quickServicesPromoteShort") : t("quickServicesPromoteLong")}
+                </Text>
               </View>
               <View style={styles.hintItem}>
                 <View style={[styles.hintMiniBadge, styles.hintMiniAdd]}>
                   <Ionicons name="add-circle-outline" size={15} color="#b30f7f" />
                 </View>
-                <Text style={[styles.hintItemText, styles.aboutBodyAr]}>⁦Add Number⁩ لإضافة رقم جديد أو اقتراح جهة جديدة داخل التطبيق.</Text>
+                <Text style={[styles.hintItemText, isArabicUi && styles.aboutBodyAr]}>
+                  {isSmallPhone ? t("quickServicesAddShort") : t("quickServicesAddLong")}
+                </Text>
               </View>
               <View style={styles.hintItem}>
                 <View style={[styles.hintMiniBadge, styles.hintMiniContact]}>
@@ -3746,18 +4213,26 @@ export default function App() {
                     <Ionicons name="sparkles" size={7} color="#ffffff" />
                   </View>
                 </View>
-                <Text style={[styles.hintItemText, styles.aboutBodyAr]}>⁦Contact us⁩ لإرسال ملاحظة أو اقتراح يساعدنا في تحسين الخدمة.</Text>
+                <Text style={[styles.hintItemText, isArabicUi && styles.aboutBodyAr]}>
+                  {isSmallPhone ? t("quickServicesContactShort") : t("quickServicesContactLong")}
+                </Text>
               </View>
             </View>
-            <TouchableOpacity style={styles.hintBtn} onPress={dismissSuggestHint}>
-              <Text style={styles.hintBtnText}>Got it</Text>
+            <TouchableOpacity
+              style={styles.hintBtn}
+              onPress={dismissSuggestHint}
+              onPressIn={dismissSuggestHint}
+              activeOpacity={0.85}
+              hitSlop={{ top: 14, bottom: 14, left: 14, right: 14 }}
+            >
+              <Text style={styles.hintBtnText}>{t("gotIt")}</Text>
             </TouchableOpacity>
-          </View>
+          </TouchableOpacity>
           <View style={styles.hintArrowWrap} pointerEvents="none">
             <View style={styles.hintArrowStem} />
             <Text style={styles.hintArrow}>⌄</Text>
           </View>
-        </Pressable>
+        </View>
       ) : null}
     </SafeAreaView>
   );
@@ -3847,15 +4322,17 @@ const styles = StyleSheet.create({
   welcomeRow: {
     flexDirection: "row",
     alignItems: "center",
-    marginBottom: 16
+    marginBottom: 12
   },
   welcomeTextWrap: {
-    flex: 1
+    flex: 1,
+    minWidth: 0,
+    paddingRight: 6
   },
   phoneIconWrap: {
-    marginRight: 10,
-    width: 48,
-    height: 48,
+    marginRight: 8,
+    width: 42,
+    height: 42,
     borderRadius: 14,
     backgroundColor: "transparent",
     padding: 0,
@@ -3956,7 +4433,43 @@ const styles = StyleSheet.create({
     fontSize: 12,
     fontWeight: "600",
     marginTop: 8,
-    marginLeft: 8
+    marginLeft: 8,
+    flex: 1
+  },
+  searchMetaRow: {
+    marginTop: 6,
+    marginHorizontal: 8,
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 10
+  },
+  appLanguageToggle: {
+    flexDirection: "row",
+    alignItems: "center",
+    backgroundColor: "rgba(255,255,255,0.18)",
+    borderRadius: 999,
+    padding: 3,
+    borderWidth: 1,
+    borderColor: "rgba(255,255,255,0.22)"
+  },
+  appLanguageBtn: {
+    minWidth: 36,
+    paddingHorizontal: 10,
+    paddingVertical: 5,
+    borderRadius: 999,
+    alignItems: "center",
+    justifyContent: "center"
+  },
+  appLanguageBtnActive: {
+    backgroundColor: "#ffffff"
+  },
+  appLanguageBtnText: {
+    color: "#ffffff",
+    fontSize: 11,
+    fontWeight: "800"
+  },
+  appLanguageBtnTextActive: {
+    color: "#9a0f6f"
   },
   content: {
     paddingHorizontal: 16,
@@ -4217,7 +4730,8 @@ const styles = StyleSheet.create({
     fontSize: 12,
     textAlign: "center",
     marginTop: -1,
-    textAlignVertical: "center"
+    textAlignVertical: "center",
+    includeFontPadding: false
   },
   categoryTextActive: {
     color: "#3b47c0",
@@ -4422,6 +4936,34 @@ const styles = StyleSheet.create({
     color: "#4b5563",
     marginTop: 2
   },
+  contactMetaWrap: {
+    marginTop: 8,
+    gap: 4
+  },
+  contactMetaWrapCompact: {
+    marginTop: 6
+  },
+  contactMetaRow: {
+    flexDirection: "row",
+    flexWrap: "wrap",
+    alignItems: "flex-start",
+    gap: 6
+  },
+  contactMetaLabel: {
+    color: "#7c2d12",
+    fontSize: 12,
+    fontWeight: "800"
+  },
+  contactMetaValue: {
+    color: "#4b5563",
+    fontSize: 12,
+    lineHeight: 18,
+    flexShrink: 1
+  },
+  contactMetaLink: {
+    color: "#b30f7f",
+    textDecorationLine: "underline"
+  },
   nonPhone: {
     marginTop: 8,
     color: "#8a5a14",
@@ -4504,8 +5046,8 @@ const styles = StyleSheet.create({
     flex: 1,
     alignItems: "center",
     justifyContent: "center",
-    minWidth: 80,
-    paddingHorizontal: 4
+    minWidth: 70,
+    paddingHorizontal: 2
   },
   bottomCenterFloating: {
     position: "absolute",
@@ -4566,6 +5108,9 @@ const styles = StyleSheet.create({
     fontSize: 14,
     fontWeight: "800",
     marginTop: 3
+  },
+  bottomCenterAiText: {
+    color: "#f4c542"
   },
   bottomCenterSubText: {
     color: "#ffd0f0",
@@ -5337,6 +5882,9 @@ const styles = StyleSheet.create({
     paddingBottom: 138,
     paddingHorizontal: 24
   },
+  hintBackdropFill: {
+    ...StyleSheet.absoluteFillObject
+  },
   hintCard: {
     width: "100%",
     maxWidth: 340,
@@ -5366,7 +5914,7 @@ const styles = StyleSheet.create({
     color: "#111827",
     fontSize: 18,
     fontWeight: "800",
-    marginBottom: 8
+    marginBottom: 6
   },
   hintBody: {
     color: "#374151",
@@ -5375,20 +5923,20 @@ const styles = StyleSheet.create({
     marginBottom: 6
   },
   hintList: {
-    gap: 10,
-    marginTop: 4,
-    marginBottom: 4
+    gap: 8,
+    marginTop: 2,
+    marginBottom: 2
   },
   hintItem: {
     flexDirection: "row",
     alignItems: "flex-start",
-    gap: 10,
+    gap: 8,
     backgroundColor: "rgba(249,250,251,0.94)",
     borderWidth: 1,
     borderColor: "rgba(234,236,242,0.95)",
     borderRadius: 16,
-    paddingHorizontal: 12,
-    paddingVertical: 10
+    paddingHorizontal: 10,
+    paddingVertical: 8
   },
   hintMiniBadge: {
     width: 28,
@@ -5422,8 +5970,8 @@ const styles = StyleSheet.create({
   hintItemText: {
     flex: 1,
     color: "#374151",
-    fontSize: 13,
-    lineHeight: 21
+    fontSize: 12,
+    lineHeight: 18
   },
   hintBtn: {
     alignSelf: "flex-end",
