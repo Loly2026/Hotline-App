@@ -294,7 +294,7 @@ app.post("/api/admin/upload-logo", adminAuth, async (req, res) => {
 
     if (cloudinaryConfigured) {
       const timestamp = Math.floor(Date.now() / 1000);
-      const publicId = `hotline-logos/${baseName}-${Date.now()}`;
+      const publicId = `${baseName}-${Date.now()}`;
       const signature = createCloudinarySignature({
         folder: "hotline-logos",
         public_id: publicId,
@@ -319,7 +319,12 @@ app.post("/api/admin/upload-logo", adminAuth, async (req, res) => {
       const cloudinaryData = await cloudinaryRes.json().catch(() => ({}));
       if (!cloudinaryRes.ok || !cloudinaryData.secure_url) {
         console.error("cloudinary upload error:", cloudinaryData);
-        return res.status(500).json({ error: "Failed to upload logo to cloud storage" });
+        return res.status(500).json({
+          error:
+            cloudinaryData?.error?.message ||
+            cloudinaryData?.message ||
+            "Failed to upload logo to cloud storage"
+        });
       }
 
       return res.status(201).json({
