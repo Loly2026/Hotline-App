@@ -112,6 +112,9 @@
 
   function wireLogoUpload(inputEl, targetEl, getName) {
     if (!inputEl || !targetEl) return;
+    inputEl.addEventListener("click", () => {
+      inputEl.value = "";
+    });
     inputEl.addEventListener("change", async () => {
       const file = inputEl.files?.[0];
       if (!file) return;
