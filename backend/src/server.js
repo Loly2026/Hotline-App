@@ -11,6 +11,18 @@ import { fileURLToPath } from "url";
 
 const store = createStore();
 await store.initSchema();
+await store.ensureCategories([
+  { slug: "sportswear", name_ar: "ملابس رياضية" },
+  { slug: "gym", name_ar: "جيم" },
+  { slug: "sports-equipment", name_ar: "أجهزة رياضية" },
+  { slug: "supplements", name_ar: "مكملات غذائية" },
+  { slug: "sports-clubs", name_ar: "أندية رياضية" },
+  { slug: "tourist-attractions", name_ar: "مزارات سياحية" },
+  { slug: "translation-services", name_ar: "خدمات ترجمة" },
+  { slug: "travel-agencies", name_ar: "شركات سياحة" },
+  { slug: "tourist-help", name_ar: "مساعدة سياحية" },
+  { slug: "residency-immigration", name_ar: "إقامة وهجرة" }
+]);
 
 const app = express();
 const port = process.env.PORT || 4000;

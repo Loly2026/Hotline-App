@@ -38,6 +38,14 @@ function createSqliteStore() {
       return sqliteDb.prepare("SELECT id, slug, name_ar FROM categories ORDER BY name_ar ASC").all();
     },
 
+    async ensureCategories(definitions = []) {
+      const stmt = sqliteDb.prepare("INSERT OR IGNORE INTO categories (slug, name_ar) VALUES (?, ?)");
+      for (const item of definitions) {
+        if (!item?.slug || !item?.name_ar) continue;
+        stmt.run(String(item.slug).trim(), String(item.name_ar).trim());
+      }
+    },
+
     async getCoverage() {
       const totals = sqliteDb
         .prepare(
@@ -378,6 +386,16 @@ function createPostgresStore() {
     async getCategories() {
       const { rows } = await query("SELECT id, slug, name_ar FROM categories ORDER BY name_ar ASC");
       return rows;
+    },
+
+    async ensureCategories(definitions = []) {
+      for (const item of definitions) {
+        if (!item?.slug || !item?.name_ar) continue;
+        await query(
+          "INSERT INTO categories (slug, name_ar) VALUES ($1, $2) ON CONFLICT (slug) DO NOTHING",
+          [String(item.slug).trim(), String(item.name_ar).trim()]
+        );
+      }
     },
 
     async getCoverage() {
