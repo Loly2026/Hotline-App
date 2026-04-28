@@ -4,6 +4,7 @@ import nodemailer from "nodemailer";
 import "dotenv/config";
 import fs from "fs/promises";
 import path from "path";
+import { createHash } from "crypto";
 import { createStore } from "./store.js";
 import { importEmbassies } from "./import-visahq-embassies.js";
 import { fileURLToPath } from "url";
@@ -17,6 +18,10 @@ const host = "0.0.0.0";
 const feedbackReceiver = process.env.FEEDBACK_TO_EMAIL || "mesho190@gmail.com";
 const adminUser = process.env.ADMIN_USER || "admin";
 const adminPass = process.env.ADMIN_PASS || "";
+const cloudinaryCloudName = process.env.CLOUDINARY_CLOUD_NAME || "";
+const cloudinaryApiKey = process.env.CLOUDINARY_API_KEY || "";
+const cloudinaryApiSecret = process.env.CLOUDINARY_API_SECRET || "";
+const cloudinaryConfigured = !!cloudinaryCloudName && !!cloudinaryApiKey && !!cloudinaryApiSecret;
 
 const smtpConfigured =
   !!process.env.SMTP_HOST &&
@@ -84,6 +89,15 @@ function getLogoExtension(filename = "", contentType = "") {
   if (normalizedType.includes("webp") || normalizedName.endsWith(".webp")) return "webp";
   if (normalizedType.includes("svg") || normalizedName.endsWith(".svg")) return "svg";
   return "";
+}
+
+function createCloudinarySignature(params) {
+  const toSign = Object.entries(params)
+    .filter(([, value]) => value !== undefined && value !== null && value !== "")
+    .sort(([a], [b]) => a.localeCompare(b))
+    .map(([key, value]) => `${key}=${value}`)
+    .join("&");
+  return createHash("sha1").update(`${toSign}${cloudinaryApiSecret}`).digest("hex");
 }
 
 function buildContactPayload(body, categoryId, governorateId) {
@@ -271,22 +285,59 @@ app.post("/api/admin/upload-logo", adminAuth, async (req, res) => {
     if (!dataBase64 || !ext) {
       return res.status(400).json({ error: "Valid image file is required" });
     }
-
-    await fs.mkdir(LOGOS_DIR, { recursive: true });
-
     const baseName = sanitizeLogoName(filename || "logo");
-    const safeFileName = `${baseName}-${Date.now()}.${ext}`;
-    const absolutePath = path.join(LOGOS_DIR, safeFileName);
     const imageBuffer = Buffer.from(dataBase64, "base64");
 
     if (!imageBuffer.length) {
       return res.status(400).json({ error: "Invalid image data" });
     }
 
+    if (cloudinaryConfigured) {
+      const timestamp = Math.floor(Date.now() / 1000);
+      const publicId = `hotline-logos/${baseName}-${Date.now()}`;
+      const signature = createCloudinarySignature({
+        folder: "hotline-logos",
+        public_id: publicId,
+        timestamp
+      });
+
+      const form = new FormData();
+      form.append("file", `data:${contentType || `image/${ext}`};base64,${dataBase64}`);
+      form.append("api_key", cloudinaryApiKey);
+      form.append("timestamp", String(timestamp));
+      form.append("folder", "hotline-logos");
+      form.append("public_id", publicId);
+      form.append("signature", signature);
+
+      const cloudinaryRes = await fetch(
+        `https://api.cloudinary.com/v1_1/${cloudinaryCloudName}/image/upload`,
+        {
+          method: "POST",
+          body: form
+        }
+      );
+      const cloudinaryData = await cloudinaryRes.json().catch(() => ({}));
+      if (!cloudinaryRes.ok || !cloudinaryData.secure_url) {
+        console.error("cloudinary upload error:", cloudinaryData);
+        return res.status(500).json({ error: "Failed to upload logo to cloud storage" });
+      }
+
+      return res.status(201).json({
+        ok: true,
+        storage: "cloudinary",
+        fileName: cloudinaryData.public_id || publicId,
+        url: cloudinaryData.secure_url
+      });
+    }
+
+    await fs.mkdir(LOGOS_DIR, { recursive: true });
+    const safeFileName = `${baseName}-${Date.now()}.${ext}`;
+    const absolutePath = path.join(LOGOS_DIR, safeFileName);
     await fs.writeFile(absolutePath, imageBuffer);
     const origin = `${req.protocol}://${req.get("host")}`;
-    res.status(201).json({
+    return res.status(201).json({
       ok: true,
+      storage: "local",
       fileName: safeFileName,
       url: `${origin}/logos/${safeFileName}`
     });
