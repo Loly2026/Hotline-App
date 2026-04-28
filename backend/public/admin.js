@@ -20,6 +20,7 @@
   const editName = document.getElementById("edit-name");
   const editPhone = document.getElementById("edit-phone");
   const editLogo = document.getElementById("edit-logo");
+  const editLogoFile = document.getElementById("edit-logo-file");
   const editGov = document.getElementById("edit-gov");
   const editAddress = document.getElementById("edit-address");
   const editNotes = document.getElementById("edit-notes");
@@ -33,6 +34,7 @@
   const pendingName = document.getElementById("pending-name");
   const pendingPhone = document.getElementById("pending-phone");
   const pendingLogo = document.getElementById("pending-logo");
+  const pendingLogoFile = document.getElementById("pending-logo-file");
   const pendingCat = document.getElementById("pending-cat");
   const pendingGov = document.getElementById("pending-gov");
   const pendingAddress = document.getElementById("pending-address");
@@ -45,6 +47,24 @@
   let apiBase = window.location.origin;
   let authHeader = "";
   let categoriesCache = [];
+
+  function sanitizeFileName(name = "logo") {
+    return String(name)
+      .toLowerCase()
+      .replace(/\.[a-z0-9]+$/i, "")
+      .replace(/[^a-z0-9]+/g, "-")
+      .replace(/^-+|-+$/g, "")
+      .slice(0, 40) || "logo";
+  }
+
+  function readFileAsDataUrl(file) {
+    return new Promise((resolve, reject) => {
+      const reader = new FileReader();
+      reader.onload = () => resolve(String(reader.result || ""));
+      reader.onerror = () => reject(new Error("Failed to read image file"));
+      reader.readAsDataURL(file);
+    });
+  }
 
   function setStatus(text, ok = false) {
     statusEl.textContent = text;
@@ -66,6 +86,47 @@
         throw new Error(msg || res.statusText);
       }
       return res;
+    });
+  }
+
+  async function uploadLogoFile(file, fallbackName = "logo") {
+    const dataUrl = await readFileAsDataUrl(file);
+    const commaIndex = dataUrl.indexOf(",");
+    if (commaIndex === -1) {
+      throw new Error("Invalid image data");
+    }
+
+    const base64 = dataUrl.slice(commaIndex + 1);
+    const filename = file.name || `${sanitizeFileName(fallbackName)}.png`;
+    const res = await authFetch("/api/admin/upload-logo", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        filename,
+        contentType: file.type || "",
+        dataBase64: base64
+      })
+    });
+    return res.json();
+  }
+
+  function wireLogoUpload(inputEl, targetEl, getName) {
+    if (!inputEl || !targetEl) return;
+    inputEl.addEventListener("change", async () => {
+      const file = inputEl.files?.[0];
+      if (!file) return;
+
+      try {
+        setStatus("Uploading logo...", true);
+        const result = await uploadLogoFile(file, getName?.() || "logo");
+        targetEl.value = result.url || "";
+        setStatus("Logo uploaded", true);
+      } catch (err) {
+        console.error(err);
+        setStatus(err.message || "Logo upload failed", false);
+      } finally {
+        inputEl.value = "";
+      }
     });
   }
 
@@ -248,6 +309,9 @@
     userInput.value = "admin";
     if (editModal) editModal.hidden = true;
     if (pendingModal) pendingModal.hidden = true;
+    wireLogoUpload(document.getElementById("add-logo-file"), document.querySelector('#add-form input[name="logo_url"]'), () => document.querySelector('#add-form input[name="name_ar"]')?.value || "logo");
+    wireLogoUpload(editLogoFile, editLogo, () => editName.value || "logo");
+    wireLogoUpload(pendingLogoFile, pendingLogo, () => pendingName.value || "logo");
   }
 
   function openEdit(row) {

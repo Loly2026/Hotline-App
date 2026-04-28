@@ -2,8 +2,11 @@ import express from "express";
 import cors from "cors";
 import nodemailer from "nodemailer";
 import "dotenv/config";
+import fs from "fs/promises";
+import path from "path";
 import { createStore } from "./store.js";
 import { importEmbassies } from "./import-visahq-embassies.js";
+import { fileURLToPath } from "url";
 
 const store = createStore();
 await store.initSchema();
@@ -33,8 +36,13 @@ const mailTransporter = smtpConfigured
     })
   : null;
 
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
+const PUBLIC_DIR = path.resolve(__dirname, "../public");
+const LOGOS_DIR = path.resolve(PUBLIC_DIR, "logos");
+
 app.use(cors());
-app.use(express.json());
+app.use(express.json({ limit: "8mb" }));
 app.use(express.static("public"));
 
 const adminAuth = (req, res, next) => {
@@ -56,6 +64,26 @@ function queueFeedbackEmail(message) {
   mailTransporter.sendMail(message).catch((err) => {
     console.error("feedback email error:", err);
   });
+}
+
+function sanitizeLogoName(name = "logo") {
+  return String(name)
+    .toLowerCase()
+    .replace(/\.[a-z0-9]+$/i, "")
+    .replace(/[^a-z0-9]+/g, "-")
+    .replace(/^-+|-+$/g, "")
+    .slice(0, 40) || "logo";
+}
+
+function getLogoExtension(filename = "", contentType = "") {
+  const normalizedType = String(contentType || "").toLowerCase();
+  const normalizedName = String(filename || "").toLowerCase();
+
+  if (normalizedType.includes("png") || normalizedName.endsWith(".png")) return "png";
+  if (normalizedType.includes("jpeg") || normalizedType.includes("jpg") || normalizedName.endsWith(".jpg") || normalizedName.endsWith(".jpeg")) return "jpg";
+  if (normalizedType.includes("webp") || normalizedName.endsWith(".webp")) return "webp";
+  if (normalizedType.includes("svg") || normalizedName.endsWith(".svg")) return "svg";
+  return "";
 }
 
 function buildContactPayload(body, categoryId, governorateId) {
@@ -231,6 +259,41 @@ app.get("/api/admin/contacts", adminAuth, async (req, res) => {
     offset: parsedOffset
   });
   res.json(rows);
+});
+
+app.post("/api/admin/upload-logo", adminAuth, async (req, res) => {
+  try {
+    const filename = String(req.body?.filename || "").trim();
+    const contentType = String(req.body?.contentType || "").trim();
+    const dataBase64 = String(req.body?.dataBase64 || "").trim();
+    const ext = getLogoExtension(filename, contentType);
+
+    if (!dataBase64 || !ext) {
+      return res.status(400).json({ error: "Valid image file is required" });
+    }
+
+    await fs.mkdir(LOGOS_DIR, { recursive: true });
+
+    const baseName = sanitizeLogoName(filename || "logo");
+    const safeFileName = `${baseName}-${Date.now()}.${ext}`;
+    const absolutePath = path.join(LOGOS_DIR, safeFileName);
+    const imageBuffer = Buffer.from(dataBase64, "base64");
+
+    if (!imageBuffer.length) {
+      return res.status(400).json({ error: "Invalid image data" });
+    }
+
+    await fs.writeFile(absolutePath, imageBuffer);
+    const origin = `${req.protocol}://${req.get("host")}`;
+    res.status(201).json({
+      ok: true,
+      fileName: safeFileName,
+      url: `${origin}/logos/${safeFileName}`
+    });
+  } catch (err) {
+    console.error("logo upload error:", err);
+    res.status(500).json({ error: "Failed to upload logo" });
+  }
 });
 
 app.post("/api/admin/contacts", adminAuth, async (req, res) => {
