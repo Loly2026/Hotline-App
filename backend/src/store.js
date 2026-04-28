@@ -85,6 +85,7 @@ function createSqliteStore() {
              c.id,
              c.name_ar,
              c.phone,
+             c.logo_url,
              c.address,
              c.notes,
              c.source_url,
@@ -148,6 +149,7 @@ function createSqliteStore() {
              c.id,
              c.name_ar,
              c.phone,
+             c.logo_url,
              c.address,
              c.notes,
              c.source_url,
@@ -206,8 +208,8 @@ function createSqliteStore() {
     async createContact(payload) {
       const result = sqliteDb
         .prepare(
-          `INSERT INTO contacts (name_ar, phone, address, notes, is_non_phone, is_featured, is_verified, priority_rank, category_id, governorate_id)
-           VALUES (@name_ar, @phone, @address, @notes, @is_non_phone, @is_featured, @is_verified, @priority_rank, @category_id, @governorate_id)`
+          `INSERT INTO contacts (name_ar, phone, logo_url, address, notes, is_non_phone, is_featured, is_verified, priority_rank, category_id, governorate_id)
+           VALUES (@name_ar, @phone, @logo_url, @address, @notes, @is_non_phone, @is_featured, @is_verified, @priority_rank, @category_id, @governorate_id)`
         )
         .run(payload);
       return { id: result.lastInsertRowid };
@@ -233,6 +235,7 @@ function createSqliteStore() {
              c.id,
              c.name_ar,
              c.phone,
+             c.logo_url,
              c.address,
              c.notes,
              c.is_non_phone,
@@ -258,7 +261,7 @@ function createSqliteStore() {
       sqliteDb
         .prepare(
           `UPDATE contacts
-           SET name_ar=@name_ar, phone=@phone, address=@address, notes=@notes,
+           SET name_ar=@name_ar, phone=@phone, logo_url=@logo_url, address=@address, notes=@notes,
                is_non_phone=@is_non_phone, is_featured=@is_featured, is_verified=@is_verified,
                priority_rank=@priority_rank, category_id=@category_id, governorate_id=@governorate_id
            WHERE id=@id`
@@ -325,6 +328,7 @@ function createPostgresStore() {
           category_id INTEGER NOT NULL REFERENCES categories (id) ON DELETE CASCADE,
           governorate_id INTEGER REFERENCES governorates (id) ON DELETE SET NULL,
           phone TEXT NOT NULL,
+          logo_url TEXT,
           address TEXT,
           notes TEXT,
           source_url TEXT,
@@ -363,6 +367,7 @@ function createPostgresStore() {
         CREATE INDEX IF NOT EXISTS idx_contact_requests_contact ON contact_requests (contact_id);
         CREATE INDEX IF NOT EXISTS idx_contact_requests_time ON contact_requests (requested_at);
       `);
+      await query(`ALTER TABLE contacts ADD COLUMN IF NOT EXISTS logo_url TEXT`);
     },
 
     async getGovernorates() {
@@ -416,6 +421,7 @@ function createPostgresStore() {
            c.id,
            c.name_ar,
            c.phone,
+           c.logo_url,
            c.address,
            c.notes,
            c.source_url,
@@ -483,6 +489,7 @@ function createPostgresStore() {
            c.id,
            c.name_ar,
            c.phone,
+           c.logo_url,
            c.address,
            c.notes,
            c.source_url,
@@ -543,12 +550,13 @@ function createPostgresStore() {
     async createContact(payload) {
       const { rows } = await query(
         `INSERT INTO contacts
-           (name_ar, phone, address, notes, is_non_phone, is_featured, is_verified, priority_rank, category_id, governorate_id)
-         VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10)
+           (name_ar, phone, logo_url, address, notes, is_non_phone, is_featured, is_verified, priority_rank, category_id, governorate_id)
+         VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11)
          RETURNING id`,
         [
           payload.name_ar,
           payload.phone,
+          payload.logo_url,
           payload.address,
           payload.notes,
           !!payload.is_non_phone,
@@ -589,6 +597,7 @@ function createPostgresStore() {
            c.id,
            c.name_ar,
            c.phone,
+           c.logo_url,
            c.address,
            c.notes,
            c.is_non_phone,
@@ -613,13 +622,14 @@ function createPostgresStore() {
     async updateContact(id, payload) {
       await query(
         `UPDATE contacts
-         SET name_ar = $1, phone = $2, address = $3, notes = $4,
-             is_non_phone = $5, is_featured = $6, is_verified = $7,
-             priority_rank = $8, category_id = $9, governorate_id = $10
-         WHERE id = $11`,
+         SET name_ar = $1, phone = $2, logo_url = $3, address = $4, notes = $5,
+             is_non_phone = $6, is_featured = $7, is_verified = $8,
+             priority_rank = $9, category_id = $10, governorate_id = $11
+         WHERE id = $12`,
         [
           payload.name_ar,
           payload.phone,
+          payload.logo_url,
           payload.address,
           payload.notes,
           !!payload.is_non_phone,

@@ -31,6 +31,7 @@ export function initSchema() {
       category_id INTEGER NOT NULL,
       governorate_id INTEGER,
       phone TEXT NOT NULL,
+      logo_url TEXT,
       address TEXT,
       notes TEXT,
       source_url TEXT,
@@ -87,5 +88,9 @@ export function initSchema() {
   if (!hasPriorityRank) {
     db.exec("ALTER TABLE contacts ADD COLUMN priority_rank INTEGER NOT NULL DEFAULT 0;");
     db.exec("CREATE INDEX IF NOT EXISTS idx_contacts_priority_rank ON contacts (priority_rank);");
+  }
+  const hasLogoUrl = contactColumns.some((c) => c.name === "logo_url");
+  if (!hasLogoUrl) {
+    db.exec("ALTER TABLE contacts ADD COLUMN logo_url TEXT;");
   }
 }

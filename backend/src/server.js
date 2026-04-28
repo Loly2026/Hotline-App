@@ -62,6 +62,7 @@ function buildContactPayload(body, categoryId, governorateId) {
   return {
     name_ar: String(body.name_ar || "").trim(),
     phone: String(body.phone || "").trim(),
+    logo_url: String(body.logo_url || "").trim(),
     address: String(body.address || "").trim(),
     notes: String(body.notes || "").trim(),
     is_non_phone: !!body.is_non_phone,
@@ -325,6 +326,7 @@ app.post("/api/admin/requests/:id/approve", adminAuth, async (req, res) => {
   const body = {
     name_ar: req.body?.name_ar ?? pending.name_ar ?? "",
     phone: req.body?.phone ?? pending.phone ?? "",
+    logo_url: req.body?.logo_url ?? "",
     category_slug: req.body?.category_slug ?? pending.category_slug ?? "",
     governorate_code: req.body?.governorate_code ?? "",
     is_non_phone: !!req.body?.is_non_phone,

@@ -53,7 +53,8 @@
     <form id="add-form">
       <div class="grid">
         <label>Name (AR)<input required name="name_ar" /></label>
-        <label>Phone<input name="phone" /></label>
+        <label>Phone<input name="phone" placeholder="01000000000 | 0222222222" /></label>
+        <label>Logo URL<input name="logo_url" placeholder="https://example.com/logo.png" /></label>
         <label>Category
           <select required name="category_slug" id="cat-select"></select>
         </label>
@@ -92,7 +93,8 @@
         <input type="hidden" name="id" id="edit-id" />
         <div class="grid">
           <label>Name (AR)<input required name="name_ar" id="edit-name" /></label>
-          <label>Phone<input name="phone" id="edit-phone" /></label>
+          <label>Phone<input name="phone" id="edit-phone" placeholder="01000000000 | 0222222222" /></label>
+          <label>Logo URL<input name="logo_url" id="edit-logo" placeholder="https://example.com/logo.png" /></label>
           <label>Category
             <select required name="category_slug" id="edit-cat"></select>
           </label>
@@ -122,7 +124,8 @@
         <input type="hidden" name="id" id="pending-id" />
         <div class="grid">
           <label>Name (AR)<input name="name_ar" id="pending-name" /></label>
-          <label>Phone<input name="phone" id="pending-phone" /></label>
+          <label>Phone<input name="phone" id="pending-phone" placeholder="01000000000 | 0222222222" /></label>
+          <label>Logo URL<input name="logo_url" id="pending-logo" placeholder="https://example.com/logo.png" /></label>
           <label>Category
             <select name="category_slug" id="pending-cat">
               <option value="">Select category</option>

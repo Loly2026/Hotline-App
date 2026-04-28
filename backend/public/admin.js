@@ -19,6 +19,7 @@
   const editId = document.getElementById("edit-id");
   const editName = document.getElementById("edit-name");
   const editPhone = document.getElementById("edit-phone");
+  const editLogo = document.getElementById("edit-logo");
   const editGov = document.getElementById("edit-gov");
   const editAddress = document.getElementById("edit-address");
   const editNotes = document.getElementById("edit-notes");
@@ -31,6 +32,7 @@
   const pendingId = document.getElementById("pending-id");
   const pendingName = document.getElementById("pending-name");
   const pendingPhone = document.getElementById("pending-phone");
+  const pendingLogo = document.getElementById("pending-logo");
   const pendingCat = document.getElementById("pending-cat");
   const pendingGov = document.getElementById("pending-gov");
   const pendingAddress = document.getElementById("pending-address");
@@ -252,6 +254,7 @@
     editId.value = row.id;
     editName.value = row.name_ar || "";
     editPhone.value = row.phone || "";
+    editLogo.value = row.logo_url || "";
     editGov.value = row.governorate_code || "";
     editAddress.value = row.address || "";
     editNotes.value = row.notes || "";
@@ -273,6 +276,7 @@
     pendingId.value = row.id;
     pendingName.value = row.name_ar || "";
     pendingPhone.value = row.phone || "";
+    pendingLogo.value = row.logo_url || "";
     pendingCat.value = row.category_slug || "";
     pendingGov.value = "";
     pendingAddress.value = "";
