@@ -5,12 +5,15 @@
   const contactsPanel = $("contacts-panel");
   const addPanel = $("add-panel");
   const pendingPanel = $("pending-panel");
+  const notificationsPanel = $("notifications-panel");
   const apiInput = $("api-base");
   const userInput = $("username");
   const passInput = $("password");
   const searchInput = $("search");
   const catFilter = $("cat-filter");
   const catSelect = $("cat-select");
+  const pushStats = $("push-stats");
+  const pushForm = $("push-form");
   const contactsTbody = document.querySelector("#contacts-table tbody");
   const pendingTbody = document.querySelector("#pending-table tbody");
   const editModal = document.getElementById("edit-modal");
@@ -194,6 +197,33 @@
       .join("");
   }
 
+  async function loadPushStats() {
+    if (!pushStats) return;
+    const res = await authFetch("/api/admin/push/stats");
+    const stats = await res.json();
+    pushStats.innerHTML = `
+      <span>Active devices: ${stats.active || 0}</span>
+      <span>Android: ${stats.android || 0}</span>
+      <span>iOS: ${stats.ios || 0}</span>
+      <span>Total saved: ${stats.total || 0}</span>
+    `;
+  }
+
+  async function sendPushNotification(form) {
+    const fd = new FormData(form);
+    const title = String(fd.get("title") || "").trim();
+    const body = String(fd.get("body") || "").trim();
+    const res = await authFetch("/api/admin/push/send", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ title, body })
+    });
+    const result = await res.json();
+    form.reset();
+    await loadPushStats();
+    return result;
+  }
+
   async function deleteContact(id) {
     await authFetch(`/api/admin/contacts/${id}`, { method: "DELETE" });
     await loadContacts();
@@ -247,10 +277,12 @@
         await loadCategories();
         await loadContacts();
         await loadPending();
+        await loadPushStats();
         loginPanel.hidden = true;
         contactsPanel.hidden = false;
         addPanel.hidden = false;
         pendingPanel.hidden = false;
+        notificationsPanel.hidden = false;
         setStatus(`Connected ${apiBase}`, true);
       } catch (err) {
         console.error(err);
@@ -260,8 +292,19 @@
 
     $("refresh-btn").onclick = () => loadContacts();
     $("refresh-req").onclick = () => loadPending();
+    $("refresh-push-stats").onclick = () => loadPushStats();
     searchInput.oninput = () => loadContacts();
     catFilter.onchange = () => loadContacts();
+
+    pushForm.onsubmit = async (e) => {
+      e.preventDefault();
+      try {
+        const result = await sendPushNotification(e.target);
+        setStatus(`Notification sent to ${result.sent || 0} users`, true);
+      } catch (err) {
+        setStatus(err.message || "Notification failed", false);
+      }
+    };
 
     $("add-form").onsubmit = async (e) => {
       e.preventDefault();

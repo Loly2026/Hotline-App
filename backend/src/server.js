@@ -128,6 +128,67 @@ function buildContactPayload(body, categoryId, governorateId) {
   };
 }
 
+function isExpoPushToken(token) {
+  return /^Expo(nent)?PushToken\[[A-Za-z0-9_-]+\]$/.test(String(token || "").trim());
+}
+
+function chunkArray(items, size) {
+  const chunks = [];
+  for (let i = 0; i < items.length; i += size) {
+    chunks.push(items.slice(i, i + size));
+  }
+  return chunks;
+}
+
+async function sendExpoPushNotifications(tokens, notification) {
+  const validTokens = [...new Set(tokens.filter(isExpoPushToken))];
+  const invalidTokens = tokens.filter((token) => !isExpoPushToken(token));
+  const disabledTokens = [...invalidTokens];
+  let sent = 0;
+  let failed = invalidTokens.length;
+
+  for (const chunk of chunkArray(validTokens, 100)) {
+    const messages = chunk.map((to) => ({
+      to,
+      sound: "default",
+      title: notification.title,
+      body: notification.body,
+      data: notification.data || {},
+      channelId: "default"
+    }));
+
+    const response = await fetch("https://exp.host/--/api/v2/push/send", {
+      method: "POST",
+      headers: {
+        Accept: "application/json",
+        "Accept-Encoding": "gzip, deflate",
+        "Content-Type": "application/json"
+      },
+      body: JSON.stringify(messages)
+    });
+    const payload = await response.json().catch(() => ({}));
+    if (!response.ok) {
+      failed += chunk.length;
+      console.error("expo push send error:", payload);
+      continue;
+    }
+
+    const results = Array.isArray(payload?.data) ? payload.data : [];
+    results.forEach((result, index) => {
+      if (result?.status === "ok") {
+        sent += 1;
+        return;
+      }
+      failed += 1;
+      if (result?.details?.error === "DeviceNotRegistered") {
+        disabledTokens.push(chunk[index]);
+      }
+    });
+  }
+
+  return { sent, failed, disabledTokens };
+}
+
 app.get("/health", (_req, res) => {
   res.json({ ok: true, service: "hotline-backend" });
 });
@@ -184,6 +245,27 @@ app.get("/api/contacts", async (req, res) => {
   });
 
   res.json(rows);
+});
+
+app.post("/api/push/register", async (req, res) => {
+  try {
+    const token = String(req.body?.token || "").trim();
+    if (!isExpoPushToken(token)) {
+      return res.status(400).json({ error: "Invalid Expo push token" });
+    }
+
+    await store.upsertPushToken({
+      token,
+      platform: String(req.body?.platform || "").trim().slice(0, 30),
+      device_id: String(req.body?.device_id || "").trim().slice(0, 120),
+      ui_language: String(req.body?.ui_language || "").trim().slice(0, 20),
+      screen_size: String(req.body?.screen_size || "").trim().slice(0, 40)
+    });
+    res.status(201).json({ ok: true });
+  } catch (err) {
+    console.error("push register error:", err);
+    res.status(500).json({ error: "Failed to register push token" });
+  }
 });
 
 app.post("/api/feedback", async (req, res) => {
@@ -285,6 +367,55 @@ app.get("/api/admin/contacts", adminAuth, async (req, res) => {
     offset: parsedOffset
   });
   res.json(rows);
+});
+
+app.get("/api/admin/push/stats", adminAuth, async (_req, res) => {
+  const stats = await store.getPushTokenStats();
+  res.json({
+    total: Number(stats?.total || 0),
+    active: Number(stats?.active || 0),
+    android: Number(stats?.android || 0),
+    ios: Number(stats?.ios || 0)
+  });
+});
+
+app.post("/api/admin/push/send", adminAuth, async (req, res) => {
+  try {
+    const title = String(req.body?.title || "").trim();
+    const body = String(req.body?.body || "").trim();
+    if (!title || !body) {
+      return res.status(400).json({ error: "title and body are required" });
+    }
+
+    const tokens = await store.listActivePushTokens();
+    if (!tokens.length) {
+      return res.json({ ok: true, sent: 0, failed: 0, activeTokens: 0 });
+    }
+
+    const result = await sendExpoPushNotifications(tokens, {
+      title: title.slice(0, 120),
+      body: body.slice(0, 500),
+      data: {
+        source: "hotline-admin",
+        sentAt: new Date().toISOString()
+      }
+    });
+
+    if (result.disabledTokens.length) {
+      await store.disablePushTokens(result.disabledTokens);
+    }
+
+    res.json({
+      ok: true,
+      sent: result.sent,
+      failed: result.failed,
+      activeTokens: tokens.length,
+      disabled: result.disabledTokens.length
+    });
+  } catch (err) {
+    console.error("push send error:", err);
+    res.status(500).json({ error: "Failed to send notification" });
+  }
 });
 
 app.post("/api/admin/upload-logo", adminAuth, async (req, res) => {

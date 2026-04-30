@@ -48,6 +48,21 @@ header.top {
 .actions { display: flex; gap: 8px; align-items: center; }
 .actions.right { justify-content: flex-end; }
 .filters { margin: 8px 0; }
+.stats-grid {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin: 8px 0 14px;
+}
+.stats-grid span {
+  background: rgba(255,255,255,0.06);
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  padding: 8px 12px;
+  color: var(--text);
+  font-size: 13px;
+  font-weight: 700;
+}
 input, select, textarea, button {
   background: var(--card);
   color: var(--text);

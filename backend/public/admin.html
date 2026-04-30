@@ -84,6 +84,31 @@
     </div>
   </section>
 
+  <section class="panel" id="notifications-panel" hidden>
+    <div class="panel-head">
+      <h3>Send Notification</h3>
+      <button id="refresh-push-stats" type="button">Refresh stats</button>
+    </div>
+    <div class="stats-grid" id="push-stats">
+      <span>Active devices: 0</span>
+      <span>Android: 0</span>
+      <span>iOS: 0</span>
+    </div>
+    <form id="push-form">
+      <div class="grid">
+        <label>Notification title
+          <input required name="title" id="push-title" maxlength="120" placeholder="Hotline App Egypt" />
+        </label>
+        <label>Notification message
+          <textarea required name="body" id="push-body" maxlength="500" placeholder="اكتب الرسالة التي ستصل للمستخدمين"></textarea>
+        </label>
+      </div>
+      <div class="actions right">
+        <button type="submit">Send to users</button>
+      </div>
+    </form>
+  </section>
+
   <div class="modal" id="edit-modal" hidden>
     <div class="modal-card">
       <div class="modal-head">

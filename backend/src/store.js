@@ -301,6 +301,49 @@ function createSqliteStore() {
            WHERE id = @id`
         )
         .run({ id, ...payload });
+    },
+
+    async upsertPushToken(payload) {
+      sqliteDb
+        .prepare(
+          `INSERT INTO push_tokens (token, platform, device_id, ui_language, screen_size, enabled, updated_at)
+           VALUES (@token, @platform, @device_id, @ui_language, @screen_size, 1, datetime('now'))
+           ON CONFLICT(token) DO UPDATE SET
+             platform = excluded.platform,
+             device_id = excluded.device_id,
+             ui_language = excluded.ui_language,
+             screen_size = excluded.screen_size,
+             enabled = 1,
+             updated_at = datetime('now')`
+        )
+        .run(payload);
+    },
+
+    async getPushTokenStats() {
+      return sqliteDb
+        .prepare(
+          `SELECT
+             COUNT(*) AS total,
+             SUM(CASE WHEN enabled = 1 THEN 1 ELSE 0 END) AS active,
+             SUM(CASE WHEN platform = 'android' AND enabled = 1 THEN 1 ELSE 0 END) AS android,
+             SUM(CASE WHEN platform = 'ios' AND enabled = 1 THEN 1 ELSE 0 END) AS ios
+           FROM push_tokens`
+        )
+        .get();
+    },
+
+    async listActivePushTokens() {
+      return sqliteDb
+        .prepare("SELECT token FROM push_tokens WHERE enabled = 1 ORDER BY updated_at DESC")
+        .all()
+        .map((row) => row.token);
+    },
+
+    async disablePushTokens(tokens = []) {
+      const uniqueTokens = [...new Set(tokens.filter(Boolean))];
+      if (!uniqueTokens.length) return;
+      const stmt = sqliteDb.prepare("UPDATE push_tokens SET enabled = 0, updated_at = datetime('now') WHERE token = ?");
+      uniqueTokens.forEach((token) => stmt.run(token));
     }
   };
 }
@@ -364,6 +407,18 @@ function createPostgresStore() {
           created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
         );
 
+        CREATE TABLE IF NOT EXISTS push_tokens (
+          id SERIAL PRIMARY KEY,
+          token TEXT UNIQUE NOT NULL,
+          platform TEXT,
+          device_id TEXT,
+          ui_language TEXT,
+          screen_size TEXT,
+          enabled BOOLEAN NOT NULL DEFAULT TRUE,
+          created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+          updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+        );
+
         CREATE INDEX IF NOT EXISTS idx_contacts_name ON contacts (name_ar);
         CREATE INDEX IF NOT EXISTS idx_contacts_phone ON contacts (phone);
         CREATE INDEX IF NOT EXISTS idx_contacts_category ON contacts (category_id);
@@ -374,6 +429,8 @@ function createPostgresStore() {
         CREATE INDEX IF NOT EXISTS idx_contacts_priority_rank ON contacts (priority_rank);
         CREATE INDEX IF NOT EXISTS idx_contact_requests_contact ON contact_requests (contact_id);
         CREATE INDEX IF NOT EXISTS idx_contact_requests_time ON contact_requests (requested_at);
+        CREATE INDEX IF NOT EXISTS idx_push_tokens_enabled ON push_tokens (enabled);
+        CREATE INDEX IF NOT EXISTS idx_push_tokens_device ON push_tokens (device_id);
       `);
       await query(`ALTER TABLE contacts ADD COLUMN IF NOT EXISTS logo_url TEXT`);
     },
@@ -683,6 +740,44 @@ function createPostgresStore() {
          WHERE id = $6`,
         [payload.name_ar, payload.phone, payload.category_slug, payload.message, !!payload.handled, id]
       );
+    },
+
+    async upsertPushToken(payload) {
+      await query(
+        `INSERT INTO push_tokens (token, platform, device_id, ui_language, screen_size, enabled, updated_at)
+         VALUES ($1, $2, $3, $4, $5, TRUE, NOW())
+         ON CONFLICT (token) DO UPDATE SET
+           platform = EXCLUDED.platform,
+           device_id = EXCLUDED.device_id,
+           ui_language = EXCLUDED.ui_language,
+           screen_size = EXCLUDED.screen_size,
+           enabled = TRUE,
+           updated_at = NOW()`,
+        [payload.token, payload.platform, payload.device_id, payload.ui_language, payload.screen_size]
+      );
+    },
+
+    async getPushTokenStats() {
+      const { rows } = await query(
+        `SELECT
+           COUNT(*)::int AS total,
+           COUNT(*) FILTER (WHERE enabled = TRUE)::int AS active,
+           COUNT(*) FILTER (WHERE platform = 'android' AND enabled = TRUE)::int AS android,
+           COUNT(*) FILTER (WHERE platform = 'ios' AND enabled = TRUE)::int AS ios
+         FROM push_tokens`
+      );
+      return rows[0];
+    },
+
+    async listActivePushTokens() {
+      const { rows } = await query("SELECT token FROM push_tokens WHERE enabled = TRUE ORDER BY updated_at DESC");
+      return rows.map((row) => row.token);
+    },
+
+    async disablePushTokens(tokens = []) {
+      const uniqueTokens = [...new Set(tokens.filter(Boolean))];
+      if (!uniqueTokens.length) return;
+      await query("UPDATE push_tokens SET enabled = FALSE, updated_at = NOW() WHERE token = ANY($1::text[])", [uniqueTokens]);
     }
   };
 }
