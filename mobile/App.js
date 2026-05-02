@@ -1911,6 +1911,8 @@ function AppContent() {
   const forwardHistoryRef = useRef([]);
   const suppressNavigationHistoryRef = useRef(false);
   const detailCategoryPositionsRef = useRef({});
+  const detailScrollRefs = useRef({});
+  const detailScrollOffsetsRef = useRef({});
   const [detailGroup, setDetailGroup] = useState("");
   const [detailCategory, setDetailCategory] = useState("");
   const lastDetail = useRef({ group: "", category: "" });
@@ -3085,6 +3087,13 @@ function AppContent() {
       setTimeout(() => setPendingScrollContactId(null), 220);
     });
   };
+
+  const scrollDetailCategoryDown = useCallback((categorySlug) => {
+    const scroller = detailScrollRefs.current[categorySlug];
+    if (!scroller?.scrollTo) return;
+    const currentOffset = detailScrollOffsetsRef.current[categorySlug] || 0;
+    scroller.scrollTo({ y: currentOffset + Math.max(260, Math.round(screenHeight * 0.28)), animated: true });
+  }, [screenHeight]);
 
   const renderCategory = ({ item }) => {
     const selected = activeGroup === item.key;
@@ -4546,6 +4555,8 @@ function AppContent() {
                 return groupItems.map((cat) => {
                   const forceExpanded = cat.slug === "emergency";
                   const opened = forceExpanded || detailCategory === cat.slug;
+                  const detailContacts = getDetailContactsForSlug(cat.slug);
+                  const showScrollArrow = opened && detailContacts.length > 1;
                   return (
                     <View
                       key={cat.slug}
@@ -4592,14 +4603,21 @@ function AppContent() {
                         ) : null}
                       </Pressable>
                       {opened ? (
-                        <ScrollView
-                          style={[styles.detailOpenList, detailOpenListResponsive]}
-                          nestedScrollEnabled
-                          showsVerticalScrollIndicator
-                          keyboardShouldPersistTaps="handled"
-                        >
-                          {getDetailContactsForSlug(cat.slug)
-                            .map((item) => {
+                        <View style={styles.detailOpenListWrap}>
+                          <ScrollView
+                            ref={(node) => {
+                              if (node) detailScrollRefs.current[cat.slug] = node;
+                            }}
+                            style={[styles.detailOpenList, detailOpenListResponsive]}
+                            nestedScrollEnabled
+                            showsVerticalScrollIndicator
+                            keyboardShouldPersistTaps="handled"
+                            onScroll={(event) => {
+                              detailScrollOffsetsRef.current[cat.slug] = event.nativeEvent.contentOffset.y || 0;
+                            }}
+                            scrollEventThrottle={16}
+                          >
+                          {detailContacts.map((item) => {
                               const palette = GROUP_COLORS[cat.group] || { accent: "#ff3b81", card: "#ffffffee" };
                               lastDetail.current = { group: focusedGroup.key, category: cat.slug };
                               return (
@@ -4636,7 +4654,17 @@ function AppContent() {
                                 </View>
                               );
                             })}
-                        </ScrollView>
+                          </ScrollView>
+                          {showScrollArrow ? (
+                            <TouchableOpacity
+                              style={styles.detailScrollHint}
+                              activeOpacity={0.86}
+                              onPress={() => scrollDetailCategoryDown(cat.slug)}
+                            >
+                              <Ionicons name="chevron-down" size={18} color="#ffffff" />
+                            </TouchableOpacity>
+                          ) : null}
+                        </View>
                       ) : null}
                     </View>
                   );
@@ -5918,6 +5946,25 @@ const styles = StyleSheet.create({
   },
   detailOpenList: {
     width: "100%"
+  },
+  detailOpenListWrap: {
+    position: "relative"
+  },
+  detailScrollHint: {
+    position: "absolute",
+    right: 10,
+    bottom: 8,
+    width: 34,
+    height: 34,
+    borderRadius: 17,
+    backgroundColor: "rgba(179,15,127,0.92)",
+    alignItems: "center",
+    justifyContent: "center",
+    shadowColor: "#7a145d",
+    shadowOpacity: 0.24,
+    shadowRadius: 10,
+    shadowOffset: { width: 0, height: 5 },
+    elevation: 4
   },
   chipRow: {
     flexDirection: "row",
