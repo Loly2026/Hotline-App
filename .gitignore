@@ -3,5 +3,7 @@ backend/node_modules/
 mobile/node_modules/
 backend/.env
 mobile/.env
+mobile/google-services.json
+mobile/GoogleService-Info.plist
 .expo/
 .DS_Store

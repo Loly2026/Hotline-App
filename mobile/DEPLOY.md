@@ -3,6 +3,8 @@
 ## Before Build
 
 - Make sure `EXPO_PUBLIC_API_URL` points to the public backend URL, not a local LAN IP.
+- For push notifications on Android, finish Firebase FCM setup first and place `google-services.json` in `mobile/google-services.json`.
+- For push notifications on iOS, finish APNs setup first and place `GoogleService-Info.plist` in `mobile/GoogleService-Info.plist` only if Firebase iOS services are later needed.
 - Replace empty asset files before store builds:
   - `assets/icon.png`
   - `assets/adaptive-icon.png`

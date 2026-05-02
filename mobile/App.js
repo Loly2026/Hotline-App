@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { startTransition, useCallback, useDeferredValue, useEffect, useMemo, useRef, useState } from "react";
 import {
   ActivityIndicator,
   Alert,
@@ -12,7 +12,6 @@ import {
   Modal,
   Platform,
   Pressable,
-  SafeAreaView,
   ScrollView,
   StyleSheet,
   Text,
@@ -22,12 +21,17 @@ import {
   PanResponder,
   ImageBackground,
   Dimensions,
-  useWindowDimensions
+  useWindowDimensions,
+  useColorScheme,
+  Image
 } from "react-native";
 import { LinearGradient } from "expo-linear-gradient";
+import Constants, { ExecutionEnvironment } from "expo-constants";
+import * as NavigationBar from "expo-navigation-bar";
 import * as FileSystem from "expo-file-system";
 import { StatusBar } from "expo-status-bar";
 import { Ionicons, MaterialCommunityIcons } from "@expo/vector-icons";
+import { SafeAreaProvider, SafeAreaView, useSafeAreaInsets } from "react-native-safe-area-context";
 import { API_BASE_URL } from "./src/config/api";
 import FALLBACK_CONTACTS from "./src/data/fallbackContacts";
 
@@ -61,22 +65,22 @@ const GROUP_LABELS = {
     subtitleAr: "مطاعم ومولات"
   },
   finance: {
-    titleEn: "Finance & Realty",
+    titleEn: "Finance & Estate",
     titleAr: "مال وعقارات",
-    subtitleEn: "Finance, banking, and realty",
+    subtitleEn: "Finance, banking, and estate",
     subtitleAr: "مال وعقارات"
   },
   mobility: {
-    titleEn: "Cars & Transport",
-    titleAr: "سيارات ونقل",
-    subtitleEn: "Cars, transport, and shipping",
-    subtitleAr: "سيارات ومواصلات وشحن"
+    titleEn: "Cars & Travel",
+    titleAr: "سيارات وسفر",
+    subtitleEn: "Cars, flights, travel, and shipping",
+    subtitleAr: "سيارات وطيران وسفر وشحن"
   },
   retail: {
-    titleEn: "Services",
-    titleAr: "خدمات",
-    subtitleEn: "Mobile, retail, and useful services",
-    subtitleAr: "خدمات متنوعة"
+    titleEn: "Services Hub",
+    titleAr: "خدمات متنوعة",
+    subtitleEn: "Mobile, hotels, apps, and daily services",
+    subtitleAr: "محمول وفنادق وتطبيقات وخدمات يومية"
   },
   sports: {
     titleEn: "Sports",
@@ -100,6 +104,9 @@ const UI_TEXT = {
   searchCaption: { en: "Search by name or hotline number", ar: "ابحث بالاسم أو برقم الخدمة" },
   languageArabic: { en: "AR", ar: "ع" },
   languageEnglish: { en: "EN", ar: "EN" },
+  themeSystem: { en: "Auto", ar: "تلقائي" },
+  themeLight: { en: "Light", ar: "فاتح" },
+  themeDark: { en: "Dark", ar: "داكن" },
   tapToView: { en: "Tap to view", ar: "اضغط للعرض" },
   didYouMeanPrefix: { en: "Did you mean:", ar: "هل تقصد:" },
   nonPhone: { en: "Non-phone / app-based", ar: "غير هاتفي / عبر التطبيق" },
@@ -166,7 +173,12 @@ const UI_TEXT = {
   selectedPlanSuffix: { en: "plan", ar: "باقة" },
   addressLabel: { en: "Address", ar: "العنوان" },
   detailsLabel: { en: "Details", ar: "تفاصيل" },
-  emailLabel: { en: "Email", ar: "البريد الإلكتروني" }
+  emailLabel: { en: "Email", ar: "البريد الإلكتروني" },
+  websiteLabel: { en: "Website", ar: "الموقع الإلكتروني" },
+  viewOnMap: { en: "View on map", ar: "عرض على الخريطة" },
+  openWebsite: { en: "Open website", ar: "فتح الموقع" },
+  sendEmail: { en: "Send email", ar: "إرسال بريد" },
+  embassySpotlight: { en: "Diplomatic contact in Egypt", ar: "جهة دبلوماسية داخل مصر" }
   ,
   loadingCachedData: { en: "Showing the local cached copy of the data right now.", ar: "يتم عرض نسخة محلية من البيانات حالياً." },
   loadingSavedData: { en: "Showing the latest saved copy of the data right now.", ar: "يتم عرض آخر نسخة محفوظة من البيانات حالياً." },
@@ -294,6 +306,10 @@ function getContactDisplayName(contact, language) {
   return String(contact?.name_ar || "").trim();
 }
 
+function isEmbassyContact(contact) {
+  return contact?.category_slug === "embassies";
+}
+
 function getContactSearchTexts(contact) {
   const baseName = String(contact?.name_ar || "").trim();
   const texts = new Set([baseName]);
@@ -309,6 +325,57 @@ function contactMatchesQuery(contact, normalizedQuery, rawQuery) {
   const categoryName = normalizeText(contact?.category_name_ar);
   const matchesName = getContactSearchTexts(contact).some((text) => normalizeText(text).includes(normalizedQuery));
   return matchesName || categoryName.includes(normalizedQuery) || String(contact?.phone || "").includes(rawQuery);
+}
+
+function extractContactPhones(value) {
+  const raw = String(value || "").trim();
+  if (!raw) return [];
+  const parts = raw
+    .split(/[\n|;]+/g)
+    .map((part) => part.trim())
+    .filter(Boolean);
+  return [...new Set(parts)];
+}
+
+function getContactLogoUrl(contact) {
+  const value = String(contact?.logo_url || "").trim();
+  if (!value) return "";
+  if (/^https?:\/\//i.test(value)) return value;
+  return "";
+}
+
+function applyHexAlpha(color, alphaHex) {
+  const raw = String(color || "").trim();
+  if (!/^#([0-9a-f]{6})$/i.test(raw)) return raw;
+  return `${raw}${alphaHex}`;
+}
+
+function generateAnonymousSenderId() {
+  return `support_${Date.now().toString(36)}_${Math.random().toString(36).slice(2, 8)}`;
+}
+
+function getEmergencyVisual(contact) {
+  if (contact?.category_slug !== "emergency") return null;
+  const name = normalizeText(contact?.name_ar);
+  if (name.includes("اسعاف")) {
+    return { icon: "medical-outline", fg: "#ec4899", bg: "rgba(236,72,153,0.10)" };
+  }
+  if (name.includes("نجده") || name.includes("شرطه") || name.includes("شرطة")) {
+    return { icon: "shield-checkmark-outline", fg: "#2563eb", bg: "rgba(37,99,235,0.10)" };
+  }
+  if (name.includes("مطافي") || name.includes("مطافئ") || name.includes("حريق")) {
+    return { icon: "flame-outline", fg: "#ea580c", bg: "rgba(234,88,12,0.10)" };
+  }
+  if (name.includes("كهرب")) {
+    return { icon: "flash-outline", fg: "#eab308", bg: "rgba(234,179,8,0.12)" };
+  }
+  if (name.includes("غاز")) {
+    return { icon: "warning-outline", fg: "#dc2626", bg: "rgba(220,38,38,0.10)" };
+  }
+  if (name.includes("مياه") || name.includes("مياه")) {
+    return { icon: "water-outline", fg: "#0891b2", bg: "rgba(8,145,178,0.10)" };
+  }
+  return { icon: "alert-circle-outline", fg: "#d0004f", bg: "rgba(208,0,79,0.10)" };
 }
 
 function normalizeText(value) {
@@ -348,7 +415,7 @@ function detectGroup(categoryName) {
   if (n.includes("مستشفيات") || n.includes("طبيه") || n.includes("معامل") || n.includes("صيدليات") || n.includes("ادويه")) return "health";
   if (n.includes("مطاعم") || n.includes("كافيهات") || n.includes("مخابز") || n.includes("حلويات")) return "food";
   if (n.includes("بنوك") || n.includes("تمويل") || n.includes("تأمين") || n.includes("ماليه") || n.includes("تداول")) return "finance";
-  if (n.includes("سيارات") || n.includes("نقل") || n.includes("مواصلات") || n.includes("طيران") || n.includes("وقود")) return "mobility";
+  if (n.includes("سيارات") || n.includes("نقل") || n.includes("مواصلات") || n.includes("طيران") || n.includes("سفر") || n.includes("وقود")) return "mobility";
   if (n.includes("رياض") || n.includes("جيم") || n.includes("ملابس رياضي") || n.includes("اجهزه رياضي") || n.includes("مكملات")) return "sports";
   if (n.includes("سفارات") || n.includes("سياحي") || n.includes("مطارات") || n.includes("ترجمه") || n.includes("اجانب")) return "foreign";
   return "retail";
@@ -370,14 +437,14 @@ const ICONS = {
   foreign: { set: "ion", name: "globe-outline", color: "#0f766e" }
 };
 const GROUP_COLORS = {
-  gov: { accent: "#ef4444", card: "#fde2e2", cardActive: "#f9c9c9" },
-  health: { accent: "#ec4899", card: "#fde1ef", cardActive: "#f9c7e0" },
-  food: { accent: "#f59e0b", card: "#feedd1", cardActive: "#f9ddb0" },
-  finance: { accent: "#0ea5e9", card: "#dcedfb", cardActive: "#c2e2fb" },
-  mobility: { accent: "#22c55e", card: "#deefe0", cardActive: "#cae8d0" },
-  retail: { accent: "#8b5cf6", card: "#ebe0ff", cardActive: "#dbcafc" },
-  sports: { accent: "#f97316", card: "#ffe7d6", cardActive: "#ffd3b5" },
-  foreign: { accent: "#0f766e", card: "#dbf4ef", cardActive: "#c4eae2" }
+  gov: { accent: "#ef4444", card: "#fde2e2", cardActive: "#f9c9c9", darkCard: "#4a1f28", darkCardActive: "#642536" },
+  health: { accent: "#ec4899", card: "#fde1ef", cardActive: "#f9c7e0", darkCard: "#4d2039", darkCardActive: "#67284a" },
+  food: { accent: "#f59e0b", card: "#feedd1", cardActive: "#f9ddb0", darkCard: "#4b3417", darkCardActive: "#67461d" },
+  finance: { accent: "#0ea5e9", card: "#dcedfb", cardActive: "#c2e2fb", darkCard: "#18394b", darkCardActive: "#1f4c63" },
+  mobility: { accent: "#22c55e", card: "#deefe0", cardActive: "#cae8d0", darkCard: "#1d4034", darkCardActive: "#255647" },
+  retail: { accent: "#8b5cf6", card: "#ebe0ff", cardActive: "#dbcafc", darkCard: "#33244f", darkCardActive: "#433066" },
+  sports: { accent: "#f97316", card: "#ffe7d6", cardActive: "#ffd3b5", darkCard: "#4a2b1f", darkCardActive: "#613729" },
+  foreign: { accent: "#0f766e", card: "#dbf4ef", cardActive: "#c4eae2", darkCard: "#173e3a", darkCardActive: "#1d514c" }
 };
 const CATEGORY_GROUP_OVERRIDES = {
   emergency: "gov",
@@ -1001,8 +1068,14 @@ const CONTACT_ASSISTANT_INTENTS = [
   }
 ];
 const introLocal = require("./assets/intro.png");
+const appLogoFallback = require("./assets/adaptive-icon.png");
 const CONTACTS_CACHE_PATH = `${FileSystem.cacheDirectory}contacts-cache.json`;
 const SUGGEST_HINT_PATH = `${FileSystem.documentDirectory}suggest-hint-seen.txt`;
+const ANONYMOUS_SENDER_ID_PATH = `${FileSystem.documentDirectory}anonymous-sender-id.txt`;
+const THEME_PREFERENCE_PATH = `${FileSystem.documentDirectory}theme-preference.txt`;
+const THEME_PREFERENCES = ["system", "light", "dark"];
+const EXPO_PROJECT_ID = "ad40b21c-50ba-4e75-81ed-b21f3df612d6";
+const ANDROID_BANNER_AD_UNIT_ID = "ca-app-pub-1118900297282275/5079356887";
 const ASSISTANT_LOOKUP_STOP_WORDS = [
   "رقم",
   "الرقم",
@@ -1705,8 +1778,10 @@ function sortCategoriesForGroup(a, b, groupKey) {
   return String(a.slug || "").localeCompare(String(b.slug || ""), "en");
 }
 
-export default function App() {
+function AppContent() {
   const { width: screenWidth, height: screenHeight } = useWindowDimensions();
+  const insets = useSafeAreaInsets();
+  const systemColorScheme = useColorScheme();
   const REFERENCE_PHONE_WIDTH = 428;
   const REFERENCE_PHONE_HEIGHT = 926;
   const REFERENCE_TABLET_WIDTH = 900;
@@ -1728,11 +1803,20 @@ export default function App() {
     ? Math.min(widthScale, heightScale)
     : Math.min(Math.max(phoneWidthRatio * 0.55 + phoneHeightRatio * 0.45, 0.86), 1.02);
   const physicalScreenHeight = Dimensions.get("screen").height;
-  const androidSystemInset = isAndroid ? Math.max(physicalScreenHeight - screenHeight, 0) : 0;
+  const measuredAndroidInset = Math.max(physicalScreenHeight - screenHeight, 0);
+  const androidSystemInset = isAndroid
+    ? Math.max(insets.bottom, measuredAndroidInset)
+    : 0;
+  const androidNavigationInset = isAndroid
+    ? Math.max(
+        androidSystemInset,
+        Math.round((isTablet ? 46 : isSmallPhone ? 30 : 34) * heightScale)
+      )
+    : 0;
   const androidBottomSafeOffset = isAndroid
     ? isSmallPhone
-      ? 0
-      : Math.max(androidSystemInset, Math.round((isTablet ? 28 : 22) * heightScale))
+      ? Math.max(androidNavigationInset, Math.round(8 * heightScale))
+      : Math.max(androidNavigationInset, Math.round((isTablet ? 28 : 22) * heightScale))
     : 0;
   const contentHorizontalInset = Math.round((isLargeTablet ? 32 : isTablet ? 22 : 14) * widthScale);
   const swipeThreshold = screenWidth * 0.25;
@@ -1750,8 +1834,8 @@ export default function App() {
   const categoryRowCount = Math.ceil(GROUPS.length / categoryColumns);
   const heroIconSize = Math.round((isLargeTablet ? 46 : isSmallPhone ? 30 : 38) * uiScale);
   const heroInfoIconSize = Math.round((isLargeTablet ? 22 : 20) * uiScale);
-  const categoryIconSize = Math.round((isLargeTablet ? 40 : isAndroidTablet ? 42 : isTablet ? 38 : 50) * uiScale);
-  const bottomSideIconSize = Math.round((isLargeTablet ? 28 : isAndroidTablet ? 24 : isTablet ? 26 : 32) * uiScale);
+  const categoryIconSize = Math.round((isLargeTablet ? 50 : isAndroidTablet ? 52 : isTablet ? 48 : 52) * uiScale);
+  const bottomSideIconSize = Math.round((isLargeTablet ? 28 : isAndroidTablet ? 26 : isTablet ? 26 : isSmallPhone ? 26 : 28) * uiScale);
   const bottomCenterIconSize = Math.round((isLargeTablet ? 24 : isAndroidTablet ? 24 : isTablet ? 20 : isSmallPhone ? 26 : 24) * uiScale);
   const tabletGridGap = Math.round((isLargeTablet ? 22 : isAndroidTablet ? 20 : 18) * heightScale);
   const tabletGridAvailableHeight = Math.max(
@@ -1776,6 +1860,9 @@ export default function App() {
   const contactAssistantScrollRef = useRef(null);
   const contactComposerInputRef = useRef(null);
   const assistantReplyTimersRef = useRef([]);
+  const adMobModuleRef = useRef(null);
+  const notificationsModuleRef = useRef(null);
+  const registeredPushTokenRef = useRef("");
   const scrollY = useRef(new Animated.Value(0)).current;
   const phoneAnim = useRef(new Animated.Value(0)).current;
   const swipeBackX = useRef(new Animated.Value(0)).current;
@@ -1791,10 +1878,13 @@ export default function App() {
   const [contactModalVisible, setContactModalVisible] = useState(false);
   const [appLanguage, setAppLanguage] = useState(() => detectDeviceLanguage());
   const [assistantLanguage, setAssistantLanguage] = useState(() => detectDeviceLanguage());
+  const [themePreference, setThemePreference] = useState("system");
   const [selectedContactTopic, setSelectedContactTopic] = useState("");
   const [quickQuestionsExpanded, setQuickQuestionsExpanded] = useState(false);
   const [contactAssistantHistory, setContactAssistantHistory] = useState([]);
   const [assistantTypingId, setAssistantTypingId] = useState(null);
+  const [adMobReady, setAdMobReady] = useState(false);
+  const [bannerSizeMode, setBannerSizeMode] = useState("adaptive");
   const [aboutModalVisible, setAboutModalVisible] = useState(false);
   const [businessModalVisible, setBusinessModalVisible] = useState(false);
   const [businessRequestVisible, setBusinessRequestVisible] = useState(false);
@@ -1816,6 +1906,10 @@ export default function App() {
   const hasLoadedContactsRef = useRef(false);
   const appStateRef = useRef(AppState.currentState);
   const lastContactsRefreshRef = useRef(0);
+  const navigationSnapshotRef = useRef(null);
+  const backHistoryRef = useRef([]);
+  const forwardHistoryRef = useRef([]);
+  const suppressNavigationHistoryRef = useRef(false);
   const detailCategoryPositionsRef = useRef({});
   const [detailGroup, setDetailGroup] = useState("");
   const [detailCategory, setDetailCategory] = useState("");
@@ -1824,7 +1918,21 @@ export default function App() {
   const [introLoaded, setIntroLoaded] = useState(true);
   const [suggestHintReady, setSuggestHintReady] = useState(false);
   const [showSuggestHint, setShowSuggestHint] = useState(false);
+  const [anonymousSenderId, setAnonymousSenderId] = useState("");
+  const [pushRegistrationTick, setPushRegistrationTick] = useState(0);
+  const [navHistoryMeta, setNavHistoryMeta] = useState({ back: 0, forward: 0 });
+  const effectiveColorScheme =
+    themePreference === "system"
+      ? systemColorScheme === "dark"
+        ? "dark"
+        : "light"
+      : themePreference;
+  const isDarkTheme = effectiveColorScheme === "dark";
+  const isExpoGo = Constants.executionEnvironment === ExecutionEnvironment.StoreClient;
   const isArabicUi = appLanguage === "ar";
+  const deferredQuery = useDeferredValue(query);
+  const arabicUiFont = isArabicUi ? styles.arabicUiFont : null;
+  const arabicAssistantFont = assistantLanguage === "ar" ? styles.arabicUiFont : null;
   const t = useCallback(
     (key) => UI_TEXT[key]?.[appLanguage] ?? UI_TEXT[key]?.ar ?? key,
     [appLanguage]
@@ -1833,17 +1941,269 @@ export default function App() {
     (key) => UI_TEXT[key]?.[assistantLanguage] ?? UI_TEXT[key]?.ar ?? key,
     [assistantLanguage]
   );
-  const canNavigateBack =
-    showIntro ||
-    showSuggestHint ||
-    businessRequestVisible ||
-    businessModalVisible ||
-    aboutModalVisible ||
-    contactModalVisible ||
-    addModalVisible ||
-    !!detailGroup ||
-    !!activeCategorySlug ||
-    !!quickResult;
+  const themePalette = useMemo(
+    () =>
+      isDarkTheme
+        ? {
+            background: "#130f1c",
+            glowTop: "rgba(217,70,239,0.12)",
+            glowBottom: "rgba(99,102,241,0.14)",
+            glowMid: "rgba(255,255,255,0.05)",
+            surface: "rgba(31,25,44,0.94)",
+            surfaceSoft: "rgba(43,34,58,0.92)",
+            surfaceStrong: "rgba(20,16,30,0.98)",
+            border: "rgba(255,255,255,0.10)",
+            borderStrong: "rgba(255,255,255,0.16)",
+            text: "#f8fafc",
+            mutedText: "#cbd5e1",
+            softText: "#a7b0c2",
+            placeholder: "#9ca3af",
+            chip: "rgba(255,255,255,0.08)"
+          }
+        : {
+            background: "#f7e8f3",
+            glowTop: "rgba(226,120,197,0.07)",
+            glowBottom: "rgba(145,110,255,0.05)",
+            glowMid: "rgba(255,255,255,0.08)",
+            surface: "rgba(255,255,255,0.90)",
+            surfaceSoft: "rgba(255,255,255,0.82)",
+            surfaceStrong: "#ffffff",
+            border: "rgba(255,255,255,0.72)",
+            borderStrong: "rgba(179,15,127,0.10)",
+            text: "#111827",
+            mutedText: "#374151",
+            softText: "#6b7280",
+            placeholder: "#7b8799",
+            chip: "rgba(255,255,255,0.42)"
+          },
+    [isDarkTheme]
+  );
+  const themeStyles = useMemo(
+    () => ({
+      container: { backgroundColor: themePalette.background },
+      appGlowTop: { backgroundColor: themePalette.glowTop },
+      appGlowBottom: { backgroundColor: themePalette.glowBottom },
+      appGlowMid: { backgroundColor: themePalette.glowMid },
+      searchBar: {
+        backgroundColor: isDarkTheme ? "rgba(255,255,255,0.13)" : "rgba(255,255,255,0.82)",
+        borderColor: isDarkTheme ? "rgba(255,255,255,0.18)" : "rgba(255,255,255,0.92)"
+      },
+      searchInput: { color: isDarkTheme ? "#ffffff" : "#111827" },
+      searchIconBadge: {
+        backgroundColor: isDarkTheme ? "rgba(255,255,255,0.15)" : "#ffffff",
+        borderColor: isDarkTheme ? "rgba(255,255,255,0.16)" : "#f1d6ea"
+      },
+      clearSearchBtn: { backgroundColor: isDarkTheme ? "rgba(255,255,255,0.12)" : "rgba(255,255,255,0.46)" },
+      clearSearchText: { color: isDarkTheme ? "#f8fafc" : "#334155" },
+      appLanguageToggle: {
+        backgroundColor: isDarkTheme ? "rgba(255,255,255,0.12)" : "rgba(255,255,255,0.18)",
+        borderColor: isDarkTheme ? "rgba(255,255,255,0.16)" : "rgba(255,255,255,0.22)"
+      },
+      appThemeBtn: {
+        backgroundColor: isDarkTheme ? "rgba(255,255,255,0.14)" : "rgba(255,255,255,0.18)",
+        borderColor: isDarkTheme ? "rgba(255,255,255,0.18)" : "rgba(255,255,255,0.24)"
+      },
+      surface: {
+        backgroundColor: themePalette.surfaceSoft,
+        borderColor: themePalette.border
+      },
+      surfaceStrong: {
+        backgroundColor: themePalette.surfaceStrong,
+        borderColor: themePalette.borderStrong
+      },
+      text: { color: themePalette.text },
+      mutedText: { color: themePalette.mutedText },
+      softText: { color: themePalette.softText },
+      chip: {
+        backgroundColor: themePalette.chip,
+        borderColor: themePalette.borderStrong
+      },
+      modalCard: {
+        backgroundColor: themePalette.surface,
+        borderColor: themePalette.border
+      },
+      input: {
+        backgroundColor: isDarkTheme ? "rgba(255,255,255,0.08)" : "rgba(255,255,255,0.95)",
+        borderColor: isDarkTheme ? "rgba(255,255,255,0.14)" : "#dbe3f5",
+        color: themePalette.text
+      },
+      chatBotBubble: {
+        backgroundColor: isDarkTheme ? "rgba(255,255,255,0.08)" : "rgba(255,240,248,0.96)",
+        borderColor: isDarkTheme ? "rgba(255,255,255,0.12)" : "rgba(240,190,225,0.9)"
+      },
+      priorityPhoneCard: {
+        backgroundColor: isDarkTheme ? "#211f2f" : "#fdf2f8",
+        borderColor: isDarkTheme ? "rgba(255,255,255,0.08)" : "rgba(217,70,239,0.12)"
+      },
+      contactMetaTile: {
+        backgroundColor: isDarkTheme ? "#262334" : "rgba(255,255,255,0.86)",
+        borderColor: isDarkTheme ? "rgba(255,255,255,0.08)" : "rgba(179,15,127,0.10)"
+      }
+    }),
+    [isDarkTheme, themePalette]
+  );
+
+  useEffect(() => {
+    if (!isAndroid) return;
+
+    NavigationBar.setVisibilityAsync("visible").catch(() => {});
+    NavigationBar.setBehaviorAsync("inset-swipe").catch(() => {});
+    NavigationBar.setBackgroundColorAsync("#b30f7f").catch(() => {});
+    NavigationBar.setButtonStyleAsync("light").catch(() => {});
+  }, [isAndroid, isDarkTheme]);
+
+  useEffect(() => {
+    if (!isAndroid || isExpoGo) return undefined;
+
+    let mounted = true;
+
+    async function initAds() {
+      try {
+        const adsModule =
+          adMobModuleRef.current ||
+          require("react-native-google-mobile-ads");
+        adMobModuleRef.current = adsModule;
+        await adsModule.default().initialize();
+        if (mounted) setAdMobReady(true);
+      } catch (err) {
+        console.log("admob init skipped:", err?.message || err);
+      }
+    }
+
+    initAds();
+    return () => {
+      mounted = false;
+    };
+  }, [isAndroid, isExpoGo]);
+
+  const updateThemePreference = useCallback((nextPreference) => {
+    const normalized = THEME_PREFERENCES.includes(nextPreference) ? nextPreference : "system";
+    startTransition(() => {
+      setThemePreference(normalized);
+    });
+    FileSystem.writeAsStringAsync(THEME_PREFERENCE_PATH, normalized).catch(() => {
+      // Theme still changes immediately even if persistence fails.
+    });
+  }, []);
+  const cycleThemePreference = useCallback(() => {
+    const currentIndex = THEME_PREFERENCES.indexOf(themePreference);
+    const nextPreference = THEME_PREFERENCES[(currentIndex + 1) % THEME_PREFERENCES.length] || "system";
+    updateThemePreference(nextPreference);
+  }, [themePreference, updateThemePreference]);
+  const themeLabel =
+    themePreference === "dark"
+      ? t("themeDark")
+      : themePreference === "light"
+        ? t("themeLight")
+        : t("themeSystem");
+  const themeIconName =
+    themePreference === "dark"
+      ? "moon"
+      : themePreference === "light"
+        ? "sunny"
+        : "phone-portrait-outline";
+  const syncNavigationMeta = useCallback(() => {
+    setNavHistoryMeta({
+      back: backHistoryRef.current.length,
+      forward: forwardHistoryRef.current.length
+    });
+  }, []);
+  const findContactById = useCallback(
+    (contactId) => allContacts.find((contact) => contact.id === contactId) || null,
+    [allContacts]
+  );
+  const buildNavigationSnapshot = useCallback(
+    () => ({
+      showIntro,
+      showSuggestHint,
+      addModalVisible,
+      contactModalVisible,
+      aboutModalVisible,
+      businessModalVisible,
+      businessRequestVisible,
+      detailGroup,
+      detailCategory,
+      activeCategorySlug,
+      activeGroup,
+      quickResultId: quickResult?.id || null
+    }),
+    [
+      showIntro,
+      showSuggestHint,
+      addModalVisible,
+      contactModalVisible,
+      aboutModalVisible,
+      businessModalVisible,
+      businessRequestVisible,
+      detailGroup,
+      detailCategory,
+      activeCategorySlug,
+      activeGroup,
+      quickResult
+    ]
+  );
+  const restoreNavigationSnapshot = useCallback(
+    (snapshot) => {
+      if (!snapshot) return;
+      setShowIntro(!!snapshot.showIntro);
+      setShowSuggestHint(!!snapshot.showSuggestHint);
+      setAddModalVisible(!!snapshot.addModalVisible);
+      setContactModalVisible(!!snapshot.contactModalVisible);
+      setAboutModalVisible(!!snapshot.aboutModalVisible);
+      setBusinessModalVisible(!!snapshot.businessModalVisible);
+      setBusinessRequestVisible(!!snapshot.businessRequestVisible);
+      setDetailGroup(snapshot.detailGroup || "");
+      setDetailCategory(snapshot.detailCategory || "");
+      setActiveCategorySlug(snapshot.activeCategorySlug || "");
+      setActiveGroup(snapshot.activeGroup || "all");
+      setQuickResult(snapshot.quickResultId ? findContactById(snapshot.quickResultId) : null);
+      if (!snapshot.detailGroup && !snapshot.activeCategorySlug && !snapshot.quickResultId) {
+        setPendingScrollContactId(null);
+      }
+    },
+    [findContactById]
+  );
+  const isSnapshotHistoryEligible = useCallback(
+    (snapshot) => !!snapshot && !snapshot.showIntro && !snapshot.showSuggestHint,
+    []
+  );
+  const applyNavigationSnapshot = useCallback(
+    (snapshot) => {
+      suppressNavigationHistoryRef.current = true;
+      navigationSnapshotRef.current = snapshot;
+      restoreNavigationSnapshot(snapshot);
+      syncNavigationMeta();
+    },
+    [restoreNavigationSnapshot, syncNavigationMeta]
+  );
+  const navigateForwardOneStep = useCallback(() => {
+    let next = null;
+    while (forwardHistoryRef.current.length && !next) {
+      const candidate = forwardHistoryRef.current.pop();
+      if (isSnapshotHistoryEligible(candidate)) {
+        next = candidate;
+      }
+    }
+    if (!next) return false;
+    const current = buildNavigationSnapshot();
+    backHistoryRef.current = [...backHistoryRef.current.slice(-23), current];
+    applyNavigationSnapshot(next);
+    return true;
+  }, [applyNavigationSnapshot, buildNavigationSnapshot, isSnapshotHistoryEligible]);
+  const navigateBackByHistory = useCallback(() => {
+    let previous = null;
+    while (backHistoryRef.current.length && !previous) {
+      const candidate = backHistoryRef.current.pop();
+      if (isSnapshotHistoryEligible(candidate)) {
+        previous = candidate;
+      }
+    }
+    if (!previous) return false;
+    const current = buildNavigationSnapshot();
+    forwardHistoryRef.current = [...forwardHistoryRef.current.slice(-23), current];
+    applyNavigationSnapshot(previous);
+    return true;
+  }, [applyNavigationSnapshot, buildNavigationSnapshot, isSnapshotHistoryEligible]);
 
   const closeDetailView = () => {
     setDetailGroup("");
@@ -1910,7 +2270,36 @@ export default function App() {
     quickResult
   ]);
 
-  const panResponder = useRef(
+  useEffect(() => {
+    const nextSnapshot = buildNavigationSnapshot();
+    const currentSnapshot = navigationSnapshotRef.current;
+    if (!currentSnapshot) {
+      navigationSnapshotRef.current = nextSnapshot;
+      syncNavigationMeta();
+      return;
+    }
+    if (JSON.stringify(currentSnapshot) === JSON.stringify(nextSnapshot)) {
+      return;
+    }
+    if (suppressNavigationHistoryRef.current) {
+      suppressNavigationHistoryRef.current = false;
+      navigationSnapshotRef.current = nextSnapshot;
+      syncNavigationMeta();
+      return;
+    }
+    if (!isSnapshotHistoryEligible(currentSnapshot) || !isSnapshotHistoryEligible(nextSnapshot)) {
+      navigationSnapshotRef.current = nextSnapshot;
+      syncNavigationMeta();
+      return;
+    }
+    backHistoryRef.current = [...backHistoryRef.current.slice(-23), currentSnapshot];
+    forwardHistoryRef.current = [];
+    navigationSnapshotRef.current = nextSnapshot;
+    syncNavigationMeta();
+  }, [buildNavigationSnapshot, isSnapshotHistoryEligible, syncNavigationMeta]);
+
+  const panResponder = useMemo(
+    () =>
     PanResponder.create({
       onMoveShouldSetPanResponderCapture: (e, g) => {
         if (!detailGroup) return false;
@@ -1946,26 +2335,9 @@ export default function App() {
           useNativeDriver: true
         }).start();
       }
-    })
-  ).current;
-
-  const iosBackSwipeResponder = useRef(
-    PanResponder.create({
-      onMoveShouldSetPanResponderCapture: (e, g) => {
-        if (Platform.OS !== "ios" || !canNavigateBack) return false;
-        return e.nativeEvent.pageX <= 28 && g.dx > 12 && Math.abs(g.dx) > Math.abs(g.dy);
-      },
-      onMoveShouldSetPanResponder: (e, g) => {
-        if (Platform.OS !== "ios" || !canNavigateBack) return false;
-        return e.nativeEvent.pageX <= 28 && g.dx > 12 && Math.abs(g.dx) > Math.abs(g.dy);
-      },
-      onPanResponderRelease: (_e, g) => {
-        if (g.dx > swipeThreshold || g.vx > 0.65) {
-          navigateBackOneStep();
-        }
-      }
-    })
-  ).current;
+    }),
+    [detailGroup, screenWidth, swipeBackX, swipeThreshold]
+  );
 
   const addSheetResponder = useRef(
     PanResponder.create({
@@ -2061,6 +2433,26 @@ export default function App() {
   }, [loadContacts]);
 
   useEffect(() => {
+    let cancelled = false;
+    async function loadThemePreference() {
+      try {
+        const info = await FileSystem.getInfoAsync(THEME_PREFERENCE_PATH);
+        if (!info.exists) return;
+        const savedPreference = (await FileSystem.readAsStringAsync(THEME_PREFERENCE_PATH)).trim();
+        if (!cancelled && THEME_PREFERENCES.includes(savedPreference)) {
+          setThemePreference(savedPreference);
+        }
+      } catch {
+        // Keep the default system theme if the saved preference cannot be read.
+      }
+    }
+    loadThemePreference();
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
+  useEffect(() => {
     const subscription = AppState.addEventListener("change", (nextState) => {
       const wasBackgrounded = /inactive|background/.test(appStateRef.current);
       if (wasBackgrounded && nextState === "active") {
@@ -2117,10 +2509,6 @@ export default function App() {
   }, [contactModalVisible]);
 
   useEffect(() => {
-    setAssistantLanguage(appLanguage);
-  }, [appLanguage]);
-
-  useEffect(() => {
     return () => {
       assistantReplyTimersRef.current.forEach(clearTimeout);
       assistantReplyTimersRef.current = [];
@@ -2136,8 +2524,8 @@ export default function App() {
   }, [allContacts]);
 
   const predictions = useMemo(() => {
-    const q = normalizeText(query);
-    const raw = query.trim();
+    const q = normalizeText(deferredQuery);
+    const raw = deferredQuery.trim();
     if ((!q || q.length < 2) && raw.length < 2) return [];
 
     const byName = allContacts.filter((c) => q && contactMatchesQuery(c, q, raw));
@@ -2147,10 +2535,10 @@ export default function App() {
     );
 
     return sortContacts(merged).slice(0, 5);
-  }, [query, allContacts]);
+  }, [deferredQuery, allContacts]);
 
   const typoSuggestion = useMemo(() => {
-    const q = normalizeText(query);
+    const q = normalizeText(deferredQuery);
     if (!q || q.length < 3 || predictions.length) return "";
     let best = "";
     let score = 999;
@@ -2162,26 +2550,26 @@ export default function App() {
       }
     }
     return score <= 2 ? best : "";
-  }, [query, predictions, nameTerms]);
+  }, [deferredQuery, predictions, nameTerms]);
 
   const filtered = useMemo(() => {
-    const q = normalizeText(query);
+    const q = normalizeText(deferredQuery);
     return allContacts.filter((c) => {
       const passGroup = detailGroup ? true : activeGroup === "all" || resolveGroupForCategory(c) === activeGroup;
       const passCategory = detailGroup ? true : !activeCategorySlug || c.category_slug === activeCategorySlug;
       if (!passGroup) return false;
       if (!passCategory) return false;
       if (!q) return true;
-      return contactMatchesQuery(c, q, query.trim());
+      return contactMatchesQuery(c, q, deferredQuery.trim());
     });
-  }, [allContacts, query, activeGroup, activeCategorySlug]);
+  }, [allContacts, deferredQuery, activeGroup, activeCategorySlug]);
 
   const getDetailContactsForSlug = (slug) => {
-    const q = normalizeText(query);
+    const q = normalizeText(deferredQuery);
     return allContacts.filter((c) => {
       if (c.category_slug !== slug) return false;
       if (!q) return true;
-      return contactMatchesQuery(c, q, query.trim());
+      return contactMatchesQuery(c, q, deferredQuery.trim());
     });
   };
 
@@ -2374,9 +2762,14 @@ export default function App() {
     return () => loop.stop();
   }, [phoneAnim]);
 
-  const callNumber = async (item) => {
-    if (item.is_non_phone) return;
-    const url = `tel:${item.phone}`;
+  const callNumber = async (itemOrPhone) => {
+    const rawPhone =
+      typeof itemOrPhone === "string"
+        ? itemOrPhone
+        : extractContactPhones(itemOrPhone?.phone)[0] || String(itemOrPhone?.phone || "").trim();
+    const isNonPhone = typeof itemOrPhone === "object" && itemOrPhone?.is_non_phone;
+    if (isNonPhone || !rawPhone) return;
+    const url = `tel:${rawPhone}`;
     const canOpen = await Linking.canOpenURL(url);
     if (canOpen) await Linking.openURL(url);
   };
@@ -2396,6 +2789,52 @@ export default function App() {
     return match ? match[0] : "";
   };
 
+  const extractWebsiteFromNotes = (value) => {
+    const text = String(value || "").trim();
+    if (!text) return "";
+    const explicit = text.match(/Website:\s*([^\s|]+)/i);
+    if (explicit?.[1]) return explicit[1].trim();
+    const fallback = text.match(/(?:https?:\/\/|www\.)[^\s|]+/i);
+    return fallback ? fallback[0].trim() : "";
+  };
+
+  const extractMapUrlFromNotes = (value) => {
+    const text = String(value || "").trim();
+    if (!text) return "";
+    const explicit = text.match(/Map:\s*(https?:\/\/[^\s|]+)/i);
+    if (explicit?.[1]) return explicit[1].trim();
+    const fallback = text.match(/https?:\/\/(?:www\.)?(?:google\.[^/\s]+|maps\.app\.goo\.gl|goo\.gl|maps\.google\.[^\s|]+)[^\s|]*/i);
+    return fallback ? fallback[0].trim() : "";
+  };
+
+  const openWebsiteUrl = async (value) => {
+    let website = String(value || "").trim();
+    if (!website) return;
+    if (!/^https?:\/\//i.test(website)) website = `https://${website}`;
+    const canOpen = await Linking.canOpenURL(website);
+    if (canOpen) await Linking.openURL(website);
+  };
+
+  const openMapForContact = async (item) => {
+    const name = getContactDisplayName(item, appLanguage) || String(item?.name_ar || "").trim();
+    if (!name) return;
+
+    const encoded = encodeURIComponent(name);
+    const nativeUrl =
+      Platform.OS === "ios"
+        ? `maps:0,0?q=${encoded}`
+        : `geo:0,0?q=${encoded}`;
+    const webUrl = `https://www.google.com/maps/search/?api=1&query=${encoded}`;
+
+    const canOpenNative = await Linking.canOpenURL(nativeUrl);
+    if (canOpenNative) {
+      await Linking.openURL(nativeUrl);
+      return;
+    }
+    const canOpenWeb = await Linking.canOpenURL(webUrl);
+    if (canOpenWeb) await Linking.openURL(webUrl);
+  };
+
   const showUiAlert = useCallback(
     (title, message, compactMessage = message) => {
       Alert.alert(title, isSmallPhone ? compactMessage : message);
@@ -2404,7 +2843,9 @@ export default function App() {
   );
 
   const handleIntroContinue = async () => {
-    setShowIntro(false);
+    startTransition(() => {
+      setShowIntro(false);
+    });
   };
 
   const renderContactBadges = (item, compact = false) => {
@@ -2416,9 +2857,96 @@ export default function App() {
       <View style={[styles.contactBadgeRow, compact && styles.contactBadgeRowCompact]}>
         {badges.map((badge) => (
           <View key={badge.key} style={[styles.contactBadge, contactBadgeResponsive, badge.style]}>
-            <Text style={[styles.contactBadgeText, contactBadgeTextResponsive, badge.text]}>{badge.label}</Text>
+            <Text style={[styles.contactBadgeText, contactBadgeTextResponsive, badge.text, arabicUiFont]}>{badge.label}</Text>
           </View>
         ))}
+      </View>
+    );
+  };
+
+  const renderContactPriorityPhone = (item, compact = false) => {
+    const phones = extractContactPhones(item?.phone);
+    if (!phones.length || item?.is_non_phone) return null;
+    return (
+      <View style={[styles.priorityPhoneStack, compact && styles.priorityPhoneStackCompact]}>
+        {phones.map((phone, index) => (
+          <TouchableOpacity
+            key={`${item?.id || "contact"}-${phone}-${index}`}
+            style={[styles.priorityPhoneCard, compact && styles.priorityPhoneCardCompact, themeStyles.priorityPhoneCard]}
+            activeOpacity={0.86}
+            onPress={() => callNumber(phone)}
+          >
+            <View style={[styles.priorityPhoneIconWrap, compact && styles.priorityPhoneIconWrapCompact]}>
+              <Ionicons name="call-outline" size={compact ? 18 : 20} color="#fff" />
+            </View>
+            <View style={styles.priorityPhoneTextWrap}>
+              <Text style={[styles.priorityPhoneLabel, compact && styles.priorityPhoneLabelCompact]}>
+                {appLanguage === "ar" ? `رقم الاتصال${phones.length > 1 ? ` ${index + 1}` : ""}` : `Contact number${phones.length > 1 ? ` ${index + 1}` : ""}`}
+              </Text>
+              <Text style={[styles.priorityPhoneValue, compact && styles.priorityPhoneValueCompact, themeStyles.text, arabicUiFont]}>{phone}</Text>
+            </View>
+          </TouchableOpacity>
+        ))}
+      </View>
+    );
+  };
+
+  const renderContactHero = (item, compact = false) => {
+    const title = getContactDisplayName(item, appLanguage);
+    const subtitle = getCategoryDisplayName(item.category_slug, item.category_name_ar, appLanguage);
+    const heroGroupKey = CATEGORY_GROUP_OVERRIDES[item.category_slug] || detectGroup(item.category_name_ar || item.category_slug);
+    const heroPalette = GROUP_COLORS[heroGroupKey] || GROUP_COLORS.retail;
+    const heroAccent = heroPalette.accent || "#b30f7f";
+    const emergencyVisual = getEmergencyVisual(item);
+    const heroIconName = isEmbassyContact(item)
+      ? "business-outline"
+      : emergencyVisual?.icon || (item?.is_non_phone ? "information-circle-outline" : "call-outline");
+    const logoUrl = getContactLogoUrl(item);
+    const shouldUseAppLogoFallback = !logoUrl && !isEmbassyContact(item) && item?.category_slug !== "emergency";
+    const heroVisualStyle = compact ? styles.contactHeroVisualShellCompact : null;
+    const heroVisualInnerStyle = compact ? styles.contactHeroVisualInnerCompact : null;
+    const heroVisualColors = isDarkTheme
+      ? [applyHexAlpha(heroAccent, "66"), "rgba(255,255,255,0.08)"]
+      : [applyHexAlpha(heroAccent, "38"), "rgba(255,255,255,0.92)"];
+    return (
+      <View style={[styles.contactHeroRow, compact && styles.contactHeroRowCompact]}>
+        {logoUrl ? (
+          <LinearGradient colors={heroVisualColors} style={[styles.contactHeroVisualShell, heroVisualStyle]}>
+            <View style={[styles.contactHeroVisualInner, heroVisualInnerStyle]}>
+              <Image source={{ uri: logoUrl }} style={[styles.contactHeroLogo, compact && styles.contactHeroLogoCompact]} resizeMode="contain" />
+            </View>
+          </LinearGradient>
+        ) : shouldUseAppLogoFallback ? (
+          <LinearGradient colors={heroVisualColors} style={[styles.contactHeroVisualShell, heroVisualStyle]}>
+            <View style={[styles.contactHeroVisualInner, styles.contactHeroVisualInnerPlain, heroVisualInnerStyle]}>
+              <Image source={appLogoFallback} style={[styles.contactHeroLogoPlain, compact && styles.contactHeroLogoPlainCompact]} resizeMode="contain" />
+            </View>
+          </LinearGradient>
+        ) : (
+          <LinearGradient
+            colors={[
+              applyHexAlpha(emergencyVisual?.fg || heroAccent, isDarkTheme ? "77" : "42"),
+              isDarkTheme ? "rgba(255,255,255,0.08)" : "rgba(255,255,255,0.94)"
+            ]}
+            style={[
+              styles.contactHeroVisualShell,
+              heroVisualStyle,
+              emergencyVisual && { borderColor: `${emergencyVisual.fg}44` }
+            ]}
+          >
+            <View style={[styles.contactHeroVisualInner, heroVisualInnerStyle]}>
+              <Ionicons
+                name={heroIconName}
+                size={compact ? 22 : 26}
+                color={emergencyVisual?.fg || heroAccent}
+              />
+            </View>
+          </LinearGradient>
+        )}
+        <View style={styles.contactHeroTextWrap}>
+            <Text style={[styles.contactHeroTitle, compact && styles.contactHeroTitleCompact, themeStyles.text, arabicUiFont]}>{title}</Text>
+          <Text style={[styles.contactHeroSubtitle, compact && styles.contactHeroSubtitleCompact, themeStyles.softText, arabicUiFont]}>{subtitle}</Text>
+        </View>
       </View>
     );
   };
@@ -2427,41 +2955,121 @@ export default function App() {
     const address = String(item?.address || "").trim();
     const notes = String(item?.notes || "").trim();
     const email = extractEmailFromNotes(notes);
-    const plainNotes = email ? notes.replace(email, "").replace(/\s*[-–—:|]\s*$/, "").trim() : notes;
-    if (!address && !notes) return null;
+    const website = extractWebsiteFromNotes(notes);
+    const mapUrl = extractMapUrlFromNotes(notes);
+    const plainNotes = notes
+      .replace(email, "")
+      .replace(website, "")
+      .replace(mapUrl, "")
+      .replace(/Website:\s*/gi, "")
+      .replace(/Map:\s*/gi, "")
+      .replace(/\s*\|\s*/g, " ")
+      .replace(/\s*[-–—:|]\s*$/, "")
+      .replace(/\s{2,}/g, " ")
+      .trim();
+    const canShowMapAction =
+      item?.category_slug !== "emergency" &&
+      !!String(getContactDisplayName(item, appLanguage) || item?.name_ar || "").trim();
+    if (!address && !email && !website && !plainNotes && !canShowMapAction) return null;
+
+    const renderMetaTile = (icon, label, value, options = {}) => {
+      if (!value) return null;
+      const isLink = !!options.onPress;
+      const Tile = isLink ? TouchableOpacity : View;
+      return (
+        <Tile
+          style={[styles.contactMetaTile, compact && styles.contactMetaTileCompact, themeStyles.contactMetaTile, isLink && styles.contactMetaTilePressable]}
+          onPress={options.onPress}
+          activeOpacity={0.82}
+        >
+          <View style={[styles.contactMetaTileIcon, compact && styles.contactMetaTileIconCompact]}>
+            <Ionicons name={icon} size={compact ? 15 : 16} color={options.iconColor || "#b30f7f"} />
+          </View>
+          <View style={styles.contactMetaTileContent}>
+            <Text style={[styles.contactMetaTileLabel, compact && styles.contactMetaTileLabelCompact, isDarkTheme && { color: "#f0abfc" }, arabicUiFont]}>{label}</Text>
+            <Text
+              style={[
+                styles.contactMetaTileValue,
+                compact && styles.contactMetaTileValueCompact,
+                themeStyles.mutedText,
+                isLink && styles.contactMetaTileLink,
+                arabicUiFont
+              ]}
+              numberOfLines={options.singleLine ? 1 : undefined}
+            >
+              {value}
+            </Text>
+          </View>
+        </Tile>
+      );
+    };
+
     return (
       <View style={[styles.contactMetaWrap, compact && styles.contactMetaWrapCompact]}>
-        {address ? (
-          <View style={styles.contactMetaRow}>
-            <Text style={styles.contactMetaLabel}>{t("addressLabel")}:</Text>
-            <Text style={styles.contactMetaValue}>{address}</Text>
+        {address || email || website || plainNotes ? (
+          <View style={styles.contactMetaGrid}>
+            {renderMetaTile("location-outline", t("addressLabel"), address)}
+            {renderMetaTile("mail-outline", t("emailLabel"), email, {
+              onPress: () => openEmailAddress(email),
+              iconColor: "#d946ef",
+              singleLine: true
+            })}
+            {renderMetaTile("globe-outline", t("websiteLabel"), website, {
+              onPress: () => openWebsiteUrl(website),
+              iconColor: "#8b5cf6",
+              singleLine: true
+            })}
+            {renderMetaTile("information-circle-outline", t("detailsLabel"), plainNotes, {
+              iconColor: "#0f766e"
+            })}
           </View>
         ) : null}
-        {email ? (
-          <View style={styles.contactMetaRow}>
-            <Text style={styles.contactMetaLabel}>{t("emailLabel")}:</Text>
-            <TouchableOpacity onPress={() => openEmailAddress(email)} activeOpacity={0.8}>
-              <Text style={[styles.contactMetaValue, styles.contactMetaLink]}>{email}</Text>
+        <View style={styles.contactMetaActionsRow}>
+          {canShowMapAction ? (
+            <TouchableOpacity style={[styles.metaActionBtn, styles.mapActionBtn]} onPress={() => openMapForContact(item)}>
+              <Ionicons name="navigate-outline" size={16} color="#fff" />
+              <Text style={[styles.metaActionBtnText, arabicUiFont]}>{t("viewOnMap")}</Text>
             </TouchableOpacity>
-          </View>
-        ) : null}
-        {plainNotes ? (
-          <View style={styles.contactMetaRow}>
-            <Text style={styles.contactMetaLabel}>{t("detailsLabel")}:</Text>
-            <Text style={styles.contactMetaValue}>{plainNotes}</Text>
-          </View>
-        ) : null}
+          ) : null}
+          {email ? (
+            <TouchableOpacity style={[styles.metaActionBtn, styles.emailActionBtn]} onPress={() => openEmailAddress(email)}>
+              <Ionicons name="mail-outline" size={16} color="#d946ef" />
+              <Text style={[styles.metaActionBtnText, styles.emailActionBtnText, arabicUiFont]}>{t("sendEmail")}</Text>
+            </TouchableOpacity>
+          ) : null}
+          {website ? (
+            <TouchableOpacity style={[styles.metaActionBtn, styles.websiteActionBtn]} onPress={() => openWebsiteUrl(website)}>
+              <Ionicons name="open-outline" size={16} color="#8b5cf6" />
+              <Text style={[styles.metaActionBtnText, styles.websiteActionBtnText, arabicUiFont]}>{t("openWebsite")}</Text>
+            </TouchableOpacity>
+          ) : null}
+        </View>
       </View>
     );
   };
 
   const dismissSuggestHint = () => {
-    setShowSuggestHint(false);
-    setSuggestHintReady(false);
+    startTransition(() => {
+      setShowSuggestHint(false);
+      setSuggestHintReady(false);
+    });
     FileSystem.writeAsStringAsync(SUGGEST_HINT_PATH, "seen").catch(() => {
       // Ignore persistence failure; UI already dismissed.
     });
   };
+
+  const applyAppLanguage = useCallback((nextLanguage) => {
+    startTransition(() => {
+      setAppLanguage(nextLanguage);
+      setAssistantLanguage(nextLanguage);
+    });
+  }, []);
+
+  const applyAssistantLanguage = useCallback((nextLanguage) => {
+    startTransition(() => {
+      setAssistantLanguage(nextLanguage);
+    });
+  }, []);
 
   const scrollToResults = () => {
     if (resultsAnchorY > 0) {
@@ -2495,8 +3103,12 @@ export default function App() {
             categoryCardResponsive,
             {
               shadowColor: palette.accent,
-              backgroundColor: selected ? palette.cardActive || palette.card : palette.card,
-              borderColor: "rgba(255,255,255,0.28)"
+              backgroundColor: isDarkTheme
+                ? `${palette.accent}${selected ? "36" : "22"}`
+                : selected
+                  ? palette.cardActive || palette.card
+                  : palette.card,
+              borderColor: isDarkTheme ? `${palette.accent}55` : "rgba(255,255,255,0.28)"
             },
             pressed && [styles.categoryCardPressed, { shadowColor: palette.accent }]
           ]}
@@ -2513,19 +3125,89 @@ export default function App() {
         >
           <View style={styles.cardContent}>
             <View style={[styles.categoryImageWrap, categoryImageWrapResponsive]}>
-              <View style={[styles.categoryBadge, categoryBadgeResponsive]}>
-                <View style={[styles.categoryIconWrap, categoryIconWrapResponsive]}>
-                  <IconComp name={iconMeta.name || "apps"} size={categoryIconSize} color={iconMeta.color || "#6b7280"} />
+                <View style={[styles.categoryBadge, categoryBadgeResponsive]}>
+                  <View style={[styles.categoryIconWrap, categoryIconWrapResponsive]}>
+                    {item.key === "mobility" ? (
+                      <View style={styles.mobilityIconStack}>
+                        <Ionicons
+                          name="airplane"
+                          size={Math.max(24, Math.round(categoryIconSize * 0.7))}
+                          color="#0ea5e9"
+                          style={styles.mobilityPlaneIcon}
+                        />
+                        <Ionicons
+                          name="bus"
+                          size={Math.max(18, Math.round(categoryIconSize * 0.54))}
+                          color="#2563eb"
+                          style={styles.mobilityBusIcon}
+                        />
+                        <Ionicons
+                          name="car-sport"
+                          size={Math.max(22, Math.round(categoryIconSize * 0.68))}
+                          color="#22c55e"
+                          style={styles.mobilityCarIcon}
+                        />
+                      </View>
+                    ) : item.key === "retail" ? (
+                      <View style={styles.retailIconStack}>
+                        <View style={styles.retailIconRowTop}>
+                          <MaterialCommunityIcons
+                            name="bed-queen-outline"
+                            size={Math.max(18, Math.round(categoryIconSize * 0.4))}
+                            color="#7c3aed"
+                            style={styles.retailTopIcon}
+                          />
+                          <Ionicons
+                            name="phone-portrait-outline"
+                            size={Math.max(18, Math.round(categoryIconSize * 0.4))}
+                            color="#d946ef"
+                            style={styles.retailTopIcon}
+                          />
+                          <MaterialCommunityIcons
+                            name="bag-suitcase-outline"
+                            size={Math.max(18, Math.round(categoryIconSize * 0.4))}
+                            color="#4f46e5"
+                            style={styles.retailTopIcon}
+                          />
+                        </View>
+                        <View style={styles.retailIconRowBottom}>
+                          <MaterialCommunityIcons
+                            name="hammer-wrench"
+                            size={Math.max(20, Math.round(categoryIconSize * 0.46))}
+                            color="#a855f7"
+                            style={styles.retailBottomIcon}
+                          />
+                          <MaterialCommunityIcons
+                            name="sofa-outline"
+                            size={Math.max(21, Math.round(categoryIconSize * 0.48))}
+                            color="#8b5cf6"
+                            style={styles.retailBottomIcon}
+                          />
+                        </View>
+                      </View>
+                    ) : (
+                      <IconComp name={iconMeta.name || "apps"} size={categoryIconSize} color={iconMeta.color || "#6b7280"} />
+                    )}
+                  </View>
                 </View>
-              </View>
             </View>
             <Text
               numberOfLines={2}
-              style={[styles.categoryText, categoryTextResponsive, selected && styles.categoryTextActive]}
+              style={[
+                styles.categoryText,
+                categoryTextResponsive,
+                themeStyles.text,
+                selected && styles.categoryTextActive,
+                isDarkTheme && selected && { color: "#ffffff" },
+                arabicUiFont
+              ]}
             >
               {getGroupTitle(item.key, appLanguage)}
             </Text>
-            <Text numberOfLines={2} style={[styles.categoryTextSub, categoryTextSubResponsive]}>
+            <Text
+              numberOfLines={isArabicUi ? 2 : 3}
+              style={[styles.categoryTextSub, categoryTextSubResponsive, themeStyles.softText, arabicUiFont]}
+            >
               {getGroupSubtitle(item.key, appLanguage)}
             </Text>
           </View>
@@ -2612,14 +3294,149 @@ export default function App() {
     navigateBackOneStep
   ]);
 
+  useEffect(() => {
+    let mounted = true;
+    (async () => {
+      try {
+        const info = await FileSystem.getInfoAsync(ANONYMOUS_SENDER_ID_PATH);
+        if (info.exists) {
+          const savedId = (await FileSystem.readAsStringAsync(ANONYMOUS_SENDER_ID_PATH)).trim();
+          if (savedId) {
+            if (mounted) setAnonymousSenderId(savedId);
+            return;
+          }
+        }
+        const nextId = generateAnonymousSenderId();
+        await FileSystem.writeAsStringAsync(ANONYMOUS_SENDER_ID_PATH, nextId);
+        if (mounted) setAnonymousSenderId(nextId);
+      } catch {
+        if (mounted) setAnonymousSenderId(generateAnonymousSenderId());
+      }
+    })();
+    return () => {
+      mounted = false;
+    };
+  }, []);
+
+  useEffect(() => {
+    if (isExpoGo) return undefined;
+
+    const subscription = AppState.addEventListener("change", (nextState) => {
+      const previousState = appStateRef.current;
+      appStateRef.current = nextState;
+      if (
+        previousState &&
+        previousState.match(/inactive|background/) &&
+        nextState === "active"
+      ) {
+        setPushRegistrationTick((value) => value + 1);
+      }
+    });
+
+    return () => subscription.remove();
+  }, [isExpoGo]);
+
+  useEffect(() => {
+    if (!anonymousSenderId || isExpoGo) return undefined;
+
+    let cancelled = false;
+    async function registerForPushNotifications() {
+      try {
+        const Notifications =
+          notificationsModuleRef.current ||
+          (await import("expo-notifications"));
+        notificationsModuleRef.current = Notifications;
+
+        Notifications.setNotificationHandler({
+          handleNotification: async () => ({
+            shouldShowAlert: true,
+            shouldShowBanner: true,
+            shouldShowList: true,
+            shouldPlaySound: true,
+            shouldSetBadge: false
+          })
+        });
+
+        if (Platform.OS === "android") {
+          await Notifications.setNotificationChannelAsync("default", {
+            name: "General notifications",
+            importance: Notifications.AndroidImportance.DEFAULT,
+            vibrationPattern: [0, 250, 250, 250],
+            lightColor: "#b30f7f"
+          });
+        }
+
+        const existingPermission = await Notifications.getPermissionsAsync();
+        let finalStatus = existingPermission.status;
+        if (finalStatus !== "granted") {
+          const requestedPermission = await Notifications.requestPermissionsAsync();
+          finalStatus = requestedPermission.status;
+        }
+        if (finalStatus !== "granted" || cancelled) {
+          console.log("push registration skipped: permission not granted");
+          return;
+        }
+
+        const tokenResult = await Notifications.getExpoPushTokenAsync({
+          projectId: EXPO_PROJECT_ID
+        });
+        const token = tokenResult?.data || "";
+        if (!token || cancelled) {
+          console.log("push registration skipped: empty Expo push token");
+          return;
+        }
+        if (registeredPushTokenRef.current === token) return;
+
+        const res = await fetch(`${API_BASE_URL}/api/push/register`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            token,
+            platform: Platform.OS,
+            device_id: anonymousSenderId,
+            ui_language: appLanguage,
+            screen_size: `${Math.round(screenWidth)}x${Math.round(screenHeight)}`
+          })
+        });
+        if (res.ok) {
+          registeredPushTokenRef.current = token;
+          console.log("push registration saved");
+          return;
+        }
+        const registrationError = await res.text().catch(() => "");
+        console.log(
+          "push registration failed:",
+          res.status,
+          registrationError || "Unknown backend error"
+        );
+      } catch (err) {
+        console.log("push registration skipped:", err?.message || err);
+      }
+    }
+
+    registerForPushNotifications();
+    return () => {
+      cancelled = true;
+    };
+  }, [anonymousSenderId, appLanguage, isExpoGo, pushRegistrationTick, screenHeight, screenWidth]);
+
   const sendFeedback = async (payload) => {
     const controller = new AbortController();
     const timeoutId = setTimeout(() => controller.abort(), 65000);
     try {
+      const enrichedPayload = {
+        ...payload,
+        sender_id: anonymousSenderId || generateAnonymousSenderId(),
+        platform: Platform.OS,
+        ui_language: appLanguage,
+        assistant_language: assistantLanguage,
+        screen_size: `${Math.round(screenWidth)}x${Math.round(screenHeight)}`,
+        sent_at: new Date().toISOString()
+      };
       const res = await fetch(`${API_BASE_URL}/api/feedback`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(payload),
+        body: JSON.stringify(enrichedPayload),
         signal: controller.signal
       });
       const data = await res.json().catch(() => ({}));
@@ -2635,6 +3452,48 @@ export default function App() {
       clearTimeout(timeoutId);
     }
   };
+
+  const buildContactSupportTranscript = useCallback(
+    (requestMessage) => {
+      const cleanRequest = String(requestMessage || "").trim();
+      const visibleHistory = contactAssistantHistory.filter(
+        (entry) => entry && (entry.userText || entry.answerAr || entry.answerEn)
+      );
+
+      if (!visibleHistory.length) {
+        return cleanRequest;
+      }
+
+      const transcript = visibleHistory
+        .map((entry) => {
+          const userLine = String(entry.userText || "").trim();
+          const prefersArabicReply = /[\u0600-\u06FF]/.test(userLine);
+          const assistantLine = String(
+            prefersArabicReply
+              ? entry.answerAr || entry.answerEn || ""
+              : entry.answerEn || entry.answerAr || ""
+          ).trim();
+
+          const lines = [];
+          if (userLine) {
+            lines.push(`User: ${userLine}`);
+          }
+          if (assistantLine) {
+            lines.push(`AI: ${assistantLine}`);
+          }
+          return lines.join("\n");
+        })
+        .filter(Boolean)
+        .join("\n\n");
+
+      if (!transcript) {
+        return cleanRequest;
+      }
+
+      return `${cleanRequest}\n\nAI chat transcript:\n${transcript}`.trim();
+    },
+    [contactAssistantHistory]
+  );
 
   const handleAddHotlineSubmit = async () => {
     const name = newHotlineName.trim();
@@ -2788,7 +3647,7 @@ export default function App() {
     try {
       await sendFeedback({
         type: "suggestion",
-        message: msg
+        message: buildContactSupportTranscript(msg)
       });
       appendAssistantEntry({
         userText: msg,
@@ -2829,7 +3688,7 @@ export default function App() {
 
       sendFeedback({
         type: "suggestion",
-        message: msg
+        message: buildContactSupportTranscript(msg)
       })
         .then(() => {
           appendAssistantEntry({
@@ -3060,6 +3919,7 @@ export default function App() {
     paddingTop: Math.round((isLargeTablet ? 22 : isTablet ? 18 : isSmallPhone ? 6 : 14) * heightScale),
     paddingBottom:
       Math.round((isLargeTablet ? 116 : isTablet ? 108 : isSmallPhone ? 82 : isAndroid ? 96 : 116) * heightScale) +
+      (isAndroid && adMobReady && !isExpoGo ? Math.round(74 * heightScale) : 0) +
       androidBottomSafeOffset +
       (isTablet ? 14 : 8)
   };
@@ -3082,35 +3942,41 @@ export default function App() {
     marginBottom: isTablet ? tabletGridGap : Math.round(18 * heightScale)
   };
 
+  const bottomBarContentHeight = Math.round(
+    (isLargeTablet ? 82 : isAndroidTablet ? 80 : isTablet ? 78 : isSmallPhone ? 78 : 88) * heightScale
+  );
+  const bottomBarTotalHeight = isAndroid
+    ? bottomBarContentHeight + androidNavigationInset
+    : bottomBarContentHeight;
+  const bottomBarTopRadius = Math.round((isLargeTablet ? 28 : isTablet ? 26 : 22) * uiScale);
+
   const bottomBarResponsive = isTablet
     ? {
-        left: undefined,
-        right: undefined,
-        width: Math.min(screenWidth - contentHorizontalInset * 2, isLargeTablet ? 760 : 680),
-        alignSelf: "center",
-        bottom: Math.round((isLargeTablet ? 20 : 16) * heightScale) + androidBottomSafeOffset,
-        height: Math.round((isLargeTablet ? 94 : isAndroidTablet ? 88 : 86) * heightScale),
-        paddingBottom: Math.round((isLargeTablet ? 10 : isAndroidTablet ? 7 : 8) * heightScale),
-        paddingTop: Math.round((isLargeTablet ? 10 : isAndroidTablet ? 7 : 8) * heightScale),
-        borderRadius: Math.round((isLargeTablet ? 30 : 28) * uiScale),
+        left: isAndroid ? 0 : undefined,
+        right: isAndroid ? 0 : undefined,
+        width: isAndroid ? screenWidth : Math.min(screenWidth - contentHorizontalInset * 2, isLargeTablet ? 820 : 720),
+        alignSelf: isAndroid ? "stretch" : "center",
+        bottom: isAndroid ? 0 : Math.round((isLargeTablet ? 18 : 14) * heightScale),
+        height: bottomBarTotalHeight,
+        borderRadius: isAndroid ? 0 : Math.round((isLargeTablet ? 30 : 28) * uiScale),
+        borderTopLeftRadius: isAndroid ? bottomBarTopRadius : Math.round((isLargeTablet ? 30 : 28) * uiScale),
+        borderTopRightRadius: isAndroid ? bottomBarTopRadius : Math.round((isLargeTablet ? 30 : 28) * uiScale),
         shadowOpacity: isAndroid ? 0 : 0.2,
         shadowRadius: isAndroid ? 0 : 14,
         shadowOffset: isAndroid ? { width: 0, height: 0 } : { width: 0, height: 10 },
         elevation: isAndroid ? 0 : 12
       }
-    : isAndroid
+      : isAndroid
       ? {
           left: 0,
           right: 0,
           width: screenWidth,
           alignSelf: "stretch",
           bottom: 0,
-          height: Math.round((isSmallPhone ? 90 : 108) * heightScale) + androidSystemInset,
-          paddingBottom: Math.round((isSmallPhone ? 6 : 14) * heightScale) + androidSystemInset,
-          paddingTop: Math.round((isSmallPhone ? 4 : 10) * heightScale),
+          height: bottomBarTotalHeight,
           borderRadius: 0,
-          borderTopLeftRadius: Math.round(22 * uiScale),
-          borderTopRightRadius: Math.round(22 * uiScale),
+          borderTopLeftRadius: bottomBarTopRadius,
+          borderTopRightRadius: bottomBarTopRadius,
           shadowOpacity: 0,
           shadowRadius: 0,
           shadowOffset: { width: 0, height: 0 },
@@ -3121,8 +3987,10 @@ export default function App() {
   const bottomBarSurfaceResponsive = isAndroid
     ? {
         borderRadius: 0,
-        borderTopLeftRadius: Math.round(22 * uiScale),
-        borderTopRightRadius: Math.round(22 * uiScale),
+        borderTopLeftRadius: bottomBarTopRadius,
+        borderTopRightRadius: bottomBarTopRadius,
+        paddingBottom: androidNavigationInset + Math.round((isTablet ? 8 : isSmallPhone ? 6 : 8) * heightScale),
+        paddingTop: Math.round((isTablet ? 8 : isSmallPhone ? 6 : 8) * heightScale),
         shadowOpacity: 0,
         shadowRadius: 0,
         shadowOffset: { width: 0, height: 0 },
@@ -3131,25 +3999,27 @@ export default function App() {
     : {};
 
   const bottomSideVisualSlotResponsive = {
-    width: Math.round((isLargeTablet ? 66 : isAndroidTablet ? 58 : isTablet ? 60 : isSmallPhone ? 50 : 72) * widthScale),
-    height: Math.round((isLargeTablet ? 56 : isAndroidTablet ? 48 : isTablet ? 52 : isSmallPhone ? 40 : 64) * heightScale),
-    marginBottom: Math.round((isLargeTablet ? 4 : isAndroidTablet ? 2 : isTablet ? 4 : isSmallPhone ? -4 : isAndroid ? 1 : 8) * heightScale)
+    width: Math.round((isLargeTablet ? 62 : isAndroidTablet ? 58 : isTablet ? 58 : isSmallPhone ? 48 : 58) * widthScale),
+    height: Math.round((isLargeTablet ? 44 : isAndroidTablet ? 42 : isTablet ? 42 : isSmallPhone ? 38 : 46) * heightScale),
+    marginBottom: 0
   };
-
-  const businessPlanVisualSlotResponsive = {
-    marginTop: Math.round((isTablet ? 4 : isAndroid ? 5 : 0) * heightScale)
+  const bottomItemResponsive = {
+    justifyContent: "center",
+    paddingBottom: 0,
+    paddingTop: 0
   };
 
   const bottomTextResponsive = {
-    fontSize: Math.round((isLargeTablet ? 12.5 : isAndroidTablet ? 11 : isTablet ? 11.5 : isSmallPhone ? 8.6 : 12.5) * uiScale),
-    marginTop: Math.round((isLargeTablet ? 1 : isAndroidTablet ? 0 : isTablet ? 1 : isSmallPhone ? 1 : isAndroid ? -2 : -2) * heightScale),
+    fontSize: Math.round((isLargeTablet ? 12.5 : isAndroidTablet ? 11.5 : isTablet ? 11.8 : isSmallPhone ? 8.8 : 12.2) * uiScale),
+    marginTop: Math.round((isSmallPhone ? 1 : 2) * heightScale),
     textAlign: "center",
     paddingHorizontal: Math.round((isTablet ? 6 : isSmallPhone ? 1 : 4) * widthScale),
-    lineHeight: Math.round((isLargeTablet ? 14 : isAndroidTablet ? 12 : isTablet ? 13 : isSmallPhone ? 9.2 : 14) * uiScale)
+    lineHeight: Math.round((isLargeTablet ? 15 : isAndroidTablet ? 13 : isTablet ? 14 : isSmallPhone ? 10 : 14) * uiScale),
+    includeFontPadding: false
   };
 
   const bottomSideTextResponsive = {
-    marginTop: Math.round((isAndroidTablet ? -2 : isTablet ? -1 : isSmallPhone ? 1 : isAndroid ? -4 : -6) * heightScale)
+    marginTop: Math.round((isSmallPhone ? 1 : 2) * heightScale)
   };
 
   const bottomSubTextResponsive = {
@@ -3166,7 +4036,7 @@ export default function App() {
     width: Math.round((isLargeTablet ? 58 : isAndroidTablet ? 56 : isTablet ? 52 : isSmallPhone ? 48 : isAndroid ? 66 : 64) * uiScale),
     height: Math.round((isLargeTablet ? 58 : isAndroidTablet ? 56 : isTablet ? 52 : isSmallPhone ? 48 : isAndroid ? 66 : 64) * uiScale),
     borderRadius: Math.round((isLargeTablet ? 29 : isAndroidTablet ? 28 : isTablet ? 26 : isSmallPhone ? 24 : isAndroid ? 33 : 32) * uiScale),
-    marginTop: Math.round((isLargeTablet ? -2 : isAndroidTablet ? -2 : isTablet ? 0 : isSmallPhone ? -7 : isAndroid ? -4 : -4) * heightScale)
+    marginTop: Math.round((isLargeTablet ? 0 : isAndroidTablet ? 0 : isTablet ? 0 : isSmallPhone ? -2 : isAndroid ? -1 : -4) * heightScale)
   };
 
   const bottomCenterBadgeShadowResponsive = {
@@ -3178,7 +4048,7 @@ export default function App() {
 
   const bottomCenterTextResponsive = {
     fontSize: Math.round((isLargeTablet ? 11.5 : isAndroidTablet ? 10 : isTablet ? 10.5 : isSmallPhone ? 7.6 : 11.5) * uiScale),
-    marginTop: Math.round((isLargeTablet ? 0 : isAndroidTablet ? -1 : isTablet ? 2 : isSmallPhone ? -5 : isAndroid ? -2 : 4) * heightScale),
+    marginTop: Math.round((isLargeTablet ? 1 : isAndroidTablet ? 1 : isTablet ? 2 : isSmallPhone ? 0 : isAndroid ? 1 : 4) * heightScale),
     textAlign: "center",
     paddingHorizontal: Math.round((isSmallPhone ? 0 : 6) * widthScale),
     lineHeight: Math.round((isLargeTablet ? 12 : isAndroidTablet ? 11 : isTablet ? 12 : isSmallPhone ? 8 : 13) * uiScale)
@@ -3192,12 +4062,13 @@ export default function App() {
   };
 
   const bottomCenterFloatingResponsive = {
-    top: Math.round((isLargeTablet ? -10 : isAndroidTablet ? -8 : isSmallPhone ? -14 : isAndroid ? -10 : -18) * heightScale),
-    transform: [{ translateX: Math.round((isLargeTablet ? -42 : isAndroidTablet ? -40 : -44) * widthScale) }]
+    top: Math.round((isLargeTablet ? -8 : isAndroidTablet ? -6 : isSmallPhone ? -8 : isAndroid ? -6 : -18) * heightScale),
+    width: Math.round((isLargeTablet ? 132 : isAndroidTablet ? 124 : isTablet ? 116 : isSmallPhone ? 94 : 124) * widthScale),
+    marginLeft: Math.round((isLargeTablet ? -66 : isAndroidTablet ? -62 : isTablet ? -58 : isSmallPhone ? -47 : -62) * widthScale)
   };
 
   const categoryCardResponsive = {
-    height: isTablet ? tabletCardHeight : Math.round((isSmallPhone ? 146 : isAndroid ? 146 : 156) * heightScale),
+    height: isTablet ? tabletCardHeight : Math.round((isSmallPhone ? 156 : isAndroid ? 158 : 164) * heightScale),
     paddingVertical: Math.round((isLargeTablet ? 18 : isAndroidTablet ? 16 : isTablet ? 13 : isSmallPhone ? 8 : 12) * heightScale),
     borderRadius: Math.round((isTablet ? 22 : 26) * uiScale),
     paddingHorizontal: Math.round((isLargeTablet ? 14 : isAndroidTablet ? 12 : isTablet ? 10 : 12) * widthScale),
@@ -3227,9 +4098,9 @@ export default function App() {
   };
 
   const categoryTextSubResponsive = {
-    fontSize: Math.round((isLargeTablet ? 13 : isTablet ? 11 : isSmallPhone ? 8 : 12) * uiScale),
-    lineHeight: Math.round((isLargeTablet ? 17 : isTablet ? 14 : isSmallPhone ? 9.8 : 16) * uiScale),
-    minHeight: Math.round((isLargeTablet ? 26 : isTablet ? 18 : isSmallPhone ? 24 : 22) * heightScale)
+    fontSize: Math.round((isLargeTablet ? 13 : isTablet ? 11 : isSmallPhone ? 8.4 : 12) * uiScale),
+    lineHeight: Math.round((isLargeTablet ? 18 : isTablet ? 15 : isSmallPhone ? 11.2 : 17) * uiScale),
+    minHeight: Math.round((isLargeTablet ? 34 : isTablet ? 24 : isSmallPhone ? 34 : 32) * heightScale)
   };
 
   const detailPageResponsive = {
@@ -3246,7 +4117,7 @@ export default function App() {
   };
 
   const introBrandWrapResponsive = {
-    top: Math.round((isTablet ? 32 : 60) * heightScale),
+    top: Math.round((isTablet ? 32 : 28) * heightScale) + insets.top,
     left: Math.round((isTablet ? 40 : 24) * widthScale),
     right: Math.round((isTablet ? 40 : 24) * widthScale),
     alignItems: isTablet ? "center" : "flex-start"
@@ -3263,16 +4134,19 @@ export default function App() {
     textAlign: isTablet ? "center" : "left"
   };
 
-  const showIntroBrandOverlay = isTablet;
+  const showIntroBrandOverlay = true;
 
-  const introResizeMode = "stretch";
+  const introResizeMode = "cover";
 
   const introImageResponsive =
     {
       position: "absolute",
-      alignSelf: "stretch",
-      width: screenWidth,
-      height: screenHeight,
+      top: 0,
+      right: 0,
+      bottom: 0,
+      left: 0,
+      width: "100%",
+      height: "100%",
       borderRadius: 0,
       overflow: "hidden"
     };
@@ -3292,22 +4166,77 @@ export default function App() {
     paddingTop: Math.round((isTablet ? 14 : isSmallPhone ? 8 : 16) * heightScale),
     paddingBottom: Math.round((isTablet ? 12 : isSmallPhone ? 8 : 14) * heightScale)
   };
+  const modalSafeBottomInset = Math.max(insets.bottom, androidNavigationInset, Math.round(10 * heightScale));
+  const centeredModalBackdropResponsive = {
+    paddingTop: Math.max(insets.top, Math.round(18 * heightScale)),
+    paddingBottom: modalSafeBottomInset,
+    paddingHorizontal: Math.round((isTablet ? 20 : 14) * widthScale)
+  };
+  const bottomSheetCardResponsive = {
+    paddingBottom: modalSafeBottomInset
+  };
+  const bottomSheetInnerResponsive = {
+    paddingBottom: Math.round((isTablet ? 18 : 14) * heightScale) + modalSafeBottomInset
+  };
+  const contactCardAndroidResponsive = {
+    paddingBottom: Math.round(8 * heightScale) + modalSafeBottomInset,
+    maxHeight: screenHeight - Math.max(insets.top, Math.round(18 * heightScale))
+  };
 
   const bottomCenterVisualSlotResponsive = null;
+  const adMobModule = !isExpoGo
+    ? (() => {
+        try {
+          return adMobModuleRef.current || require("react-native-google-mobile-ads");
+        } catch {
+          return null;
+        }
+      })()
+    : null;
+  const BannerAdComponent = adMobModule?.BannerAd || null;
+  const BannerAdSizeValue = adMobModule?.BannerAdSize || null;
+  const BannerTestIds = adMobModule?.TestIds || null;
+  const resolvedBannerSize =
+    bannerSizeMode === "compact" && BannerAdSizeValue?.BANNER
+      ? BannerAdSizeValue.BANNER
+      : BannerAdSizeValue?.ANCHORED_ADAPTIVE_BANNER || null;
+  const bannerAdUnitId =
+    __DEV__ && BannerTestIds?.ADAPTIVE_BANNER
+      ? BannerTestIds.ADAPTIVE_BANNER
+      : ANDROID_BANNER_AD_UNIT_ID;
+  const bannerShellResponsive =
+    isAndroid && adMobReady && BannerAdComponent
+      ? {
+          position: "absolute",
+          left: 0,
+          right: 0,
+          bottom: bottomBarTotalHeight + Math.round((isSmallPhone ? 8 : 12) * heightScale),
+          alignItems: "center",
+          zIndex: 35,
+          elevation: 6
+        }
+      : null;
+  const bannerCardResponsive = {
+    width: Math.min(screenWidth - Math.round(20 * widthScale), bodyContentWidth),
+    minHeight: Math.round(54 * heightScale),
+    borderRadius: Math.round(18 * uiScale),
+    paddingVertical: Math.round(4 * heightScale),
+    paddingHorizontal: Math.round(4 * widthScale),
+    overflow: "hidden"
+  };
 
   return (
-    <SafeAreaView style={styles.container}>
-      {Platform.OS === "ios" && canNavigateBack ? (
-        <View style={styles.iosBackSwipeEdge} {...iosBackSwipeResponder.panHandlers} />
-      ) : null}
+    <SafeAreaView edges={["top", "left", "right"]} style={[styles.container, themeStyles.container]}>
       <StatusBar style="light" />
-      {!showIntro ? <View style={styles.appGlowTop} pointerEvents="none" /> : null}
-      {!showIntro ? <View style={styles.appGlowBottom} pointerEvents="none" /> : null}
-      {!showIntro ? <View style={styles.appGlowMid} pointerEvents="none" /> : null}
+      {!showIntro ? (
+        <>
+          {!isDarkTheme ? <View style={[styles.appGlowTop, themeStyles.appGlowTop]} pointerEvents="none" /> : null}
+          {!isDarkTheme ? <View style={[styles.appGlowBottom, themeStyles.appGlowBottom]} pointerEvents="none" /> : null}
+          {!isDarkTheme ? <View style={[styles.appGlowMid, themeStyles.appGlowMid]} pointerEvents="none" /> : null}
 
-      <Animated.View style={[styles.hero, heroResponsive, heroAnimatedStyle, showIntro && styles.screenHidden]}>
-        <View style={styles.heroBlob1} />
-        <View style={styles.heroBlob2} />
+          <Animated.View style={[styles.hero, heroResponsive, heroAnimatedStyle]}>
+        {!isDarkTheme ? <View style={styles.heroBlob1} /> : null}
+        {!isDarkTheme ? <View style={styles.heroBlob2} /> : null}
         <View style={styles.welcomeRow}>
           <Animated.View
             style={[
@@ -3339,12 +4268,12 @@ export default function App() {
             <Ionicons name="phone-portrait" size={heroIconSize} color="#fff" />
           </Animated.View>
           <View style={styles.welcomeTextWrap}>
-            <Text numberOfLines={1} style={[styles.welcomeTitle, welcomeTitleResponsive]}>{t("welcomeTitle")}</Text>
-            <Text numberOfLines={1} style={[styles.welcomeSub, welcomeSubResponsive]}>{t("welcomeSub")}</Text>
+            <Text numberOfLines={1} style={[styles.welcomeTitle, welcomeTitleResponsive, arabicUiFont]}>{t("welcomeTitle")}</Text>
+            <Text numberOfLines={1} style={[styles.welcomeSub, welcomeSubResponsive, arabicUiFont]}>{t("welcomeSub")}</Text>
           </View>
           {detailGroup ? (
             <Pressable style={styles.heroBackBtn} onPress={closeDetailView}>
-              <Text style={styles.heroBackText}>{t("back")}</Text>
+              <Text style={[styles.heroBackText, arabicUiFont]}>{t("back")}</Text>
             </Pressable>
           ) : (
             <Pressable style={styles.heroInfoBtn} onPress={() => setAboutModalVisible(true)}>
@@ -3354,10 +4283,10 @@ export default function App() {
         </View>
 
         <Animated.View style={[styles.searchShell, searchShellAnimatedStyle]}>
-          <View style={[styles.searchBar, searchBarResponsive]}>
+          <View style={[styles.searchBar, searchBarResponsive, themeStyles.searchBar]}>
           {query.trim() && isArabicInput ? (
-            <TouchableOpacity style={[styles.clearSearchBtn, styles.clearSearchBtnLeft]} onPress={clearSearch}>
-              <Text style={styles.clearSearchText}>×</Text>
+            <TouchableOpacity style={[styles.clearSearchBtn, styles.clearSearchBtnLeft, themeStyles.clearSearchBtn]} onPress={clearSearch}>
+              <Text style={[styles.clearSearchText, themeStyles.clearSearchText]}>×</Text>
             </TouchableOpacity>
           ) : null}
           <TextInput
@@ -3365,50 +4294,59 @@ export default function App() {
             value={query}
             onChangeText={setQuery}
             placeholder={t("searchPlaceholder")}
-            placeholderTextColor="#8b8b8b"
-            style={[styles.searchInput, searchInputResponsive]}
+            placeholderTextColor={isDarkTheme ? "rgba(255,255,255,0.66)" : "#8b8b8b"}
+            style={[styles.searchInput, searchInputResponsive, themeStyles.searchInput, arabicUiFont]}
           />
           {query.trim() && !isArabicInput ? (
-            <TouchableOpacity style={[styles.clearSearchBtn, styles.clearSearchBtnRight]} onPress={clearSearch}>
-              <Text style={styles.clearSearchText}>×</Text>
+            <TouchableOpacity style={[styles.clearSearchBtn, styles.clearSearchBtnRight, themeStyles.clearSearchBtn]} onPress={clearSearch}>
+              <Text style={[styles.clearSearchText, themeStyles.clearSearchText]}>×</Text>
             </TouchableOpacity>
           ) : null}
-          <TouchableOpacity style={[styles.searchIconBadge, searchIconBadgeResponsive]} onPress={handleSearchIconPress} activeOpacity={0.85}>
+          <TouchableOpacity style={[styles.searchIconBadge, searchIconBadgeResponsive, themeStyles.searchIconBadge]} onPress={handleSearchIconPress} activeOpacity={0.85}>
             <Text style={[styles.searchIcon, searchIconTextResponsive]}>🔎</Text>
           </TouchableOpacity>
           </View>
           <View style={styles.searchMetaRow}>
-            <Text style={styles.searchCaption}>{t("searchCaption")}</Text>
-            <View style={styles.appLanguageToggle}>
+            <Text style={[styles.searchCaption, arabicUiFont]}>{t("searchCaption")}</Text>
+            <View style={styles.headerControlsRow}>
+              <View style={[styles.appLanguageToggle, themeStyles.appLanguageToggle]}>
+                <TouchableOpacity
+                  style={[styles.appLanguageBtn, appLanguage === "ar" && styles.appLanguageBtnActive]}
+                  onPress={() => applyAppLanguage("ar")}
+                  activeOpacity={0.86}
+                >
+                  <Text style={[styles.appLanguageBtnText, appLanguage === "ar" && styles.appLanguageBtnTextActive, arabicUiFont]}>
+                    {t("languageArabic")}
+                  </Text>
+                </TouchableOpacity>
+                <TouchableOpacity
+                  style={[styles.appLanguageBtn, appLanguage === "en" && styles.appLanguageBtnActive]}
+                  onPress={() => applyAppLanguage("en")}
+                  activeOpacity={0.86}
+                >
+                  <Text style={[styles.appLanguageBtnText, appLanguage === "en" && styles.appLanguageBtnTextActive]}>
+                    {t("languageEnglish")}
+                  </Text>
+                </TouchableOpacity>
+              </View>
               <TouchableOpacity
-                style={[styles.appLanguageBtn, appLanguage === "ar" && styles.appLanguageBtnActive]}
-                onPress={() => setAppLanguage("ar")}
+                style={[styles.appThemeBtn, themeStyles.appThemeBtn]}
+                onPress={cycleThemePreference}
                 activeOpacity={0.86}
               >
-                <Text style={[styles.appLanguageBtnText, appLanguage === "ar" && styles.appLanguageBtnTextActive]}>
-                  {t("languageArabic")}
-                </Text>
-              </TouchableOpacity>
-              <TouchableOpacity
-                style={[styles.appLanguageBtn, appLanguage === "en" && styles.appLanguageBtnActive]}
-                onPress={() => setAppLanguage("en")}
-                activeOpacity={0.86}
-              >
-                <Text style={[styles.appLanguageBtnText, appLanguage === "en" && styles.appLanguageBtnTextActive]}>
-                  {t("languageEnglish")}
-                </Text>
+                <Ionicons name={themeIconName} size={13} color="#ffffff" />
+                <Text style={[styles.appThemeBtnText, arabicUiFont]}>{themeLabel}</Text>
               </TouchableOpacity>
             </View>
           </View>
         </Animated.View>
-      </Animated.View>
+          </Animated.View>
 
-      <Animated.ScrollView
+          <Animated.ScrollView
         ref={scrollRef}
         contentContainerStyle={[styles.content, contentResponsive]}
         showsVerticalScrollIndicator={false}
         scrollEventThrottle={16}
-        style={showIntro ? styles.screenHidden : null}
         onScroll={Animated.event([{ nativeEvent: { contentOffset: { y: scrollY } } }], {
           useNativeDriver: false
         })}
@@ -3427,20 +4365,20 @@ export default function App() {
               opacity: searchResultsAnim
             }}
           >
-          <View style={[styles.suggestBox, fullWidthCard]}>
+          <View style={[styles.suggestBox, fullWidthCard, themeStyles.surface]}>
             {predictions.map((p) => (
-              <TouchableOpacity key={p.id} style={[styles.suggestItem, suggestItemResponsive]} onPress={() => handlePredictionPress(p)}>
+              <TouchableOpacity key={p.id} style={[styles.suggestItem, suggestItemResponsive, isDarkTheme && { borderBottomColor: "rgba(255,255,255,0.08)" }]} onPress={() => handlePredictionPress(p)}>
                 <View style={styles.suggestMeta}>
-                  <Text style={[styles.suggestText, suggestTextResponsive]}>{getContactDisplayName(p, appLanguage)}</Text>
+                  <Text style={[styles.suggestText, suggestTextResponsive, themeStyles.text, arabicUiFont]}>{getContactDisplayName(p, appLanguage)}</Text>
                   {renderContactBadges(p, true)}
-                  <Text style={[styles.suggestCategoryPreview, suggestCategoryPreviewResponsive]}>
+                  <Text style={[styles.suggestCategoryPreview, suggestCategoryPreviewResponsive, themeStyles.softText, arabicUiFont]}>
                     {getCategoryDisplayName(p.category_slug, p.category_name_ar, appLanguage)}
                   </Text>
                   <View style={styles.suggestBottomRow}>
-                    <TouchableOpacity style={[styles.suggestPhoneBadge, suggestPhoneBadgeResponsive]} onPress={() => callNumber(p)} disabled={!!p.is_non_phone}>
-                      <Text style={[styles.suggestPhonePreview, suggestPhonePreviewResponsive]}>{p.phone || "--"}</Text>
+                    <TouchableOpacity style={[styles.suggestPhoneBadge, suggestPhoneBadgeResponsive, isDarkTheme && themeStyles.chip]} onPress={() => callNumber(p)} disabled={!!p.is_non_phone}>
+                      <Text style={[styles.suggestPhonePreview, suggestPhonePreviewResponsive, arabicUiFont]}>{p.phone || "--"}</Text>
                     </TouchableOpacity>
-                    <Text style={styles.suggestHint}>{t("tapToView")}</Text>
+                    <Text style={[styles.suggestHint, isDarkTheme && { color: "#c4b5fd" }, arabicUiFont]}>{t("tapToView")}</Text>
                   </View>
                 </View>
               </TouchableOpacity>
@@ -3450,28 +4388,20 @@ export default function App() {
         ) : null}
 
         {!predictions.length && typoSuggestion ? (
-          <TouchableOpacity style={[styles.typoBox, fullWidthCard]} onPress={() => handlePredictionPress(typoSuggestion)}>
-            <Text style={styles.typoText}>{t("didYouMeanPrefix")} {typoSuggestion} ?</Text>
+          <TouchableOpacity style={[styles.typoBox, fullWidthCard, themeStyles.chip]} onPress={() => handlePredictionPress(typoSuggestion)}>
+            <Text style={[styles.typoText, isDarkTheme && { color: "#c4b5fd" }, arabicUiFont]}>{t("didYouMeanPrefix")} {typoSuggestion} ?</Text>
           </TouchableOpacity>
         ) : null}
 
         {quickResult ? (
-          <View style={[styles.quickResultCard, fullWidthCard]}>
-            <Text style={styles.quickResultTitle}>{getContactDisplayName(quickResult, appLanguage)}</Text>
+          <View style={[styles.quickResultCard, fullWidthCard, themeStyles.surfaceStrong]}>
+            {renderContactHero(quickResult, true)}
             {renderContactBadges(quickResult)}
-            <Text style={styles.quickResultSub}>
-              {getCategoryDisplayName(quickResult.category_slug, quickResult.category_name_ar, appLanguage)}
-            </Text>
+            {renderContactPriorityPhone(quickResult, true)}
             {renderContactMeta(quickResult, true)}
             {quickResult.is_non_phone ? (
-              <Text style={styles.nonPhone}>{t("nonPhone")}</Text>
-            ) : (
-              <View style={styles.quickActionRow}>
-                <TouchableOpacity style={[styles.callBtn, styles.quickActionBtn]} onPress={() => callNumber(quickResult)}>
-                  <Text style={styles.callBtnText}>{quickResult.phone}</Text>
-                </TouchableOpacity>
-              </View>
-            )}
+              <Text style={[styles.nonPhone, arabicUiFont]}>{t("nonPhone")}</Text>
+            ) : null}
           </View>
         ) : null}
 
@@ -3493,6 +4423,7 @@ export default function App() {
             style={[
               styles.detailPage,
               detailPageResponsive,
+              themeStyles.surfaceStrong,
               {
                 transform: [
                   {
@@ -3510,7 +4441,7 @@ export default function App() {
           >
             <View style={styles.focusedHeader}>
               <Text style={styles.focusedIcon}>{focusedGroup.icon}</Text>
-              <Text style={styles.focusedTitle} numberOfLines={1} ellipsizeMode="tail">
+              <Text style={[styles.focusedTitle, themeStyles.text, arabicUiFont]} numberOfLines={1} ellipsizeMode="tail">
                 {getGroupTitle(focusedGroup.key, appLanguage)} / {getGroupSubtitle(focusedGroup.key, appLanguage)}
               </Text>
             </View>
@@ -3523,14 +4454,27 @@ export default function App() {
                   return <ActivityIndicator size="large" color="#5d67e8" style={styles.loader} />;
                 }
                 if (!groupItems.length) {
-                  return <Text style={styles.error}>{t("noCategoryData")}</Text>;
+                  return <Text style={[styles.error, arabicUiFont]}>{t("noCategoryData")}</Text>;
                 }
                 return groupItems.map((cat) => {
                   const opened = detailCategory === cat.slug;
                   return (
                     <View
                       key={cat.slug}
-                      style={styles.subCard}
+                      style={[
+                        styles.subCard,
+                        themeStyles.surface,
+                        {
+                          backgroundColor: isDarkTheme
+                            ? (opened
+                              ? (GROUP_COLORS[cat.group] || {}).darkCardActive || (GROUP_COLORS[cat.group] || {}).darkCard || "#2b2438"
+                              : (GROUP_COLORS[cat.group] || {}).darkCard || "#2b2438")
+                            : (GROUP_COLORS[cat.group] || {}).cardActive || (GROUP_COLORS[cat.group] || {}).card || "#ffffff",
+                          borderColor: isDarkTheme
+                            ? applyHexAlpha((GROUP_COLORS[cat.group] || {}).accent || "#b30f7f", "88")
+                            : applyHexAlpha((GROUP_COLORS[cat.group] || {}).accent || "#b30f7f", "55")
+                        }
+                      ]}
                       onLayout={(e) => {
                         detailCategoryPositionsRef.current[cat.slug] = e.nativeEvent.layout.y;
                       }}
@@ -3551,10 +4495,10 @@ export default function App() {
                           }
                         }}
                       >
-                        <Text style={styles.subTitle} numberOfLines={1} ellipsizeMode="tail">
+                        <Text style={[styles.subTitle, isDarkTheme ? styles.subTitleSolidDark : themeStyles.text, arabicUiFont]} numberOfLines={1} ellipsizeMode="tail">
                           {cat.name}
                         </Text>
-                        <Text style={styles.subToggle}>{opened ? "▲" : "▼"}</Text>
+                        <Text style={[styles.subToggle, isDarkTheme ? styles.subToggleSolidDark : themeStyles.softText]}>{opened ? "▲" : "▼"}</Text>
                       </Pressable>
                       {opened ? (
                         <ScrollView
@@ -3574,38 +4518,29 @@ export default function App() {
                                   style={[
                                     styles.hotlineCard,
                                     {
-                                      backgroundColor: item.is_featured ? palette.cardActive || palette.card : palette.card,
+                                      backgroundColor: isDarkTheme
+                                        ? item.is_featured
+                                          ? palette.darkCardActive || palette.darkCard || "#2b2438"
+                                          : palette.darkCard || "#2b2438"
+                                        : item.is_featured
+                                          ? palette.cardActive || palette.card
+                                          : palette.card,
                                       shadowColor: palette.accent,
-                                      borderColor: item.is_featured ? `${palette.accent}55` : "rgba(255,255,255,0.55)"
+                                      borderColor: isDarkTheme
+                                        ? applyHexAlpha(palette.accent, "88")
+                                        : applyHexAlpha(palette.accent, item.is_featured ? "66" : "44")
                                     },
                                     item.is_featured && styles.hotlineCardFeatured
                                   ]}
                                 >
                                   <View style={styles.hotlineBody}>
-                                    <Text style={styles.hotlineName}>{getContactDisplayName(item, appLanguage)}</Text>
+                                    {renderContactHero(item)}
                                     {renderContactBadges(item)}
-                                    <Text style={styles.hotlineSub}>
-                                      {getCategoryDisplayName(item.category_slug, item.category_name_ar, appLanguage)}
-                                    </Text>
+                                    {renderContactPriorityPhone(item)}
                                     {renderContactMeta(item)}
                                     {item.is_non_phone ? (
-                                      <Text style={styles.nonPhone}>{t("nonPhone")}</Text>
-                                    ) : (
-                                      <View style={styles.contactActionRow}>
-                                        <Pressable
-                                          style={({ pressed }) => [
-                                            styles.callBtn,
-                                            styles.contactActionBtn,
-                                            { backgroundColor: palette.accent },
-                                            pressed && styles.callBtnPressed
-                                          ]}
-                                          android_ripple={{ color: "rgba(255,255,255,0.25)", borderless: true }}
-                                          onPress={() => callNumber(item)}
-                                        >
-                                          <Text style={styles.callBtnText}>{item.phone}</Text>
-                                        </Pressable>
-                                      </View>
-                                    )}
+                                      <Text style={[styles.nonPhone, arabicUiFont]}>{t("nonPhone")}</Text>
+                                    ) : null}
                                   </View>
                                 </View>
                               );
@@ -3619,25 +4554,42 @@ export default function App() {
             </View>
           </Animated.View>
         ) : null}
-      </Animated.ScrollView>
+          </Animated.ScrollView>
 
-      {!showIntro ? (
-        <View style={[styles.bottomBarShell, bottomBarResponsive]} pointerEvents="box-none">
+          {!showSuggestHint && isAndroid && adMobReady && BannerAdComponent && resolvedBannerSize ? (
+        <View style={bannerShellResponsive} pointerEvents="box-none">
+          <View style={[styles.bannerCard, bannerCardResponsive, themeStyles.surfaceStrong]}>
+            <BannerAdComponent
+              key={`banner-${bannerSizeMode}`}
+              unitId={bannerAdUnitId}
+              size={resolvedBannerSize}
+              requestOptions={{ requestNonPersonalizedAdsOnly: true }}
+              onAdFailedToLoad={() => {
+                if (bannerSizeMode !== "compact" && BannerAdSizeValue?.BANNER) {
+                  setBannerSizeMode("compact");
+                }
+              }}
+            />
+          </View>
+          </View>
+          ) : null}
+
+          <View style={[styles.bottomBarShell, bottomBarResponsive]} pointerEvents="box-none">
           <LinearGradient colors={["#6c47f5", "#b30f7f"]} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={[styles.bottomBar, bottomBarSurfaceResponsive]}>
-            <TouchableOpacity style={[styles.bottomItem, businessPlanItemResponsive]} onPress={onPrimaryNavPress}>
-              <View style={[styles.bottomVisualSlot, styles.bottomSideVisualSlot, bottomSideVisualSlotResponsive, businessPlanVisualSlotResponsive]}>
+            <TouchableOpacity style={[styles.bottomItem, bottomItemResponsive]} onPress={onPrimaryNavPress}>
+              <View style={[styles.bottomVisualSlot, styles.bottomSideVisualSlot, bottomSideVisualSlotResponsive]}>
                 <Ionicons name="rocket-outline" size={bottomSideIconSize} color="#ffffff" />
               </View>
-              <Text numberOfLines={1} style={[styles.bottomText, styles.bottomSideText, bottomTextResponsive, bottomSideTextResponsive]}>
+              <Text numberOfLines={1} style={[styles.bottomText, styles.bottomSideText, bottomTextResponsive, bottomSideTextResponsive, arabicUiFont]}>
                 {isArabicUi ? "ترويج" : "Promote"}
               </Text>
             </TouchableOpacity>
             <View style={styles.bottomCenterSpacer} />
-            <TouchableOpacity style={styles.bottomItem} onPress={() => setAddModalVisible(true)}>
+            <TouchableOpacity style={[styles.bottomItem, bottomItemResponsive]} onPress={() => setAddModalVisible(true)}>
               <View style={[styles.bottomVisualSlot, styles.bottomSideVisualSlot, bottomSideVisualSlotResponsive]}>
                 <Ionicons name="add-circle-outline" size={bottomSideIconSize} color="#ffffff" />
               </View>
-              <Text numberOfLines={1} style={[styles.bottomText, styles.bottomSideText, bottomTextResponsive, bottomSideTextResponsive]}>
+              <Text numberOfLines={1} style={[styles.bottomText, styles.bottomSideText, bottomTextResponsive, bottomSideTextResponsive, arabicUiFont]}>
                 {isArabicUi ? "إضافة رقم" : "Add Number"}
               </Text>
             </TouchableOpacity>
@@ -3652,20 +4604,22 @@ export default function App() {
                 </View>
               </View>
             </View>
-            <Text numberOfLines={1} style={[styles.bottomCenterText, bottomCenterTextResponsive]}>
+            <Text numberOfLines={1} style={[styles.bottomCenterText, bottomCenterTextResponsive, arabicUiFont]}>
               {isArabicUi ? "تواصل معنا " : "Contact us "}<Text style={styles.bottomCenterAiText}>(AI)</Text>
             </Text>
           </TouchableOpacity>
-        </View>
+          </View>
+        </>
       ) : null}
 
       <Modal transparent visible={addModalVisible} animationType="fade" onRequestClose={() => setAddModalVisible(false)}>
         <KeyboardAvoidingView style={styles.flexOne} behavior={Platform.OS === "ios" ? "padding" : "height"}>
-          <Pressable style={[styles.modalBackdrop, styles.sheetBackdrop]} onPress={() => setAddModalVisible(false)}>
+          <Pressable style={[styles.modalBackdrop, centeredModalBackdropResponsive, styles.sheetBackdrop]} onPress={() => setAddModalVisible(false)}>
             <Animated.View
               {...addSheetResponder.panHandlers}
               style={[
                 styles.sheetCard,
+                bottomSheetCardResponsive,
                 {
                   transform: [
                     {
@@ -3687,7 +4641,7 @@ export default function App() {
             >
               <Pressable onPress={() => {}}>
                 <View style={styles.sheetHandle} />
-                <View style={[styles.modalCard, styles.suggestCard, styles.sheetInner]}>
+                <View style={[styles.modalCard, styles.suggestCard, styles.sheetInner, bottomSheetInnerResponsive, themeStyles.modalCard]}>
                   <View style={styles.sheetGlow} />
                   <View style={styles.sheetGlowSecondary} />
                   <TouchableOpacity style={styles.sheetCloseBtn} onPress={() => setAddModalVisible(false)}>
@@ -3698,20 +4652,20 @@ export default function App() {
                       <View style={styles.suggestHeroBadge}>
                         <Ionicons name="sparkles" size={22} color="#9a0f6f" />
                       </View>
-                      <Text style={styles.modalTitle}>{t("suggestNumberTitle")}</Text>
-                      <Text style={styles.modalSubTitle}>{t("suggestNumberSub")}</Text>
+                      <Text style={[styles.modalTitle, themeStyles.text]}>{t("suggestNumberTitle")}</Text>
+                      <Text style={[styles.modalSubTitle, themeStyles.mutedText]}>{t("suggestNumberSub")}</Text>
                     </View>
                     <TextInput
-                      style={[styles.modalInput, styles.suggestInput]}
+                      style={[styles.modalInput, styles.suggestInput, themeStyles.input]}
                       placeholder={t("suggestNamePlaceholder")}
-                      placeholderTextColor="#7b8799"
+                      placeholderTextColor={themePalette.placeholder}
                       value={newHotlineName}
                       onChangeText={setNewHotlineName}
                     />
                     <TextInput
-                      style={[styles.modalInput, styles.suggestInput]}
+                      style={[styles.modalInput, styles.suggestInput, themeStyles.input]}
                       placeholder={t("suggestPhonePlaceholder")}
-                      placeholderTextColor="#7b8799"
+                      placeholderTextColor={themePalette.placeholder}
                       keyboardType="phone-pad"
                       value={newHotlinePhone}
                       onChangeText={setNewHotlinePhone}
@@ -3731,8 +4685,8 @@ export default function App() {
 
       <Modal transparent visible={contactModalVisible} animationType="fade" onRequestClose={() => setContactModalVisible(false)}>
         <KeyboardAvoidingView style={styles.flexOne} behavior={Platform.OS === "ios" ? "padding" : "padding"}>
-          <View style={[styles.modalBackdrop, isAndroid && styles.contactBackdropAndroid]}>
-            <View style={[styles.modalCard, styles.suggestCard, styles.contactCard, isAndroid && styles.contactCardAndroid]}>
+          <View style={[styles.modalBackdrop, centeredModalBackdropResponsive, isAndroid && styles.contactBackdropAndroid]}>
+            <View style={[styles.modalCard, styles.suggestCard, styles.contactCard, isAndroid && styles.contactCardAndroid, isAndroid && contactCardAndroidResponsive, themeStyles.modalCard]}>
               <View style={styles.sheetGlow} />
               <View style={styles.sheetGlowSecondary} />
               <ScrollView
@@ -3747,22 +4701,25 @@ export default function App() {
                       <Ionicons name="sparkles" size={10} color="#ffffff" />
                     </View>
                   </View>
-                  <Text style={styles.modalTitle}>{tAssistant("contactModalTitle")}</Text>
-                  <Text style={styles.modalSubTitle}>{tAssistant("contactModalSub")}</Text>
+                  <Text style={[styles.modalTitle, themeStyles.text, arabicAssistantFont]}>{tAssistant("contactModalTitle")}</Text>
+                  <Text style={[styles.modalSubTitle, themeStyles.mutedText, arabicAssistantFont]}>{tAssistant("contactModalSub")}</Text>
                 </View>
 
                 <View style={styles.assistantLanguageRow}>
                   <TouchableOpacity
                     style={[
                       styles.assistantLanguageBtn,
+                      isDarkTheme && themeStyles.chip,
                       assistantLanguage === "ar" && styles.assistantLanguageBtnActive
                     ]}
-                    onPress={() => setAssistantLanguage("ar")}
+                    onPress={() => applyAssistantLanguage("ar")}
                   >
                     <Text
                       style={[
                         styles.assistantLanguageText,
-                        assistantLanguage === "ar" && styles.assistantLanguageTextActive
+                        isDarkTheme && themeStyles.mutedText,
+                        assistantLanguage === "ar" && styles.assistantLanguageTextActive,
+                        arabicAssistantFont
                       ]}
                     >
                       {tAssistant("assistantLanguageArabic")}
@@ -3771,13 +4728,15 @@ export default function App() {
                   <TouchableOpacity
                     style={[
                       styles.assistantLanguageBtn,
+                      isDarkTheme && themeStyles.chip,
                       assistantLanguage === "en" && styles.assistantLanguageBtnActive
                     ]}
-                    onPress={() => setAssistantLanguage("en")}
+                    onPress={() => applyAssistantLanguage("en")}
                   >
                     <Text
                       style={[
                         styles.assistantLanguageText,
+                        isDarkTheme && themeStyles.mutedText,
                         assistantLanguage === "en" && styles.assistantLanguageTextActive
                       ]}
                     >
@@ -3787,7 +4746,7 @@ export default function App() {
                 </View>
 
                 <TouchableOpacity
-                  style={styles.quickQuestionsToggle}
+                  style={[styles.quickQuestionsToggle, themeStyles.surface]}
                   onPress={() => {
                     setQuickQuestionsExpanded((prev) => {
                       const next = !prev;
@@ -3798,10 +4757,10 @@ export default function App() {
                   activeOpacity={0.86}
                 >
                   <View style={styles.quickQuestionsToggleTextWrap}>
-                    <Text style={styles.assistantSectionTitle}>
+                    <Text style={[styles.assistantSectionTitle, themeStyles.text, arabicAssistantFont]}>
                       {tAssistant("quickQuestionsTitle")}
                     </Text>
-                    <Text style={styles.assistantSectionSub}>
+                    <Text style={[styles.assistantSectionSub, themeStyles.softText, arabicAssistantFont]}>
                       {tAssistant("quickQuestionsSub")}
                     </Text>
                   </View>
@@ -3821,24 +4780,26 @@ export default function App() {
                         <TouchableOpacity
                           style={[
                             styles.chatQuickChip,
+                            isDarkTheme && themeStyles.chip,
                             selectedContactTopic === topic.key && styles.chatQuickChipActive
                           ]}
                           onPress={() => handleContactTopicPress(topic)}
                         >
                           <Text
                             style={[
-                              styles.chatQuickChipText,
-                              selectedContactTopic === topic.key && styles.chatQuickChipTextActive
-                            ]}
+                            styles.chatQuickChipText,
+                            isDarkTheme && { color: "#ddd6fe" },
+                            selectedContactTopic === topic.key && styles.chatQuickChipTextActive
+                          ]}
                           >
                             {assistantLanguage === "ar" ? topic.questionAr : topic.questionEn}
                           </Text>
                         </TouchableOpacity>
 
                         {selectedContactTopic === topic.key ? (
-                          <View style={[styles.chatBubble, styles.chatBotBubble, styles.chatInlineAnswer]}>
-                            <Text style={styles.chatBubbleLabel}>Hotline Assistant</Text>
-                            <Text style={styles.chatBubbleText}>
+                          <View style={[styles.chatBubble, styles.chatBotBubble, styles.chatInlineAnswer, themeStyles.chatBotBubble]}>
+                            <Text style={[styles.chatBubbleLabel, arabicAssistantFont]}>Hotline Assistant</Text>
+                            <Text style={[styles.chatBubbleText, themeStyles.mutedText, arabicAssistantFont]}>
                               {assistantLanguage === "ar" ? topic.answerAr : topic.answerEn}
                             </Text>
                             {topic.action ? (
@@ -3846,7 +4807,7 @@ export default function App() {
                                 style={styles.chatActionBtn}
                                 onPress={() => handleContactAssistantAction(topic.action)}
                               >
-                                <Text style={styles.chatActionBtnText}>
+                                <Text style={[styles.chatActionBtnText, arabicAssistantFont]}>
                                   {assistantLanguage === "ar" ? topic.actionLabelAr : topic.actionLabelEn}
                                 </Text>
                               </TouchableOpacity>
@@ -3859,18 +4820,18 @@ export default function App() {
                 ) : null}
 
                 <View style={[styles.assistantSectionHead, styles.chatAssistantSectionHead]}>
-                  <Text style={styles.assistantSectionTitle}>
+                  <Text style={[styles.assistantSectionTitle, themeStyles.text, arabicAssistantFont]}>
                     {tAssistant("assistantChatTitle")}
                   </Text>
-                  <Text style={styles.assistantSectionSub}>
+                  <Text style={[styles.assistantSectionSub, themeStyles.softText, arabicAssistantFont]}>
                     {tAssistant("assistantChatSub")}
                   </Text>
                 </View>
 
                 <View style={styles.chatThread}>
-                  <View style={[styles.chatBubble, styles.chatBotBubble]}>
-                    <Text style={styles.chatBubbleLabel}>{tAssistant("hotlineAssistantLabel")}</Text>
-                    <Text style={styles.chatBubbleText}>
+                  <View style={[styles.chatBubble, styles.chatBotBubble, themeStyles.chatBotBubble]}>
+                    <Text style={[styles.chatBubbleLabel, arabicAssistantFont]}>{tAssistant("hotlineAssistantLabel")}</Text>
+                    <Text style={[styles.chatBubbleText, themeStyles.mutedText, arabicAssistantFont]}>
                       {tAssistant("assistantGreeting")}
                     </Text>
                   </View>
@@ -3880,21 +4841,21 @@ export default function App() {
                     return (
                       <View key={entry.id || `${topic?.key || "entry"}-${index}`} style={styles.chatThreadPair}>
                         <View style={[styles.chatBubble, styles.chatUserBubble]}>
-                          <Text style={[styles.chatBubbleText, styles.chatUserBubbleText]}>
+                          <Text style={[styles.chatBubbleText, styles.chatUserBubbleText, arabicAssistantFont]}>
                             {entry.userText || (assistantLanguage === "ar" ? topic?.questionAr : topic?.questionEn)}
                           </Text>
                         </View>
 
                         {assistantTypingId === entry.id && !entry.assistantVisible ? (
-                          <View style={[styles.chatBubble, styles.chatBotBubble, styles.chatTypingBubble]}>
-                            <Text style={styles.chatTypingText}>{tAssistant("typing")}</Text>
+                          <View style={[styles.chatBubble, styles.chatBotBubble, styles.chatTypingBubble, themeStyles.chatBotBubble]}>
+                            <Text style={[styles.chatTypingText, arabicAssistantFont]}>{tAssistant("typing")}</Text>
                           </View>
                         ) : null}
 
                         {entry.assistantVisible ? (
-                          <View style={[styles.chatBubble, styles.chatBotBubble]}>
-                            <Text style={styles.chatBubbleLabel}>{tAssistant("hotlineAssistantLabel")}</Text>
-                            <Text style={styles.chatBubbleText}>
+                          <View style={[styles.chatBubble, styles.chatBotBubble, themeStyles.chatBotBubble]}>
+                            <Text style={[styles.chatBubbleLabel, arabicAssistantFont]}>{tAssistant("hotlineAssistantLabel")}</Text>
+                            <Text style={[styles.chatBubbleText, themeStyles.mutedText, arabicAssistantFont]}>
                               {assistantLanguage === "ar" ? entry.answerAr : entry.answerEn}
                             </Text>
                             {entry.action ? (
@@ -3902,7 +4863,7 @@ export default function App() {
                                 style={styles.chatActionBtn}
                                 onPress={() => handleContactAssistantAction(entry.action)}
                               >
-                                <Text style={styles.chatActionBtnText}>
+                                <Text style={[styles.chatActionBtnText, arabicAssistantFont]}>
                                   {assistantLanguage === "ar" ? entry.actionLabelAr : entry.actionLabelEn}
                                 </Text>
                               </TouchableOpacity>
@@ -3914,14 +4875,14 @@ export default function App() {
                   })}
                 </View>
 
-                <Text style={styles.chatComposerHint}>
+                <Text style={[styles.chatComposerHint, themeStyles.softText, arabicAssistantFont]}>
                   {tAssistant("writeOwnMessage")}
                 </Text>
                 <TextInput
                   ref={contactComposerInputRef}
-                  style={[styles.modalInput, styles.chatComposerInput]}
+                  style={[styles.modalInput, styles.chatComposerInput, themeStyles.input, arabicAssistantFont]}
                   placeholder={tAssistant("messagePlaceholder")}
-                  placeholderTextColor="#7b8799"
+                  placeholderTextColor={themePalette.placeholder}
                   multiline
                   textAlignVertical="top"
                   value={contactMessage}
@@ -3929,14 +4890,14 @@ export default function App() {
                 />
                 <View style={styles.contactFooterRow}>
                   <TouchableOpacity style={styles.modalBtnGhost} onPress={() => setContactModalVisible(false)}>
-                    <Text style={styles.modalBtnGhostText}>{tAssistant("close")}</Text>
+                    <Text style={[styles.modalBtnGhostText, arabicAssistantFont]}>{tAssistant("close")}</Text>
                   </TouchableOpacity>
                   <View style={styles.contactPrimaryActions}>
                     <TouchableOpacity style={styles.modalBtnPrimary} onPress={handleContactSubmit}>
-                      <Text style={styles.modalBtnPrimaryText}>{tAssistant("askAssistant")}</Text>
+                      <Text style={[styles.modalBtnPrimaryText, arabicAssistantFont]}>{tAssistant("askAssistant")}</Text>
                     </TouchableOpacity>
                     <TouchableOpacity style={styles.modalBtnPrimary} onPress={handleDirectContactSubmit}>
-                      <Text style={styles.modalBtnPrimaryText}>{tAssistant("sendRequest")}</Text>
+                      <Text style={[styles.modalBtnPrimaryText, arabicAssistantFont]}>{tAssistant("sendRequest")}</Text>
                     </TouchableOpacity>
                   </View>
                 </View>
@@ -3948,8 +4909,8 @@ export default function App() {
 
       <Modal transparent visible={businessRequestVisible} animationType="fade" onRequestClose={() => setBusinessRequestVisible(false)}>
         <KeyboardAvoidingView style={styles.flexOne} behavior={Platform.OS === "ios" ? "padding" : "height"}>
-          <View style={styles.modalBackdrop}>
-            <View style={[styles.modalCard, styles.suggestCard, styles.contactCard]}>
+          <View style={[styles.modalBackdrop, centeredModalBackdropResponsive]}>
+            <View style={[styles.modalCard, styles.suggestCard, styles.contactCard, themeStyles.modalCard]}>
               <View style={styles.sheetGlow} />
               <View style={styles.sheetGlowSecondary} />
               <ScrollView keyboardShouldPersistTaps="handled" showsVerticalScrollIndicator={false}>
@@ -3957,8 +4918,8 @@ export default function App() {
                   <View style={[styles.suggestHeroBadge, styles.businessHeroBadge]}>
                     <Ionicons name="briefcase" size={22} color="#9a0f6f" />
                   </View>
-                  <Text style={styles.modalTitle}>{t("businessRequestTitle")}</Text>
-                  <Text style={styles.modalSubTitle}>{t("businessRequestSub")}</Text>
+                  <Text style={[styles.modalTitle, themeStyles.text]}>{t("businessRequestTitle")}</Text>
+                  <Text style={[styles.modalSubTitle, themeStyles.mutedText]}>{t("businessRequestSub")}</Text>
                 </View>
                 <View style={styles.planSelectedBadge}>
                   <Text style={styles.planSelectedBadgeText}>
@@ -3966,31 +4927,31 @@ export default function App() {
                   </Text>
                 </View>
                 <TextInput
-                  style={[styles.modalInput, styles.suggestInput]}
+                  style={[styles.modalInput, styles.suggestInput, themeStyles.input]}
                   placeholder={t("yourName")}
-                  placeholderTextColor="#7b8799"
+                  placeholderTextColor={themePalette.placeholder}
                   value={businessRequesterName}
                   onChangeText={setBusinessRequesterName}
                 />
                 <TextInput
-                  style={[styles.modalInput, styles.suggestInput]}
+                  style={[styles.modalInput, styles.suggestInput, themeStyles.input]}
                   placeholder={t("businessName")}
-                  placeholderTextColor="#7b8799"
+                  placeholderTextColor={themePalette.placeholder}
                   value={businessName}
                   onChangeText={setBusinessName}
                 />
                 <TextInput
-                  style={[styles.modalInput, styles.suggestInput]}
+                  style={[styles.modalInput, styles.suggestInput, themeStyles.input]}
                   placeholder={t("phoneOrWhatsapp")}
-                  placeholderTextColor="#7b8799"
+                  placeholderTextColor={themePalette.placeholder}
                   keyboardType="phone-pad"
                   value={businessPhone}
                   onChangeText={setBusinessPhone}
                 />
                 <TextInput
-                  style={[styles.modalInput, styles.modalTextArea]}
+                  style={[styles.modalInput, styles.modalTextArea, themeStyles.input]}
                   placeholder={t("requestDetails")}
-                  placeholderTextColor="#7b8799"
+                  placeholderTextColor={themePalette.placeholder}
                   multiline
                   textAlignVertical="top"
                   value={businessNote}
@@ -4011,25 +4972,25 @@ export default function App() {
       </Modal>
 
       <Modal transparent visible={businessModalVisible} animationType="fade" onRequestClose={() => setBusinessModalVisible(false)}>
-        <View style={styles.modalBackdrop}>
-          <View style={[styles.modalCard, styles.aboutCard]}>
+        <View style={[styles.modalBackdrop, centeredModalBackdropResponsive]}>
+          <View style={[styles.modalCard, styles.aboutCard, themeStyles.modalCard]}>
             <View style={styles.aboutHero}>
               <View style={styles.aboutHeroBadge}>
                   <Ionicons name="megaphone" size={24} color="#ffffff" />
               </View>
-                <Text style={styles.modalTitle}>{t("businessPlansTitle")}</Text>
-                <Text style={styles.modalSubTitle}>{t("businessPlansSub")}</Text>
+                <Text style={[styles.modalTitle, themeStyles.text]}>{t("businessPlansTitle")}</Text>
+                <Text style={[styles.modalSubTitle, themeStyles.mutedText]}>{t("businessPlansSub")}</Text>
             </View>
             <ScrollView showsVerticalScrollIndicator={false}>
-              <View style={[styles.aboutSection, styles.businessSection]}>
+              <View style={[styles.aboutSection, styles.businessSection, themeStyles.surface]}>
                 <View style={styles.businessHeaderRow}>
                   <View style={styles.businessBadge}>
                     <Ionicons name="briefcase" size={18} color="#9a0f6f" />
                   </View>
-                  <Text style={styles.aboutHeading}>{t("forBusiness")}</Text>
+                  <Text style={[styles.aboutHeading, themeStyles.text]}>{t("forBusiness")}</Text>
                 </View>
-                <Text style={[styles.aboutBody, isArabicUi && styles.aboutBodyAr]}>{t("businessIntroAr1")}</Text>
-                <Text style={styles.aboutBody}>{t("businessIntroAr2")}</Text>
+                <Text style={[styles.aboutBody, themeStyles.mutedText, isArabicUi && styles.aboutBodyAr]}>{t("businessIntroAr1")}</Text>
+                <Text style={[styles.aboutBody, themeStyles.mutedText]}>{t("businessIntroAr2")}</Text>
 
                 <View style={styles.businessFeatureList}>
                   <View style={styles.businessFeatureItem}>
@@ -4114,21 +5075,21 @@ export default function App() {
       </Modal>
 
       <Modal transparent visible={aboutModalVisible} animationType="fade" onRequestClose={() => setAboutModalVisible(false)}>
-        <View style={styles.modalBackdrop}>
-          <View style={[styles.modalCard, styles.aboutCard]}>
+        <View style={[styles.modalBackdrop, centeredModalBackdropResponsive]}>
+          <View style={[styles.modalCard, styles.aboutCard, themeStyles.modalCard]}>
             <View style={styles.aboutHero}>
               <View style={styles.aboutHeroBadge}>
                 <Ionicons name="information-circle" size={26} color="#ffffff" />
               </View>
-              <Text style={styles.modalTitle}>{t("aboutUsTitle")}</Text>
-              <Text style={styles.modalSubTitle}>{t("aboutUsSub")}</Text>
+              <Text style={[styles.modalTitle, themeStyles.text]}>{t("aboutUsTitle")}</Text>
+              <Text style={[styles.modalSubTitle, themeStyles.mutedText]}>{t("aboutUsSub")}</Text>
             </View>
             <ScrollView showsVerticalScrollIndicator={false}>
-              <View style={styles.aboutSection}>
-                <Text style={styles.aboutHeading}>{t("aboutUsTitle")}</Text>
-                <Text style={[styles.aboutBody, isArabicUi && styles.aboutBodyAr]}>{t("aboutAr1")}</Text>
-                <Text style={[styles.aboutBody, isArabicUi && styles.aboutBodyAr]}>{t("aboutAr2")}</Text>
-                <Text style={[styles.aboutBody, isArabicUi && styles.aboutBodyAr]}>{t("aboutAr3")}</Text>
+              <View style={[styles.aboutSection, themeStyles.surface]}>
+                <Text style={[styles.aboutHeading, themeStyles.text]}>{t("aboutUsTitle")}</Text>
+                <Text style={[styles.aboutBody, themeStyles.mutedText, isArabicUi && styles.aboutBodyAr]}>{t("aboutAr1")}</Text>
+                <Text style={[styles.aboutBody, themeStyles.mutedText, isArabicUi && styles.aboutBodyAr]}>{t("aboutAr2")}</Text>
+                <Text style={[styles.aboutBody, themeStyles.mutedText, isArabicUi && styles.aboutBodyAr]}>{t("aboutAr3")}</Text>
               </View>
 
               <View style={styles.aboutPillRow}>
@@ -4146,11 +5107,11 @@ export default function App() {
                 </View>
               </View>
 
-              <View style={styles.aboutSection}>
-                <Text style={styles.aboutHeading}>{t("aboutEnHeading")}</Text>
-                <Text style={styles.aboutBody}>{t("aboutEn1")}</Text>
-                <Text style={styles.aboutBody}>{t("aboutEn2")}</Text>
-                <Text style={styles.aboutBody}>{t("aboutEn3")}</Text>
+              <View style={[styles.aboutSection, themeStyles.surface]}>
+                <Text style={[styles.aboutHeading, themeStyles.text]}>{t("aboutEnHeading")}</Text>
+                <Text style={[styles.aboutBody, themeStyles.mutedText]}>{t("aboutEn1")}</Text>
+                <Text style={[styles.aboutBody, themeStyles.mutedText]}>{t("aboutEn2")}</Text>
+                <Text style={[styles.aboutBody, themeStyles.mutedText]}>{t("aboutEn3")}</Text>
               </View>
             </ScrollView>
             <View style={styles.modalActions}>
@@ -4184,36 +5145,36 @@ export default function App() {
       {showSuggestHint ? (
         <View style={[styles.hintOverlay, hintOverlayResponsive]} pointerEvents="box-none">
           <Pressable style={styles.hintBackdropFill} onPress={dismissSuggestHint} />
-          <TouchableOpacity activeOpacity={0.98} style={[styles.hintCard, hintCardResponsive]} onPress={dismissSuggestHint}>
+          <TouchableOpacity activeOpacity={0.98} style={[styles.hintCard, hintCardResponsive, themeStyles.modalCard]} onPress={dismissSuggestHint}>
             <View style={styles.hintBadge}>
               <Ionicons name="sparkles" size={20} color="#b30f7f" />
             </View>
-            <Text style={styles.hintTitle}>{t("quickServicesTitle")}</Text>
+            <Text style={[styles.hintTitle, themeStyles.text]}>{t("quickServicesTitle")}</Text>
             <View style={styles.hintList}>
-              <View style={styles.hintItem}>
+              <View style={[styles.hintItem, themeStyles.surface]}>
                 <View style={[styles.hintMiniBadge, styles.hintMiniBusiness]}>
                   <Ionicons name="rocket-outline" size={15} color="#7c3aed" />
                 </View>
-                <Text style={[styles.hintItemText, isArabicUi && styles.aboutBodyAr]}>
+                <Text style={[styles.hintItemText, themeStyles.mutedText, isArabicUi && styles.aboutBodyAr]}>
                   {isSmallPhone ? t("quickServicesPromoteShort") : t("quickServicesPromoteLong")}
                 </Text>
               </View>
-              <View style={styles.hintItem}>
+              <View style={[styles.hintItem, themeStyles.surface]}>
                 <View style={[styles.hintMiniBadge, styles.hintMiniAdd]}>
                   <Ionicons name="add-circle-outline" size={15} color="#b30f7f" />
                 </View>
-                <Text style={[styles.hintItemText, isArabicUi && styles.aboutBodyAr]}>
+                <Text style={[styles.hintItemText, themeStyles.mutedText, isArabicUi && styles.aboutBodyAr]}>
                   {isSmallPhone ? t("quickServicesAddShort") : t("quickServicesAddLong")}
                 </Text>
               </View>
-              <View style={styles.hintItem}>
+              <View style={[styles.hintItem, themeStyles.surface]}>
                 <View style={[styles.hintMiniBadge, styles.hintMiniContact]}>
                   <Ionicons name="phone-portrait" size={14} color="#9a0f6f" />
                   <View style={styles.hintMiniContactSparkles}>
                     <Ionicons name="sparkles" size={7} color="#ffffff" />
                   </View>
                 </View>
-                <Text style={[styles.hintItemText, isArabicUi && styles.aboutBodyAr]}>
+                <Text style={[styles.hintItemText, themeStyles.mutedText, isArabicUi && styles.aboutBodyAr]}>
                   {isSmallPhone ? t("quickServicesContactShort") : t("quickServicesContactLong")}
                 </Text>
               </View>
@@ -4238,13 +5199,29 @@ export default function App() {
   );
 }
 
+export default function App() {
+  return (
+    <SafeAreaProvider>
+      <AppContent />
+    </SafeAreaProvider>
+  );
+}
+
 const styles = StyleSheet.create({
   flexOne: {
     flex: 1
   },
-  iosBackSwipeEdge: {
+  navSwipeEdgeLeft: {
     position: "absolute",
     left: 0,
+    top: 0,
+    bottom: 0,
+    width: 28,
+    zIndex: 50
+  },
+  navSwipeEdgeRight: {
+    position: "absolute",
+    right: 0,
     top: 0,
     bottom: 0,
     width: 28,
@@ -4443,6 +5420,11 @@ const styles = StyleSheet.create({
     alignItems: "center",
     gap: 10
   },
+  headerControlsRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 6
+  },
   appLanguageToggle: {
     flexDirection: "row",
     alignItems: "center",
@@ -4470,6 +5452,21 @@ const styles = StyleSheet.create({
   },
   appLanguageBtnTextActive: {
     color: "#9a0f6f"
+  },
+  appThemeBtn: {
+    minHeight: 30,
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 4,
+    borderRadius: 999,
+    paddingHorizontal: 9,
+    paddingVertical: 5,
+    borderWidth: 1
+  },
+  appThemeBtnText: {
+    color: "#ffffff",
+    fontSize: 10.5,
+    fontWeight: "800"
   },
   content: {
     paddingHorizontal: 16,
@@ -4591,16 +5588,16 @@ const styles = StyleSheet.create({
     fontWeight: "700"
   },
   quickResultCard: {
-    backgroundColor: "rgba(255,255,255,0.72)",
-    borderRadius: 20,
+    backgroundColor: "rgba(255,255,255,0.84)",
+    borderRadius: 24,
     borderWidth: 1,
-    borderColor: "rgba(255,255,255,0.82)",
-    padding: 14,
+    borderColor: "rgba(255,255,255,0.9)",
+    padding: 16,
     marginBottom: 12,
-    shadowColor: "#1a1f36",
-    shadowOpacity: 0.1,
-    shadowRadius: 14,
-    shadowOffset: { width: 0, height: 8 },
+    shadowColor: "#111827",
+    shadowOpacity: 0.08,
+    shadowRadius: 18,
+    shadowOffset: { width: 0, height: 10 },
     elevation: 4
   },
   quickResultTitle: {
@@ -4701,6 +5698,58 @@ const styles = StyleSheet.create({
     justifyContent: "center",
     overflow: "visible"
   },
+  mobilityIconStack: {
+    alignItems: "center",
+    justifyContent: "center",
+    position: "relative",
+    width: "100%",
+    height: "100%"
+  },
+  retailIconStack: {
+    alignItems: "center",
+    justifyContent: "center",
+    width: "100%",
+    height: "100%",
+    gap: 4
+  },
+  retailIconRowTop: {
+    width: "100%",
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    gap: 3
+  },
+  retailIconRowBottom: {
+    width: "100%",
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    gap: 4,
+    marginTop: 3
+  },
+  retailTopIcon: {
+    opacity: 0.96
+  },
+  retailBottomIcon: {
+    opacity: 0.98
+  },
+  mobilityCarIcon: {
+    position: "absolute",
+    bottom: 0,
+    left: "50%",
+    marginLeft: -11
+  },
+  mobilityPlaneIcon: {
+    position: "absolute",
+    top: -6,
+    right: -4,
+    transform: [{ rotate: "-28deg" }]
+  },
+  mobilityBusIcon: {
+    position: "absolute",
+    bottom: 8,
+    left: -1
+  },
   cardUnderGlow: {
     display: "none"
   },
@@ -4731,7 +5780,9 @@ const styles = StyleSheet.create({
     textAlign: "center",
     marginTop: -1,
     textAlignVertical: "center",
-    includeFontPadding: false
+    includeFontPadding: true,
+    paddingBottom: 2,
+    paddingHorizontal: 2
   },
   categoryTextActive: {
     color: "#3b47c0",
@@ -4804,12 +5855,16 @@ const styles = StyleSheet.create({
     color: "#fff"
   },
   subCard: {
-    backgroundColor: "rgba(255,255,255,0.9)",
+    backgroundColor: "#ffffff",
     borderRadius: 14,
     borderWidth: 1,
     borderColor: "#e5e7f0",
     padding: 10,
-    gap: 8
+    gap: 8,
+    shadowOpacity: 0,
+    shadowRadius: 0,
+    shadowOffset: { width: 0, height: 0 },
+    elevation: 0
   },
   subHeader: {
     flexDirection: "row",
@@ -4823,9 +5878,15 @@ const styles = StyleSheet.create({
     fontSize: 13,
     flex: 1
   },
+  subTitleSolidDark: {
+    color: "#f8fafc"
+  },
   subToggle: {
     color: "#6b7280",
     fontWeight: "700"
+  },
+  subToggleSolidDark: {
+    color: "rgba(248,250,252,0.82)"
   },
   focusedPage: {
     marginTop: 4,
@@ -4909,23 +5970,161 @@ const styles = StyleSheet.create({
     marginBottom: 8
   },
   hotlineCard: {
-    borderRadius: 18,
-    padding: 16,
+    borderRadius: 24,
+    padding: 18,
     flexDirection: "row",
     marginBottom: 12,
     borderWidth: 1,
-    shadowOpacity: 0.18,
-    shadowRadius: 14,
-    shadowOffset: { width: 0, height: 10 },
-    elevation: 6
+    shadowOpacity: 0,
+    shadowRadius: 0,
+    shadowOffset: { width: 0, height: 0 },
+    elevation: 0
   },
   hotlineCardFeatured: {
-    shadowOpacity: 0.24,
-    shadowRadius: 18,
-    elevation: 8
+    shadowOpacity: 0,
+    shadowRadius: 0,
+    elevation: 0
   },
   hotlineBody: {
     flex: 1
+  },
+  contactHeroRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 12,
+    marginBottom: 8
+  },
+  contactHeroRowCompact: {
+    gap: 10,
+    marginBottom: 7
+  },
+  contactHeroVisualShell: {
+    width: 60,
+    height: 60,
+    borderRadius: 20,
+    padding: 3,
+    alignItems: "center",
+    justifyContent: "center",
+    borderWidth: 1,
+    borderColor: "rgba(255,255,255,0.45)",
+    shadowColor: "#b30f7f",
+    shadowOpacity: 0.14,
+    shadowRadius: 12,
+    shadowOffset: { width: 0, height: 8 },
+    elevation: 3
+  },
+  contactHeroVisualShellCompact: {
+    width: 50,
+    height: 50,
+    borderRadius: 17,
+    padding: 3
+  },
+  contactHeroVisualInner: {
+    width: "100%",
+    height: "100%",
+    borderRadius: 15,
+    alignItems: "center",
+    justifyContent: "center",
+    backgroundColor: "rgba(255,255,255,0.76)",
+    overflow: "hidden"
+  },
+  contactHeroVisualInnerCompact: {
+    borderRadius: 13
+  },
+  contactHeroVisualInnerPlain: {
+    backgroundColor: "rgba(255,255,255,0.18)"
+  },
+  contactHeroIconWrap: {
+    width: 44,
+    height: 44,
+    borderRadius: 22,
+    alignItems: "center",
+    justifyContent: "center",
+    backgroundColor: "rgba(255,255,255,0.95)",
+    borderWidth: 1,
+    borderColor: "rgba(179,15,127,0.08)",
+    shadowColor: "#b30f7f",
+    shadowOpacity: 0.08,
+    shadowRadius: 10,
+    shadowOffset: { width: 0, height: 6 },
+    elevation: 2
+  },
+  contactHeroLogoWrap: {
+    width: 44,
+    height: 44,
+    borderRadius: 14,
+    alignItems: "center",
+    justifyContent: "center",
+    backgroundColor: "rgba(255,255,255,0.72)",
+    borderWidth: 1,
+    borderColor: "rgba(179,15,127,0.08)",
+    padding: 2,
+    overflow: "hidden"
+  },
+  contactHeroIconWrapCompact: {
+    width: 38,
+    height: 38,
+    borderRadius: 19
+  },
+  contactHeroLogoWrapCompact: {
+    width: 38,
+    height: 38,
+    borderRadius: 12,
+    padding: 2
+  },
+  contactHeroLogo: {
+    width: "90%",
+    height: "90%",
+    borderRadius: 12,
+    backgroundColor: "transparent"
+  },
+  contactHeroLogoCompact: {
+    borderRadius: 10
+  },
+  contactHeroLogoPlainWrap: {
+    width: 44,
+    height: 44,
+    borderRadius: 14,
+    alignItems: "center",
+    justifyContent: "center",
+    backgroundColor: "transparent",
+    overflow: "hidden"
+  },
+  contactHeroLogoPlainWrapCompact: {
+    width: 38,
+    height: 38,
+    borderRadius: 12
+  },
+  contactHeroLogoPlain: {
+    width: 48,
+    height: 48,
+    borderRadius: 13
+  },
+  contactHeroLogoPlainCompact: {
+    width: 42,
+    height: 42,
+    borderRadius: 11
+  },
+  contactHeroTextWrap: {
+    flex: 1,
+    minWidth: 0
+  },
+  contactHeroTitle: {
+    color: "#111827",
+    fontSize: 18,
+    fontWeight: "800"
+  },
+  contactHeroTitleCompact: {
+    fontSize: 16
+  },
+  contactHeroSubtitle: {
+    color: "#6b7280",
+    marginTop: 3,
+    fontSize: 12.5,
+    fontWeight: "600"
+  },
+  contactHeroSubtitleCompact: {
+    fontSize: 11.5
   },
   hotlineName: {
     color: "#1f2937",
@@ -4938,31 +6137,183 @@ const styles = StyleSheet.create({
   },
   contactMetaWrap: {
     marginTop: 8,
-    gap: 4
+    gap: 8
+  },
+  contactMetaGrid: {
+    gap: 8
+  },
+  priorityPhoneCard: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 12,
+    borderRadius: 20,
+    paddingHorizontal: 14,
+    paddingVertical: 13,
+    backgroundColor: "#fdf2f8",
+    borderWidth: 1,
+    borderColor: "rgba(217,70,239,0.12)",
+    shadowColor: "#d946ef",
+    shadowOpacity: 0.08,
+    shadowRadius: 12,
+    shadowOffset: { width: 0, height: 6 },
+    elevation: 2
+  },
+  priorityPhoneStack: {
+    gap: 8
+  },
+  priorityPhoneStackCompact: {
+    gap: 6
+  },
+  priorityPhoneCardCompact: {
+    borderRadius: 18,
+    paddingHorizontal: 12,
+    paddingVertical: 11,
+    gap: 10
+  },
+  priorityPhoneIconWrap: {
+    width: 38,
+    height: 38,
+    borderRadius: 19,
+    alignItems: "center",
+    justifyContent: "center",
+    backgroundColor: "#ff3b81"
+  },
+  priorityPhoneIconWrapCompact: {
+    width: 34,
+    height: 34,
+    borderRadius: 17
+  },
+  priorityPhoneTextWrap: {
+    flex: 1
+  },
+  priorityPhoneLabel: {
+    color: "#9d174d",
+    fontSize: 11,
+    fontWeight: "800",
+    letterSpacing: 0.2
+  },
+  priorityPhoneLabelCompact: {
+    fontSize: 10
+  },
+  priorityPhoneValue: {
+    color: "#111827",
+    fontSize: 18,
+    fontWeight: "900",
+    marginTop: 2
+  },
+  priorityPhoneValueCompact: {
+    fontSize: 16
   },
   contactMetaWrapCompact: {
     marginTop: 6
   },
-  contactMetaRow: {
+  contactMetaTile: {
+    flexDirection: "row",
+    alignItems: "flex-start",
+    gap: 10,
+    paddingHorizontal: 13,
+    paddingVertical: 12,
+    borderRadius: 18,
+    backgroundColor: "rgba(255,255,255,0.86)",
+    borderWidth: 1,
+    borderColor: "rgba(179,15,127,0.10)",
+    shadowColor: "#b30f7f",
+    shadowOpacity: 0.04,
+    shadowRadius: 8,
+    shadowOffset: { width: 0, height: 4 },
+    elevation: 1
+  },
+  contactMetaTileCompact: {
+    paddingHorizontal: 11,
+    paddingVertical: 10,
+    borderRadius: 16
+  },
+  contactMetaTilePressable: {
+    transform: [{ scale: 1 }]
+  },
+  contactMetaTileIcon: {
+    width: 30,
+    height: 30,
+    borderRadius: 15,
+    backgroundColor: "rgba(179,15,127,0.07)",
+    alignItems: "center",
+    justifyContent: "center",
+    marginTop: 1
+  },
+  contactMetaTileIconCompact: {
+    width: 28,
+    height: 28,
+    borderRadius: 14
+  },
+  contactMetaTileContent: {
+    flex: 1,
+    gap: 3
+  },
+  contactMetaTileLabel: {
+    color: "#9d174d",
+    fontSize: 11,
+    fontWeight: "800",
+    letterSpacing: 0.2
+  },
+  contactMetaTileLabelCompact: {
+    fontSize: 10
+  },
+  contactMetaTileValue: {
+    color: "#374151",
+    fontSize: 13,
+    lineHeight: 19,
+    flexShrink: 1
+  },
+  contactMetaTileValueCompact: {
+    fontSize: 12,
+    lineHeight: 17
+  },
+  contactMetaTileLink: {
+    color: "#b30f7f",
+    textDecorationLine: "underline"
+  },
+  contactMetaActionsRow: {
     flexDirection: "row",
     flexWrap: "wrap",
-    alignItems: "flex-start",
-    gap: 6
+    gap: 8,
+    marginTop: 2
   },
-  contactMetaLabel: {
-    color: "#7c2d12",
+  metaActionBtn: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 6,
+    borderRadius: 999,
+    paddingVertical: 10,
+    paddingHorizontal: 14
+  },
+  mapActionBtn: {
+    backgroundColor: "#0f766e",
+    shadowColor: "#0f766e",
+    shadowOpacity: 0.22,
+    shadowRadius: 10,
+    shadowOffset: { width: 0, height: 6 },
+    elevation: 5
+  },
+  websiteActionBtn: {
+    backgroundColor: "rgba(139,92,246,0.10)",
+    borderWidth: 1,
+    borderColor: "rgba(139,92,246,0.18)"
+  },
+  emailActionBtn: {
+    backgroundColor: "rgba(217,70,239,0.10)",
+    borderWidth: 1,
+    borderColor: "rgba(217,70,239,0.18)"
+  },
+  metaActionBtnText: {
+    color: "#fff",
     fontSize: 12,
     fontWeight: "800"
   },
-  contactMetaValue: {
-    color: "#4b5563",
-    fontSize: 12,
-    lineHeight: 18,
-    flexShrink: 1
+  emailActionBtnText: {
+    color: "#d946ef"
   },
-  contactMetaLink: {
-    color: "#b30f7f",
-    textDecorationLine: "underline"
+  websiteActionBtnText: {
+    color: "#8b5cf6"
   },
   nonPhone: {
     marginTop: 8,
@@ -5047,13 +6398,14 @@ const styles = StyleSheet.create({
     alignItems: "center",
     justifyContent: "center",
     minWidth: 70,
-    paddingHorizontal: 2
+    paddingHorizontal: 2,
+    paddingTop: 0,
+    paddingBottom: 0
   },
   bottomCenterFloating: {
     position: "absolute",
     left: "50%",
     top: -18,
-    transform: [{ translateX: -44 }],
     alignItems: "center",
     justifyContent: "flex-start",
     zIndex: 50,
@@ -5061,20 +6413,21 @@ const styles = StyleSheet.create({
   },
   bottomCenterItem: {
     justifyContent: "center",
+    alignItems: "center",
     paddingHorizontal: 2,
     marginTop: 0
   },
   bottomVisualSlot: {
     width: 72,
-    height: 70,
+    height: 54,
     alignItems: "center",
     justifyContent: "center",
-    marginBottom: 6,
+    marginBottom: 0,
     position: "relative",
     overflow: "visible"
   },
   bottomSideVisualSlot: {
-    marginBottom: 8
+    marginBottom: 0
   },
   bottomCenterBadge: {
     width: 64,
@@ -5126,16 +6479,27 @@ const styles = StyleSheet.create({
     color: "#fff",
     fontSize: 16,
     fontWeight: "700",
-    marginTop: -8
+    marginTop: 0
   },
   bottomSideText: {
-    marginTop: -14
+    marginTop: 0
   },
   bottomSubText: {
     color: "#ffd0f0",
     fontSize: 10,
     fontWeight: "700",
     marginTop: 1
+  },
+  bannerCard: {
+    alignItems: "center",
+    justifyContent: "center",
+    borderWidth: 1,
+    borderColor: "rgba(179,15,127,0.10)",
+    shadowColor: "#7b7b86",
+    shadowOpacity: 0.08,
+    shadowRadius: 8,
+    shadowOffset: { width: 0, height: 4 },
+    elevation: 2
   },
   modalBackdrop: {
     flex: 1,
@@ -5751,10 +7115,11 @@ const styles = StyleSheet.create({
     left: 0,
     right: 0,
     backgroundColor: "#18011f",
-    alignItems: "center",
-    justifyContent: "center",
-    paddingHorizontal: 16,
-    paddingVertical: 16,
+    alignItems: "stretch",
+    justifyContent: "stretch",
+    paddingHorizontal: 0,
+    paddingVertical: 0,
+    overflow: "hidden",
     zIndex: 999,
     elevation: 50
   },
@@ -6003,5 +7368,12 @@ const styles = StyleSheet.create({
     textShadowColor: "rgba(0,0,0,0.2)",
     textShadowOffset: { width: 0, height: 4 },
     textShadowRadius: 10
+  },
+  arabicUiFont: {
+    fontFamily: Platform.select({
+      ios: "Geeza Pro",
+      android: "sans-serif",
+      default: undefined
+    })
   }
 });

@@ -9,10 +9,15 @@
     "ios": "expo run:ios"
   },
   "dependencies": {
-    "expo": "^54.0.33",
-    "expo-linear-gradient": "^55.0.8",
+    "expo": "~54.0.34",
+    "expo-dev-client": "~6.0.21",
+    "expo-linear-gradient": "~15.0.8",
+    "expo-navigation-bar": "~5.0.10",
+    "expo-notifications": "~0.32.17",
     "expo-status-bar": "~3.0.9",
     "react": "19.1.0",
-    "react-native": "0.81.5"
+    "react-native": "0.81.5",
+    "react-native-google-mobile-ads": "^16.3.3",
+    "react-native-safe-area-context": "~5.6.0"
   }
 }
