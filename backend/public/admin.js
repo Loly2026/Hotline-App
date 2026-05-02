@@ -75,6 +75,8 @@
     statusEl.textContent = text;
     statusEl.style.opacity = "1";
     statusEl.style.color = ok ? "#bbf7d0" : "#fda4af";
+    statusEl.classList.toggle("status-online", ok);
+    statusEl.classList.toggle("status-offline", !ok);
   }
 
   function authFetch(path, opts = {}) {

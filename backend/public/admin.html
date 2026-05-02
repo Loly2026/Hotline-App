@@ -8,28 +8,44 @@
 </head>
 <body>
   <header class="top">
-    <div class="brand">Hotline Admin</div>
-    <div class="status" id="status">Offline</div>
+    <div class="brand-wrap">
+      <div class="brand-badge">HA</div>
+      <div class="brand-copy">
+        <div class="brand">Hotline Admin Console</div>
+        <div class="brand-sub">Operations, support, content, and notification control center</div>
+      </div>
+    </div>
+    <div class="status status-offline" id="status">Offline</div>
   </header>
 
-  <section class="panel login" id="login-panel">
-    <h3>Connect</h3>
-    <label>API Base URL (default current origin)
-      <input id="api-base" type="text" placeholder="http://localhost:4001" />
-    </label>
-    <label>Username
-      <input id="username" type="text" placeholder="admin" />
-    </label>
-    <label>Password
-      <input id="password" type="password" placeholder="••••" />
-    </label>
-    <button id="connect-btn">Connect</button>
-    <div class="hint">Uses Basic Auth to call /api/admin/* endpoints.</div>
+  <main class="dashboard-shell">
+  <section class="panel login-panel" id="login-panel">
+    <div class="section-kicker">Secure Access</div>
+    <h3>Connect to the admin environment</h3>
+    <p class="section-copy">Sign in to manage hotline data, review support requests, and send targeted notifications from one place.</p>
+    <div class="grid login-grid">
+      <label>API Base URL
+        <input id="api-base" type="text" placeholder="http://localhost:4001" />
+      </label>
+      <label>Username
+        <input id="username" type="text" placeholder="admin" />
+      </label>
+      <label>Password
+        <input id="password" type="password" placeholder="••••" />
+      </label>
+    </div>
+    <div class="actions split">
+      <div class="hint">Uses Basic Auth to call `/api/admin/*` endpoints.</div>
+      <button id="connect-btn">Connect</button>
+    </div>
   </section>
 
-  <section class="panel" id="contacts-panel" hidden>
+  <section class="panel panel-wide" id="contacts-panel" hidden>
     <div class="panel-head">
-      <h3>Contacts</h3>
+      <div>
+        <div class="section-kicker">Directory</div>
+        <h3>Contacts</h3>
+      </div>
       <div class="actions">
         <input id="search" type="search" placeholder="Search name/phone/category" />
         <button id="refresh-btn">Refresh</button>
@@ -49,7 +65,9 @@
   </section>
 
   <section class="panel" id="add-panel" hidden>
+    <div class="section-kicker">Content</div>
     <h3>Add Contact</h3>
+    <p class="section-copy">Create a new hotline entry with category, visual identity, notes, and quality flags.</p>
     <form id="add-form">
       <div class="grid">
         <label>Name (AR)<input required name="name_ar" /></label>
@@ -71,9 +89,12 @@
     </form>
   </section>
 
-  <section class="panel" id="pending-panel" hidden>
+  <section class="panel panel-wide" id="pending-panel" hidden>
     <div class="panel-head">
-      <h3>Pending Requests</h3>
+      <div>
+        <div class="section-kicker">Support Queue</div>
+        <h3>Pending Requests</h3>
+      </div>
       <button id="refresh-req">Refresh</button>
     </div>
     <div class="table-wrapper">
@@ -84,9 +105,12 @@
     </div>
   </section>
 
-  <section class="panel" id="notifications-panel" hidden>
+  <section class="panel panel-wide" id="notifications-panel" hidden>
     <div class="panel-head">
-      <h3>Send Notification</h3>
+      <div>
+        <div class="section-kicker">Engagement</div>
+        <h3>Send Notification</h3>
+      </div>
       <button id="refresh-push-stats" type="button">Refresh stats</button>
     </div>
     <div class="stats-grid" id="push-stats">
@@ -253,5 +277,6 @@
   </div>
 
   <script src="admin.js"></script>
+  </main>
 </body>
 </html>
