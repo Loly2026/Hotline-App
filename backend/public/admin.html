@@ -226,6 +226,21 @@
         <label>Notification message
           <textarea required name="body" id="push-body" maxlength="500" placeholder="اكتب الرسالة التي ستصل للمستخدمين"></textarea>
         </label>
+        <label>Linked service (optional)
+          <select name="service_contact_id" id="push-service-contact">
+            <option value="">Choose service</option>
+          </select>
+        </label>
+        <div class="service-preview" id="push-service-preview" hidden>
+          <div class="service-preview-media">
+            <img id="push-service-image" alt="" />
+          </div>
+          <div class="service-preview-copy">
+            <div class="service-preview-name" id="push-service-name">-</div>
+            <div class="service-preview-phone" id="push-service-phone">-</div>
+            <div class="service-preview-note">Use `{service}` and `{phone}` inside title or message to fill them automatically.</div>
+          </div>
+        </div>
         <label>Message type
           <select name="message_type" id="push-type">
             <option value="update">Update</option>
@@ -253,6 +268,7 @@
             <option value="contact">Contact us</option>
             <option value="add">Add number</option>
             <option value="promote">Promote</option>
+            <option value="service">Open service card</option>
             <option value="group">Specific section</option>
           </select>
         </label>
@@ -287,6 +303,7 @@
         <thead>
           <tr>
             <th>Title</th>
+            <th>Service</th>
             <th>Type</th>
             <th>Audience</th>
             <th>Target</th>
@@ -297,7 +314,7 @@
           </tr>
         </thead>
         <tbody id="push-campaigns-body">
-          <tr><td colspan="8">No notification history yet.</td></tr>
+          <tr><td colspan="9">No notification history yet.</td></tr>
         </tbody>
       </table>
     </div>

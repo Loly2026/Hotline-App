@@ -91,6 +91,10 @@ export function initSchema() {
       target_screen TEXT,
       target_group TEXT,
       target_category_slug TEXT,
+      service_contact_id INTEGER,
+      service_name TEXT,
+      service_phone TEXT,
+      service_logo_url TEXT,
       scheduled_at TEXT,
       status TEXT NOT NULL DEFAULT 'sent',
       sent_count INTEGER NOT NULL DEFAULT 0,
@@ -129,5 +133,19 @@ export function initSchema() {
   const hasLogoUrl = contactColumns.some((c) => c.name === "logo_url");
   if (!hasLogoUrl) {
     db.exec("ALTER TABLE contacts ADD COLUMN logo_url TEXT;");
+  }
+
+  const campaignColumns = db.prepare("PRAGMA table_info(notification_campaigns)").all();
+  if (!campaignColumns.some((c) => c.name === "service_contact_id")) {
+    db.exec("ALTER TABLE notification_campaigns ADD COLUMN service_contact_id INTEGER;");
+  }
+  if (!campaignColumns.some((c) => c.name === "service_name")) {
+    db.exec("ALTER TABLE notification_campaigns ADD COLUMN service_name TEXT;");
+  }
+  if (!campaignColumns.some((c) => c.name === "service_phone")) {
+    db.exec("ALTER TABLE notification_campaigns ADD COLUMN service_phone TEXT;");
+  }
+  if (!campaignColumns.some((c) => c.name === "service_logo_url")) {
+    db.exec("ALTER TABLE notification_campaigns ADD COLUMN service_logo_url TEXT;");
   }
 }

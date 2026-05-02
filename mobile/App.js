@@ -3295,6 +3295,10 @@ function AppContent() {
     const targetCategorySlug = String(
       payload?.targetCategorySlug || payload?.target_category_slug || ""
     ).trim();
+    const serviceContactId = Number.parseInt(
+      String(payload?.serviceContactId || payload?.service_contact_id || "0"),
+      10
+    ) || 0;
 
     startTransition(() => {
       setShowIntro(false);
@@ -3325,6 +3329,17 @@ function AppContent() {
       return;
     }
 
+    if (targetScreen === "service" && serviceContactId > 0) {
+      const serviceContact = findContactById(serviceContactId);
+      if (serviceContact) {
+        setAddModalVisible(false);
+        setContactModalVisible(false);
+        setBusinessModalVisible(false);
+        handlePredictionPress(serviceContact);
+        return;
+      }
+    }
+
     if (targetScreen === "group" && targetGroup) {
       setAddModalVisible(false);
       setContactModalVisible(false);
@@ -3341,7 +3356,7 @@ function AppContent() {
     }
 
     handleHomePress();
-  }, [handleHomePress]);
+  }, [findContactById, handleHomePress, handlePredictionPress]);
 
   const onPrimaryNavPress = () => {
     setBusinessModalVisible(true);

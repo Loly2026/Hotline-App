@@ -16,6 +16,11 @@
   const catSelect = $("cat-select");
   const pushTargetGroup = $("push-target-group");
   const pushTargetCategory = $("push-target-category");
+  const pushServiceContact = $("push-service-contact");
+  const pushServicePreview = $("push-service-preview");
+  const pushServiceImage = $("push-service-image");
+  const pushServiceName = $("push-service-name");
+  const pushServicePhone = $("push-service-phone");
   const pushStats = $("push-stats");
   const pushForm = $("push-form");
   const pushDevicesBody = $("push-devices-body");
@@ -61,6 +66,7 @@
   let apiBase = window.location.origin;
   let authHeader = "";
   let categoriesCache = [];
+  let contactsCache = [];
   let lastPushStats = { active: 0 };
   let lastCampaignCount = 0;
 
@@ -79,6 +85,15 @@
     const raw = String(value || "").trim();
     const slug = raw.toLowerCase().replace(/[^a-z0-9]+/g, "-") || fallbackClass || "neutral";
     return `<span class="status-pill ${slug}">${raw || "-"}</span>`;
+  }
+
+  function applyServiceTemplate(value, service) {
+    const raw = String(value || "");
+    if (!service) return raw;
+    return raw
+      .replace(/\{service\}/gi, String(service.name_ar || "").trim())
+      .replace(/\{phone\}/gi, String(service.phone || "").trim())
+      .replace(/\{category\}/gi, String(service.category_name_ar || "").trim());
   }
 
   function updateOverviewCards() {
@@ -302,7 +317,47 @@
         </tr>`
       )
       .join("");
+    contactsCache = data;
+    populatePushServiceOptions();
     updateOverviewCards();
+  }
+
+  function populatePushServiceOptions() {
+    if (!pushServiceContact) return;
+    const currentValue = pushServiceContact.value;
+    const options = contactsCache
+      .slice()
+      .sort((a, b) => String(a.name_ar || "").localeCompare(String(b.name_ar || ""), "ar"))
+      .map((row) => `<option value="${row.id}">${row.name_ar}${row.phone ? ` - ${row.phone}` : ""}</option>`)
+      .join("");
+    pushServiceContact.innerHTML = `<option value="">Choose service</option>${options}`;
+    pushServiceContact.value = currentValue || "";
+    updatePushServicePreview();
+  }
+
+  function updatePushServicePreview() {
+    if (!pushServiceContact || !pushServicePreview) return null;
+    const selectedId = Number.parseInt(String(pushServiceContact.value || "0"), 10) || 0;
+    const service = contactsCache.find((row) => Number(row.id) === selectedId) || null;
+    pushServicePreview.hidden = !service;
+    if (!service) {
+      if (pushServiceImage) pushServiceImage.removeAttribute("src");
+      if (pushServiceName) pushServiceName.textContent = "-";
+      if (pushServicePhone) pushServicePhone.textContent = "-";
+      return null;
+    }
+    if (pushServiceName) pushServiceName.textContent = service.name_ar || "-";
+    if (pushServicePhone) pushServicePhone.textContent = service.phone || "No phone";
+    if (pushServiceImage) {
+      if (service.logo_url) {
+        pushServiceImage.src = service.logo_url;
+        pushServiceImage.style.display = "block";
+      } else {
+        pushServiceImage.removeAttribute("src");
+        pushServiceImage.style.display = "none";
+      }
+    }
+    return service;
   }
 
   async function loadPending() {
@@ -372,7 +427,7 @@
     const rows = await res.json();
     lastCampaignCount = rows.length;
     if (!rows.length) {
-      pushCampaignsBody.innerHTML = `<tr><td colspan="8">No notification history yet.</td></tr>`;
+      pushCampaignsBody.innerHTML = `<tr><td colspan="9">No notification history yet.</td></tr>`;
       updateOverviewCards();
       return;
     }
@@ -382,9 +437,13 @@
         const target = [row.target_screen || "home", row.target_group || row.target_category_slug || "-"]
           .filter(Boolean)
           .join(" / ");
+        const serviceMarkup = row.service_name
+          ? `<div>${row.service_name}</div><div class="service-preview-note">${row.service_phone || "-"}</div>`
+          : "-";
         return `
           <tr>
             <td>${row.title || "-"}</td>
+            <td>${serviceMarkup}</td>
             <td>${row.message_type || "-"}</td>
             <td>${audience}</td>
             <td>${target}</td>
@@ -400,15 +459,18 @@
 
   async function sendPushNotification(form) {
     const fd = new FormData(form);
+    const selectedServiceId = Number.parseInt(String(fd.get("service_contact_id") || "0"), 10) || 0;
+    const service = contactsCache.find((row) => Number(row.id) === selectedServiceId) || null;
     const payload = {
-      title: String(fd.get("title") || "").trim(),
-      body: String(fd.get("body") || "").trim(),
+      title: applyServiceTemplate(String(fd.get("title") || "").trim(), service),
+      body: applyServiceTemplate(String(fd.get("body") || "").trim(), service),
       message_type: String(fd.get("message_type") || "update").trim(),
       audience_platform: String(fd.get("audience_platform") || "all").trim(),
       audience_language: String(fd.get("audience_language") || "all").trim(),
-      target_screen: String(fd.get("target_screen") || "home").trim(),
+      target_screen: service ? "service" : String(fd.get("target_screen") || "home").trim(),
       target_group: String(fd.get("target_group") || "").trim(),
       target_category_slug: String(fd.get("target_category_slug") || "").trim(),
+      service_contact_id: service?.id || null,
       scheduled_at: String(fd.get("scheduled_at") || "").trim()
     };
     const res = await authFetch("/api/admin/push/send", {
@@ -418,6 +480,9 @@
     });
     const result = await res.json();
     form.reset();
+    if (pushServiceContact) pushServiceContact.value = "";
+    updatePushServicePreview();
+    syncPushTargetInputs();
     await loadPushStats();
     await loadPushDevices();
     await loadPushCampaigns();
@@ -504,6 +569,7 @@
     searchInput.oninput = () => loadContacts();
     catFilter.onchange = () => loadContacts();
     document.getElementById("push-target-screen").onchange = syncPushTargetInputs;
+    if (pushServiceContact) pushServiceContact.onchange = syncPushTargetInputs;
 
     pushForm.onsubmit = async (e) => {
       e.preventDefault();
@@ -577,10 +643,21 @@
     updateOverviewCards();
     if (pushTargetGroup) pushTargetGroup.disabled = true;
     if (pushTargetCategory) pushTargetCategory.disabled = true;
+    updatePushServicePreview();
   }
 
   function syncPushTargetInputs() {
     if (!pushTargetGroup || !pushTargetCategory) return;
+    const hasService = !!updatePushServicePreview();
+    if (hasService) {
+      const targetScreen = document.getElementById("push-target-screen");
+      if (targetScreen) targetScreen.value = "service";
+      pushTargetGroup.disabled = true;
+      pushTargetCategory.disabled = true;
+      pushTargetGroup.value = "";
+      pushTargetCategory.value = "";
+      return;
+    }
     const isGroupTarget = document.getElementById("push-target-screen")?.value === "group";
     pushTargetGroup.disabled = !isGroupTarget;
     pushTargetCategory.disabled = !isGroupTarget;

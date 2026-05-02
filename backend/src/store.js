@@ -124,6 +124,37 @@ function createSqliteStore() {
       return sqliteDb.prepare("SELECT id FROM contacts WHERE id = ?").get(id) || null;
     },
 
+    async getContactById(id) {
+      return mapContactRow(
+        sqliteDb
+          .prepare(
+            `SELECT
+               c.id,
+               c.name_ar,
+               c.phone,
+               c.logo_url,
+               c.address,
+               c.notes,
+               c.source_url,
+               c.last_verified,
+               c.is_non_phone,
+               c.is_featured,
+               c.is_verified,
+               c.priority_rank,
+               cat.slug AS category_slug,
+               cat.name_ar AS category_name_ar,
+               g.code AS governorate_code,
+               g.name_ar AS governorate_name_ar,
+               CASE WHEN c.governorate_id IS NULL THEN 1 ELSE 0 END AS is_national
+             FROM contacts c
+             JOIN categories cat ON c.category_id = cat.id
+             LEFT JOIN governorates g ON c.governorate_id = g.id
+             WHERE c.id = ?`
+          )
+          .get(id)
+      );
+    },
+
     async insertContactRequest(contactId) {
       sqliteDb.prepare("INSERT INTO contact_requests (contact_id) VALUES (?)").run(contactId);
     },
@@ -365,12 +396,14 @@ function createSqliteStore() {
         .prepare(
           `INSERT INTO notification_campaigns (
              title, body, message_type, audience_platform, audience_language,
-             target_screen, target_group, target_category_slug, scheduled_at,
+             target_screen, target_group, target_category_slug, service_contact_id,
+             service_name, service_phone, service_logo_url, scheduled_at,
              status, sent_count, failed_count, disabled_count, updated_at
            )
            VALUES (
              @title, @body, @message_type, @audience_platform, @audience_language,
-             @target_screen, @target_group, @target_category_slug, @scheduled_at,
+             @target_screen, @target_group, @target_category_slug, @service_contact_id,
+             @service_name, @service_phone, @service_logo_url, @scheduled_at,
              @status, @sent_count, @failed_count, @disabled_count, datetime('now')
            )`
         )
@@ -504,6 +537,10 @@ function createPostgresStore() {
           target_screen TEXT,
           target_group TEXT,
           target_category_slug TEXT,
+          service_contact_id INTEGER,
+          service_name TEXT,
+          service_phone TEXT,
+          service_logo_url TEXT,
           scheduled_at TIMESTAMPTZ,
           status TEXT NOT NULL DEFAULT 'sent',
           sent_count INTEGER NOT NULL DEFAULT 0,
@@ -529,6 +566,10 @@ function createPostgresStore() {
         CREATE INDEX IF NOT EXISTS idx_notification_campaigns_scheduled_at ON notification_campaigns (scheduled_at);
       `);
       await query(`ALTER TABLE contacts ADD COLUMN IF NOT EXISTS logo_url TEXT`);
+      await query(`ALTER TABLE notification_campaigns ADD COLUMN IF NOT EXISTS service_contact_id INTEGER`);
+      await query(`ALTER TABLE notification_campaigns ADD COLUMN IF NOT EXISTS service_name TEXT`);
+      await query(`ALTER TABLE notification_campaigns ADD COLUMN IF NOT EXISTS service_phone TEXT`);
+      await query(`ALTER TABLE notification_campaigns ADD COLUMN IF NOT EXISTS service_logo_url TEXT`);
     },
 
     async getGovernorates() {
@@ -899,10 +940,11 @@ function createPostgresStore() {
       const { rows } = await query(
         `INSERT INTO notification_campaigns (
            title, body, message_type, audience_platform, audience_language,
-           target_screen, target_group, target_category_slug, scheduled_at,
+           target_screen, target_group, target_category_slug, service_contact_id,
+           service_name, service_phone, service_logo_url, scheduled_at,
            status, sent_count, failed_count, disabled_count, updated_at
          )
-         VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, NOW())
+         VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, NOW())
          RETURNING id`,
         [
           payload.title,
@@ -913,6 +955,10 @@ function createPostgresStore() {
           payload.target_screen,
           payload.target_group,
           payload.target_category_slug,
+          payload.service_contact_id,
+          payload.service_name,
+          payload.service_phone,
+          payload.service_logo_url,
           payload.scheduled_at,
           payload.status,
           payload.sent_count,
@@ -961,6 +1007,35 @@ function createPostgresStore() {
       const uniqueTokens = [...new Set(tokens.filter(Boolean))];
       if (!uniqueTokens.length) return;
       await query("UPDATE push_tokens SET enabled = FALSE, updated_at = NOW() WHERE token = ANY($1::text[])", [uniqueTokens]);
+    },
+
+    async getContactById(id) {
+      const { rows } = await query(
+        `SELECT
+           c.id,
+           c.name_ar,
+           c.phone,
+           c.logo_url,
+           c.address,
+           c.notes,
+           c.source_url,
+           c.last_verified,
+           c.is_non_phone,
+           c.is_featured,
+           c.is_verified,
+           c.priority_rank,
+           cat.slug AS category_slug,
+           cat.name_ar AS category_name_ar,
+           g.code AS governorate_code,
+           g.name_ar AS governorate_name_ar,
+           CASE WHEN c.governorate_id IS NULL THEN TRUE ELSE FALSE END AS is_national
+         FROM contacts c
+         JOIN categories cat ON c.category_id = cat.id
+         LEFT JOIN governorates g ON c.governorate_id = g.id
+         WHERE c.id = $1`,
+        [id]
+      );
+      return mapContactRow(rows[0]);
     }
   };
 }

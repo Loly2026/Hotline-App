@@ -154,6 +154,7 @@ async function sendExpoPushNotifications(tokens, notification) {
       sound: "default",
       title: notification.title,
       body: notification.body,
+      richContent: notification.image ? { image: notification.image } : undefined,
       data: notification.data || {},
       channelId: "default"
     }));
@@ -198,6 +199,15 @@ function normalizeNotificationTarget(body) {
   };
 }
 
+function applyNotificationTemplate(value, service) {
+  const raw = String(value || "");
+  if (!service) return raw;
+  return raw
+    .replace(/\{service\}/gi, String(service.name_ar || "").trim())
+    .replace(/\{phone\}/gi, String(service.phone || "").trim())
+    .replace(/\{category\}/gi, String(service.category_name_ar || "").trim());
+}
+
 async function executeNotificationCampaign(campaign) {
   const filters = {
     platform: String(campaign.audience_platform || "all").trim() || "all",
@@ -208,6 +218,15 @@ async function executeNotificationCampaign(campaign) {
     target_group: String(campaign.target_group || "").trim(),
     target_category_slug: String(campaign.target_category_slug || "").trim()
   };
+  const service = campaign.service_contact_id
+    ? {
+        id: Number(campaign.service_contact_id),
+        name_ar: String(campaign.service_name || "").trim(),
+        phone: String(campaign.service_phone || "").trim(),
+        logo_url: String(campaign.service_logo_url || "").trim(),
+        category_slug: String(campaign.target_category_slug || "").trim()
+      }
+    : null;
 
   const tokens = await store.listActivePushTokens(filters);
   if (!tokens.length) {
@@ -223,13 +242,18 @@ async function executeNotificationCampaign(campaign) {
   const result = await sendExpoPushNotifications(tokens, {
     title: String(campaign.title || "").slice(0, 120),
     body: String(campaign.body || "").slice(0, 500),
+    image: service?.logo_url || "",
     data: {
       source: "hotline-admin",
       sentAt: new Date().toISOString(),
       messageType: String(campaign.message_type || "update").trim() || "update",
       targetScreen: target.target_screen,
       targetGroup: target.target_group,
-      targetCategorySlug: target.target_category_slug
+      targetCategorySlug: target.target_category_slug,
+      serviceContactId: service?.id || null,
+      serviceName: service?.name_ar || "",
+      servicePhone: service?.phone || "",
+      serviceLogoUrl: service?.logo_url || ""
     }
   });
 
@@ -501,8 +525,10 @@ app.get("/api/admin/push/campaigns", adminAuth, async (req, res) => {
 
 app.post("/api/admin/push/send", adminAuth, async (req, res) => {
   try {
-    const title = String(req.body?.title || "").trim();
-    const body = String(req.body?.body || "").trim();
+    const serviceContactId = Number.parseInt(String(req.body?.service_contact_id || "0"), 10) || 0;
+    const serviceContact = serviceContactId > 0 ? await store.getContactById(serviceContactId) : null;
+    const title = applyNotificationTemplate(String(req.body?.title || "").trim(), serviceContact).trim();
+    const body = applyNotificationTemplate(String(req.body?.body || "").trim(), serviceContact).trim();
     if (!title || !body) {
       return res.status(400).json({ error: "title and body are required" });
     }
@@ -512,6 +538,10 @@ app.post("/api/admin/push/send", adminAuth, async (req, res) => {
     const message_type = String(req.body?.message_type || "update").trim() || "update";
     const scheduledAtRaw = String(req.body?.scheduled_at || "").trim();
     const target = normalizeNotificationTarget(req.body);
+    if (serviceContact) {
+      target.target_screen = "service";
+      target.target_category_slug = serviceContact.category_slug || target.target_category_slug;
+    }
     const scheduled_at = scheduledAtRaw ? new Date(scheduledAtRaw).toISOString() : null;
     const status = scheduled_at && new Date(scheduled_at).getTime() > Date.now() ? "scheduled" : "sending";
 
@@ -524,6 +554,10 @@ app.post("/api/admin/push/send", adminAuth, async (req, res) => {
       target_screen: target.target_screen,
       target_group: target.target_group,
       target_category_slug: target.target_category_slug,
+      service_contact_id: serviceContact?.id || null,
+      service_name: serviceContact?.name_ar || "",
+      service_phone: serviceContact?.phone || "",
+      service_logo_url: serviceContact?.logo_url || "",
       scheduled_at,
       status,
       sent_count: 0,
@@ -541,6 +575,10 @@ app.post("/api/admin/push/send", adminAuth, async (req, res) => {
       target_screen: target.target_screen,
       target_group: target.target_group,
       target_category_slug: target.target_category_slug,
+      service_contact_id: serviceContact?.id || null,
+      service_name: serviceContact?.name_ar || "",
+      service_phone: serviceContact?.phone || "",
+      service_logo_url: serviceContact?.logo_url || "",
       scheduled_at
     };
 
