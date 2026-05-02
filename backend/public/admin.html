@@ -120,11 +120,69 @@
         <label>Notification message
           <textarea required name="body" id="push-body" maxlength="500" placeholder="اكتب الرسالة التي ستصل للمستخدمين"></textarea>
         </label>
+        <label>Message type
+          <select name="message_type" id="push-type">
+            <option value="update">Update</option>
+            <option value="offer">Offer</option>
+            <option value="alert">Alert</option>
+          </select>
+        </label>
+        <label>Platform
+          <select name="audience_platform" id="push-platform">
+            <option value="all">All devices</option>
+            <option value="android">Android only</option>
+            <option value="ios">iOS only</option>
+          </select>
+        </label>
+        <label>Language
+          <select name="audience_language" id="push-language">
+            <option value="all">All languages</option>
+            <option value="ar">Arabic only</option>
+            <option value="en">English only</option>
+          </select>
+        </label>
+        <label>Open screen on tap
+          <select name="target_screen" id="push-target-screen">
+            <option value="home">Home</option>
+            <option value="contact">Contact us</option>
+            <option value="add">Add number</option>
+            <option value="promote">Promote</option>
+            <option value="group">Specific section</option>
+          </select>
+        </label>
+        <label>Target group key (optional)
+          <input name="target_group" id="push-target-group" placeholder="gov / health / food / finance ..." />
+        </label>
+        <label>Target category slug (optional)
+          <input name="target_category_slug" id="push-target-category" placeholder="emergency / hospitals / banks ..." />
+        </label>
+        <label>Send later (optional)
+          <input type="datetime-local" name="scheduled_at" id="push-scheduled-at" />
+        </label>
       </div>
       <div class="actions right">
         <button type="submit">Send to users</button>
       </div>
     </form>
+    <div class="table-wrap">
+      <table>
+        <thead>
+          <tr>
+            <th>Title</th>
+            <th>Type</th>
+            <th>Audience</th>
+            <th>Target</th>
+            <th>Status</th>
+            <th>Sent</th>
+            <th>Failed</th>
+            <th>Scheduled</th>
+          </tr>
+        </thead>
+        <tbody id="push-campaigns-body">
+          <tr><td colspan="8">No notification history yet.</td></tr>
+        </tbody>
+      </table>
+    </div>
   </section>
 
   <div class="modal" id="edit-modal" hidden>

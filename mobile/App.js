@@ -2485,7 +2485,7 @@ function AppContent() {
 
   useEffect(() => {
     if (showIntro && introLoaded) {
-      const t = setTimeout(() => setShowIntro(false), 4200);
+      const t = setTimeout(() => setShowIntro(false), 2200);
       return () => clearTimeout(t);
     }
   }, [showIntro, introLoaded]);
@@ -2495,6 +2495,14 @@ function AppContent() {
       setShowSuggestHint(true);
     }
   }, [showIntro, suggestHintReady]);
+
+  useEffect(() => {
+    if (!showSuggestHint) return undefined;
+    const timer = setTimeout(() => {
+      dismissSuggestHint();
+    }, 2400);
+    return () => clearTimeout(timer);
+  }, [showSuggestHint]);
 
   useEffect(() => {
     if (contactModalVisible) {
@@ -3282,6 +3290,60 @@ function AppContent() {
     scrollRef.current?.scrollTo({ y: 0, animated: true });
   };
 
+  const handleNotificationTarget = useCallback((payload = {}) => {
+    const targetScreen = String(payload?.targetScreen || payload?.target_screen || "home").trim() || "home";
+    const targetGroup = String(payload?.targetGroup || payload?.target_group || "").trim();
+    const targetCategorySlug = String(
+      payload?.targetCategorySlug || payload?.target_category_slug || ""
+    ).trim();
+
+    startTransition(() => {
+      setShowIntro(false);
+      setShowSuggestHint(false);
+      setAboutModalVisible(false);
+      setBusinessRequestVisible(false);
+      setPendingSupportMessage("");
+    });
+
+    if (targetScreen === "contact") {
+      setAddModalVisible(false);
+      setBusinessModalVisible(false);
+      setContactModalVisible(true);
+      return;
+    }
+
+    if (targetScreen === "add") {
+      setContactModalVisible(false);
+      setBusinessModalVisible(false);
+      setAddModalVisible(true);
+      return;
+    }
+
+    if (targetScreen === "promote") {
+      setAddModalVisible(false);
+      setContactModalVisible(false);
+      setBusinessModalVisible(true);
+      return;
+    }
+
+    if (targetScreen === "group" && targetGroup) {
+      setAddModalVisible(false);
+      setContactModalVisible(false);
+      setBusinessModalVisible(false);
+      setQuickResult(null);
+      setActiveCategorySlug(targetCategorySlug);
+      setActiveGroup(targetGroup);
+      setDetailGroup(targetGroup);
+      setDetailCategory(targetCategorySlug || (targetGroup === "gov" ? "emergency" : ""));
+      requestAnimationFrame(() => {
+        scrollRef.current?.scrollTo({ y: 0, animated: true });
+      });
+      return;
+    }
+
+    handleHomePress();
+  }, [handleHomePress]);
+
   const onPrimaryNavPress = () => {
     setBusinessModalVisible(true);
   };
@@ -3335,6 +3397,41 @@ function AppContent() {
 
     return () => subscription.remove();
   }, [isExpoGo]);
+
+  useEffect(() => {
+    if (isExpoGo) return undefined;
+
+    let mounted = true;
+    let responseSubscription;
+
+    async function attachNotificationListeners() {
+      try {
+        const Notifications =
+          notificationsModuleRef.current ||
+          (await import("expo-notifications"));
+        notificationsModuleRef.current = Notifications;
+
+        responseSubscription = Notifications.addNotificationResponseReceivedListener((response) => {
+          handleNotificationTarget(response?.notification?.request?.content?.data || {});
+          Notifications.clearLastNotificationResponseAsync?.().catch(() => {});
+        });
+
+        const lastResponse = await Notifications.getLastNotificationResponseAsync?.();
+        if (mounted && lastResponse?.notification?.request?.content?.data) {
+          handleNotificationTarget(lastResponse.notification.request.content.data);
+          Notifications.clearLastNotificationResponseAsync?.().catch(() => {});
+        }
+      } catch (err) {
+        console.log("push response listener skipped:", err?.message || err);
+      }
+    }
+
+    attachNotificationListeners();
+    return () => {
+      mounted = false;
+      responseSubscription?.remove?.();
+    };
+  }, [handleNotificationTarget, isExpoGo]);
 
   useEffect(() => {
     if (!anonymousSenderId || isExpoGo) return undefined;
@@ -4457,7 +4554,8 @@ function AppContent() {
                   return <Text style={[styles.error, arabicUiFont]}>{t("noCategoryData")}</Text>;
                 }
                 return groupItems.map((cat) => {
-                  const opened = detailCategory === cat.slug;
+                  const forceExpanded = cat.slug === "emergency";
+                  const opened = forceExpanded || detailCategory === cat.slug;
                   return (
                     <View
                       key={cat.slug}
@@ -4482,6 +4580,7 @@ function AppContent() {
                       <Pressable
                         style={({ pressed }) => [styles.subHeader, pressed && { opacity: 0.85 }]}
                         onPress={() => {
+                          if (forceExpanded) return;
                           const nextCategory = opened ? "" : cat.slug;
                           setDetailCategory(nextCategory);
                           if (nextCategory) {
@@ -4498,7 +4597,9 @@ function AppContent() {
                         <Text style={[styles.subTitle, isDarkTheme ? styles.subTitleSolidDark : themeStyles.text, arabicUiFont]} numberOfLines={1} ellipsizeMode="tail">
                           {cat.name}
                         </Text>
-                        <Text style={[styles.subToggle, isDarkTheme ? styles.subToggleSolidDark : themeStyles.softText]}>{opened ? "▲" : "▼"}</Text>
+                        {!forceExpanded ? (
+                          <Text style={[styles.subToggle, isDarkTheme ? styles.subToggleSolidDark : themeStyles.softText]}>{opened ? "▲" : "▼"}</Text>
+                        ) : null}
                       </Pressable>
                       {opened ? (
                         <ScrollView

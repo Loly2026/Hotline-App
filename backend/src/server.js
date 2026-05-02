@@ -57,6 +57,7 @@ const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 const PUBLIC_DIR = path.resolve(__dirname, "../public");
 const LOGOS_DIR = path.resolve(PUBLIC_DIR, "logos");
+const scheduledCampaignTimers = new Map();
 
 app.use(cors());
 app.use(express.json({ limit: "8mb" }));
@@ -187,6 +188,101 @@ async function sendExpoPushNotifications(tokens, notification) {
   }
 
   return { sent, failed, disabledTokens };
+}
+
+function normalizeNotificationTarget(body) {
+  return {
+    target_screen: String(body?.target_screen || "home").trim() || "home",
+    target_group: String(body?.target_group || "").trim(),
+    target_category_slug: String(body?.target_category_slug || "").trim()
+  };
+}
+
+async function executeNotificationCampaign(campaign) {
+  const filters = {
+    platform: String(campaign.audience_platform || "all").trim() || "all",
+    ui_language: String(campaign.audience_language || "all").trim() || "all"
+  };
+  const target = {
+    target_screen: String(campaign.target_screen || "home").trim() || "home",
+    target_group: String(campaign.target_group || "").trim(),
+    target_category_slug: String(campaign.target_category_slug || "").trim()
+  };
+
+  const tokens = await store.listActivePushTokens(filters);
+  if (!tokens.length) {
+    await store.updateNotificationCampaign(campaign.id, {
+      status: "sent",
+      sent_count: 0,
+      failed_count: 0,
+      disabled_count: 0
+    });
+    return { sent: 0, failed: 0, activeTokens: 0, disabled: 0 };
+  }
+
+  const result = await sendExpoPushNotifications(tokens, {
+    title: String(campaign.title || "").slice(0, 120),
+    body: String(campaign.body || "").slice(0, 500),
+    data: {
+      source: "hotline-admin",
+      sentAt: new Date().toISOString(),
+      messageType: String(campaign.message_type || "update").trim() || "update",
+      targetScreen: target.target_screen,
+      targetGroup: target.target_group,
+      targetCategorySlug: target.target_category_slug
+    }
+  });
+
+  if (result.disabledTokens.length) {
+    await store.disablePushTokens(result.disabledTokens);
+  }
+
+  await store.updateNotificationCampaign(campaign.id, {
+    status: "sent",
+    sent_count: result.sent,
+    failed_count: result.failed,
+    disabled_count: result.disabledTokens.length
+  });
+
+  return {
+    sent: result.sent,
+    failed: result.failed,
+    activeTokens: tokens.length,
+    disabled: result.disabledTokens.length
+  };
+}
+
+function scheduleNotificationCampaign(campaign) {
+  const id = Number(campaign?.id || 0);
+  if (!id) return;
+  const when = new Date(campaign.scheduled_at || "").getTime();
+  if (!Number.isFinite(when)) return;
+
+  const existingTimer = scheduledCampaignTimers.get(id);
+  if (existingTimer) clearTimeout(existingTimer);
+
+  const delay = Math.max(when - Date.now(), 0);
+  const timer = setTimeout(async () => {
+    scheduledCampaignTimers.delete(id);
+    try {
+      await executeNotificationCampaign(campaign);
+    } catch (err) {
+      console.error("scheduled notification error:", err);
+      await store.updateNotificationCampaign(id, {
+        status: "failed",
+        sent_count: 0,
+        failed_count: 0,
+        disabled_count: 0
+      });
+    }
+  }, delay);
+
+  scheduledCampaignTimers.set(id, timer);
+}
+
+async function bootstrapScheduledNotificationCampaigns() {
+  const campaigns = await store.getPendingNotificationCampaigns();
+  campaigns.forEach(scheduleNotificationCampaign);
 }
 
 app.get("/health", (_req, res) => {
@@ -396,6 +492,13 @@ app.get("/api/admin/push/recent", adminAuth, async (req, res) => {
   );
 });
 
+app.get("/api/admin/push/campaigns", adminAuth, async (req, res) => {
+  const rawLimit = Number.parseInt(String(req.query.limit || "20"), 10);
+  const limit = Math.min(Math.max(rawLimit || 20, 1), 100);
+  const rows = await store.getRecentNotificationCampaigns(limit);
+  res.json(rows);
+});
+
 app.post("/api/admin/push/send", adminAuth, async (req, res) => {
   try {
     const title = String(req.body?.title || "").trim();
@@ -404,31 +507,55 @@ app.post("/api/admin/push/send", adminAuth, async (req, res) => {
       return res.status(400).json({ error: "title and body are required" });
     }
 
-    const tokens = await store.listActivePushTokens();
-    if (!tokens.length) {
-      return res.json({ ok: true, sent: 0, failed: 0, activeTokens: 0 });
-    }
+    const audience_platform = String(req.body?.audience_platform || "all").trim() || "all";
+    const audience_language = String(req.body?.audience_language || "all").trim() || "all";
+    const message_type = String(req.body?.message_type || "update").trim() || "update";
+    const scheduledAtRaw = String(req.body?.scheduled_at || "").trim();
+    const target = normalizeNotificationTarget(req.body);
+    const scheduled_at = scheduledAtRaw ? new Date(scheduledAtRaw).toISOString() : null;
+    const status = scheduled_at && new Date(scheduled_at).getTime() > Date.now() ? "scheduled" : "sending";
 
-    const result = await sendExpoPushNotifications(tokens, {
+    const campaignId = await store.createNotificationCampaign({
       title: title.slice(0, 120),
       body: body.slice(0, 500),
-      data: {
-        source: "hotline-admin",
-        sentAt: new Date().toISOString()
-      }
+      message_type,
+      audience_platform,
+      audience_language,
+      target_screen: target.target_screen,
+      target_group: target.target_group,
+      target_category_slug: target.target_category_slug,
+      scheduled_at,
+      status,
+      sent_count: 0,
+      failed_count: 0,
+      disabled_count: 0
     });
 
-    if (result.disabledTokens.length) {
-      await store.disablePushTokens(result.disabledTokens);
+    const campaign = {
+      id: campaignId,
+      title,
+      body,
+      message_type,
+      audience_platform,
+      audience_language,
+      target_screen: target.target_screen,
+      target_group: target.target_group,
+      target_category_slug: target.target_category_slug,
+      scheduled_at
+    };
+
+    if (status === "scheduled") {
+      scheduleNotificationCampaign(campaign);
+      return res.json({
+        ok: true,
+        scheduled: true,
+        campaignId,
+        scheduledAt: scheduled_at
+      });
     }
 
-    res.json({
-      ok: true,
-      sent: result.sent,
-      failed: result.failed,
-      activeTokens: tokens.length,
-      disabled: result.disabledTokens.length
-    });
+    const result = await executeNotificationCampaign(campaign);
+    res.json({ ok: true, campaignId, scheduled: false, ...result });
   } catch (err) {
     console.error("push send error:", err);
     res.status(500).json({ error: "Failed to send notification" });
@@ -626,4 +753,8 @@ app.post("/api/admin/requests/:id/approve", adminAuth, async (req, res) => {
 
 app.listen(port, host, () => {
   console.log(`Hotline backend running on http://localhost:${port} (LAN: http://<your-ip>:${port})`);
+});
+
+bootstrapScheduledNotificationCampaigns().catch((err) => {
+  console.error("scheduled notification bootstrap error:", err);
 });

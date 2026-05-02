@@ -15,6 +15,7 @@
   const pushStats = $("push-stats");
   const pushForm = $("push-form");
   const pushDevicesBody = $("push-devices-body");
+  const pushCampaignsBody = $("push-campaigns-body");
   const contactsTbody = document.querySelector("#contacts-table tbody");
   const pendingTbody = document.querySelector("#pending-table tbody");
   const editModal = document.getElementById("edit-modal");
@@ -234,19 +235,58 @@
       .join("");
   }
 
+  async function loadPushCampaigns() {
+    if (!pushCampaignsBody) return;
+    const res = await authFetch("/api/admin/push/campaigns?limit=20");
+    const rows = await res.json();
+    if (!rows.length) {
+      pushCampaignsBody.innerHTML = `<tr><td colspan="8">No notification history yet.</td></tr>`;
+      return;
+    }
+    pushCampaignsBody.innerHTML = rows
+      .map((row) => {
+        const audience = `${row.audience_platform || "all"} / ${row.audience_language || "all"}`;
+        const target = [row.target_screen || "home", row.target_group || row.target_category_slug || "-"]
+          .filter(Boolean)
+          .join(" / ");
+        return `
+          <tr>
+            <td>${row.title || "-"}</td>
+            <td>${row.message_type || "-"}</td>
+            <td>${audience}</td>
+            <td>${target}</td>
+            <td>${row.status || "-"}</td>
+            <td>${row.sent_count ?? 0}</td>
+            <td>${row.failed_count ?? 0}</td>
+            <td>${row.scheduled_at || "-"}</td>
+          </tr>`;
+      })
+      .join("");
+  }
+
   async function sendPushNotification(form) {
     const fd = new FormData(form);
-    const title = String(fd.get("title") || "").trim();
-    const body = String(fd.get("body") || "").trim();
+    const payload = {
+      title: String(fd.get("title") || "").trim(),
+      body: String(fd.get("body") || "").trim(),
+      message_type: String(fd.get("message_type") || "update").trim(),
+      audience_platform: String(fd.get("audience_platform") || "all").trim(),
+      audience_language: String(fd.get("audience_language") || "all").trim(),
+      target_screen: String(fd.get("target_screen") || "home").trim(),
+      target_group: String(fd.get("target_group") || "").trim(),
+      target_category_slug: String(fd.get("target_category_slug") || "").trim(),
+      scheduled_at: String(fd.get("scheduled_at") || "").trim()
+    };
     const res = await authFetch("/api/admin/push/send", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ title, body })
+      body: JSON.stringify(payload)
     });
     const result = await res.json();
     form.reset();
     await loadPushStats();
     await loadPushDevices();
+    await loadPushCampaigns();
     return result;
   }
 
@@ -305,6 +345,7 @@
         await loadPending();
         await loadPushStats();
         await loadPushDevices();
+        await loadPushCampaigns();
         loginPanel.hidden = true;
         contactsPanel.hidden = false;
         addPanel.hidden = false;
@@ -322,6 +363,7 @@
     $("refresh-push-stats").onclick = async () => {
       await loadPushStats();
       await loadPushDevices();
+      await loadPushCampaigns();
     };
     searchInput.oninput = () => loadContacts();
     catFilter.onchange = () => loadContacts();
@@ -330,7 +372,11 @@
       e.preventDefault();
       try {
         const result = await sendPushNotification(e.target);
-        setStatus(`Notification sent to ${result.sent || 0} users`, true);
+        if (result.scheduled) {
+          setStatus(`Notification scheduled for ${result.scheduledAt}`, true);
+        } else {
+          setStatus(`Notification sent to ${result.sent || 0} users`, true);
+        }
       } catch (err) {
         setStatus(err.message || "Notification failed", false);
       }

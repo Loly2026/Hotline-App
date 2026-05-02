@@ -343,11 +343,75 @@ function createSqliteStore() {
         .all(limit);
     },
 
-    async listActivePushTokens() {
+    async listActivePushTokens(filters = {}) {
+      const where = ["enabled = 1"];
+      const params = {};
+      if (filters.platform && filters.platform !== "all") {
+        where.push("platform = @platform");
+        params.platform = filters.platform;
+      }
+      if (filters.ui_language && filters.ui_language !== "all") {
+        where.push("ui_language = @ui_language");
+        params.ui_language = filters.ui_language;
+      }
       return sqliteDb
-        .prepare("SELECT token FROM push_tokens WHERE enabled = 1 ORDER BY updated_at DESC")
-        .all()
+        .prepare(`SELECT token FROM push_tokens WHERE ${where.join(" AND ")} ORDER BY updated_at DESC`)
+        .all(params)
         .map((row) => row.token);
+    },
+
+    async createNotificationCampaign(payload) {
+      const result = sqliteDb
+        .prepare(
+          `INSERT INTO notification_campaigns (
+             title, body, message_type, audience_platform, audience_language,
+             target_screen, target_group, target_category_slug, scheduled_at,
+             status, sent_count, failed_count, disabled_count, updated_at
+           )
+           VALUES (
+             @title, @body, @message_type, @audience_platform, @audience_language,
+             @target_screen, @target_group, @target_category_slug, @scheduled_at,
+             @status, @sent_count, @failed_count, @disabled_count, datetime('now')
+           )`
+        )
+        .run(payload);
+      return result.lastInsertRowid;
+    },
+
+    async updateNotificationCampaign(id, payload) {
+      sqliteDb
+        .prepare(
+          `UPDATE notification_campaigns
+           SET status = @status,
+               sent_count = @sent_count,
+               failed_count = @failed_count,
+               disabled_count = @disabled_count,
+               updated_at = datetime('now')
+           WHERE id = @id`
+        )
+        .run({ id, ...payload });
+    },
+
+    async getPendingNotificationCampaigns() {
+      return sqliteDb
+        .prepare(
+          `SELECT *
+           FROM notification_campaigns
+           WHERE status = 'scheduled' AND scheduled_at IS NOT NULL
+           ORDER BY scheduled_at ASC`
+        )
+        .all();
+    },
+
+    async getRecentNotificationCampaigns(limit = 20) {
+      return sqliteDb
+        .prepare(
+          `SELECT *
+           FROM notification_campaigns
+           ORDER BY created_at DESC
+           LIMIT ?`
+        )
+        .all(limit);
     },
 
     async disablePushTokens(tokens = []) {
@@ -430,6 +494,25 @@ function createPostgresStore() {
           updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
         );
 
+        CREATE TABLE IF NOT EXISTS notification_campaigns (
+          id SERIAL PRIMARY KEY,
+          title TEXT NOT NULL,
+          body TEXT NOT NULL,
+          message_type TEXT,
+          audience_platform TEXT,
+          audience_language TEXT,
+          target_screen TEXT,
+          target_group TEXT,
+          target_category_slug TEXT,
+          scheduled_at TIMESTAMPTZ,
+          status TEXT NOT NULL DEFAULT 'sent',
+          sent_count INTEGER NOT NULL DEFAULT 0,
+          failed_count INTEGER NOT NULL DEFAULT 0,
+          disabled_count INTEGER NOT NULL DEFAULT 0,
+          created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+          updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+        );
+
         CREATE INDEX IF NOT EXISTS idx_contacts_name ON contacts (name_ar);
         CREATE INDEX IF NOT EXISTS idx_contacts_phone ON contacts (phone);
         CREATE INDEX IF NOT EXISTS idx_contacts_category ON contacts (category_id);
@@ -442,6 +525,8 @@ function createPostgresStore() {
         CREATE INDEX IF NOT EXISTS idx_contact_requests_time ON contact_requests (requested_at);
         CREATE INDEX IF NOT EXISTS idx_push_tokens_enabled ON push_tokens (enabled);
         CREATE INDEX IF NOT EXISTS idx_push_tokens_device ON push_tokens (device_id);
+        CREATE INDEX IF NOT EXISTS idx_notification_campaigns_status ON notification_campaigns (status);
+        CREATE INDEX IF NOT EXISTS idx_notification_campaigns_scheduled_at ON notification_campaigns (scheduled_at);
       `);
       await query(`ALTER TABLE contacts ADD COLUMN IF NOT EXISTS logo_url TEXT`);
     },
@@ -791,9 +876,85 @@ function createPostgresStore() {
       return rows;
     },
 
-    async listActivePushTokens() {
-      const { rows } = await query("SELECT token FROM push_tokens WHERE enabled = TRUE ORDER BY updated_at DESC");
+    async listActivePushTokens(filters = {}) {
+      const where = ["enabled = TRUE"];
+      const values = [];
+      let index = 1;
+      if (filters.platform && filters.platform !== "all") {
+        where.push(`platform = $${index++}`);
+        values.push(filters.platform);
+      }
+      if (filters.ui_language && filters.ui_language !== "all") {
+        where.push(`ui_language = $${index++}`);
+        values.push(filters.ui_language);
+      }
+      const { rows } = await query(
+        `SELECT token FROM push_tokens WHERE ${where.join(" AND ")} ORDER BY updated_at DESC`,
+        values
+      );
       return rows.map((row) => row.token);
+    },
+
+    async createNotificationCampaign(payload) {
+      const { rows } = await query(
+        `INSERT INTO notification_campaigns (
+           title, body, message_type, audience_platform, audience_language,
+           target_screen, target_group, target_category_slug, scheduled_at,
+           status, sent_count, failed_count, disabled_count, updated_at
+         )
+         VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, NOW())
+         RETURNING id`,
+        [
+          payload.title,
+          payload.body,
+          payload.message_type,
+          payload.audience_platform,
+          payload.audience_language,
+          payload.target_screen,
+          payload.target_group,
+          payload.target_category_slug,
+          payload.scheduled_at,
+          payload.status,
+          payload.sent_count,
+          payload.failed_count,
+          payload.disabled_count
+        ]
+      );
+      return rows[0]?.id;
+    },
+
+    async updateNotificationCampaign(id, payload) {
+      await query(
+        `UPDATE notification_campaigns
+         SET status = $1,
+             sent_count = $2,
+             failed_count = $3,
+             disabled_count = $4,
+             updated_at = NOW()
+         WHERE id = $5`,
+        [payload.status, payload.sent_count, payload.failed_count, payload.disabled_count, id]
+      );
+    },
+
+    async getPendingNotificationCampaigns() {
+      const { rows } = await query(
+        `SELECT *
+         FROM notification_campaigns
+         WHERE status = 'scheduled' AND scheduled_at IS NOT NULL
+         ORDER BY scheduled_at ASC`
+      );
+      return rows;
+    },
+
+    async getRecentNotificationCampaigns(limit = 20) {
+      const { rows } = await query(
+        `SELECT *
+         FROM notification_campaigns
+         ORDER BY created_at DESC
+         LIMIT $1`,
+        [limit]
+      );
+      return rows;
     },
 
     async disablePushTokens(tokens = []) {

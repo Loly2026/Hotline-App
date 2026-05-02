@@ -80,6 +80,28 @@ export function initSchema() {
 
     CREATE INDEX IF NOT EXISTS idx_push_tokens_enabled ON push_tokens (enabled);
     CREATE INDEX IF NOT EXISTS idx_push_tokens_device ON push_tokens (device_id);
+
+    CREATE TABLE IF NOT EXISTS notification_campaigns (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      title TEXT NOT NULL,
+      body TEXT NOT NULL,
+      message_type TEXT,
+      audience_platform TEXT,
+      audience_language TEXT,
+      target_screen TEXT,
+      target_group TEXT,
+      target_category_slug TEXT,
+      scheduled_at TEXT,
+      status TEXT NOT NULL DEFAULT 'sent',
+      sent_count INTEGER NOT NULL DEFAULT 0,
+      failed_count INTEGER NOT NULL DEFAULT 0,
+      disabled_count INTEGER NOT NULL DEFAULT 0,
+      created_at TEXT NOT NULL DEFAULT (datetime('now')),
+      updated_at TEXT NOT NULL DEFAULT (datetime('now'))
+    );
+
+    CREATE INDEX IF NOT EXISTS idx_notification_campaigns_status ON notification_campaigns (status);
+    CREATE INDEX IF NOT EXISTS idx_notification_campaigns_scheduled_at ON notification_campaigns (scheduled_at);
   `);
 
   // Backfill schema changes safely for existing DB files.
