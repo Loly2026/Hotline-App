@@ -2078,9 +2078,7 @@ function AppContent() {
 
   const updateThemePreference = useCallback((nextPreference) => {
     const normalized = THEME_PREFERENCES.includes(nextPreference) ? nextPreference : "system";
-    startTransition(() => {
-      setThemePreference(normalized);
-    });
+    setThemePreference((current) => (current === normalized ? current : normalized));
     FileSystem.writeAsStringAsync(THEME_PREFERENCE_PATH, normalized).catch(() => {
       // Theme still changes immediately even if persistence fails.
     });
@@ -2850,10 +2848,8 @@ function AppContent() {
     [isSmallPhone]
   );
 
-  const handleIntroContinue = async () => {
-    startTransition(() => {
-      setShowIntro(false);
-    });
+  const handleIntroContinue = () => {
+    setShowIntro(false);
   };
 
   const renderContactBadges = (item, compact = false) => {
@@ -3057,26 +3053,20 @@ function AppContent() {
   };
 
   const dismissSuggestHint = () => {
-    startTransition(() => {
-      setShowSuggestHint(false);
-      setSuggestHintReady(false);
-    });
+    setShowSuggestHint(false);
+    setSuggestHintReady(false);
     FileSystem.writeAsStringAsync(SUGGEST_HINT_PATH, "seen").catch(() => {
       // Ignore persistence failure; UI already dismissed.
     });
   };
 
   const applyAppLanguage = useCallback((nextLanguage) => {
-    startTransition(() => {
-      setAppLanguage(nextLanguage);
-      setAssistantLanguage(nextLanguage);
-    });
+    setAppLanguage((current) => (current === nextLanguage ? current : nextLanguage));
+    setAssistantLanguage((current) => (current === nextLanguage ? current : nextLanguage));
   }, []);
 
   const applyAssistantLanguage = useCallback((nextLanguage) => {
-    startTransition(() => {
-      setAssistantLanguage(nextLanguage);
-    });
+    setAssistantLanguage((current) => (current === nextLanguage ? current : nextLanguage));
   }, []);
 
   const scrollToResults = () => {
@@ -5225,7 +5215,7 @@ function AppContent() {
       </Modal>
 
       {showIntro ? (
-        <Pressable style={styles.introOverlay} onPress={handleIntroContinue}>
+        <Pressable style={styles.introOverlay} onPress={handleIntroContinue} onPressIn={handleIntroContinue}>
           <ImageBackground pointerEvents="none" source={introLocal} style={[styles.introImage, introImageResponsive]} resizeMode={introResizeMode}>
             <View pointerEvents="none" style={[styles.introTint, introTintResponsive]} />
             {showIntroBrandOverlay ? (
@@ -5244,9 +5234,9 @@ function AppContent() {
       ) : null}
 
       {showSuggestHint ? (
-        <Pressable style={[styles.hintOverlay, hintOverlayResponsive]} onPress={dismissSuggestHint}>
-          <Pressable style={styles.hintBackdropFill} onPress={dismissSuggestHint} />
-          <TouchableOpacity activeOpacity={0.98} style={[styles.hintCard, hintCardResponsive, themeStyles.modalCard]} onPress={dismissSuggestHint}>
+        <Pressable style={[styles.hintOverlay, hintOverlayResponsive]} onPress={dismissSuggestHint} onPressIn={dismissSuggestHint}>
+          <Pressable style={styles.hintBackdropFill} onPress={dismissSuggestHint} onPressIn={dismissSuggestHint} />
+          <TouchableOpacity activeOpacity={0.98} style={[styles.hintCard, hintCardResponsive, themeStyles.modalCard]} onPress={dismissSuggestHint} onPressIn={dismissSuggestHint}>
             <View style={styles.hintBadge}>
               <Ionicons name="sparkles" size={20} color="#b30f7f" />
             </View>

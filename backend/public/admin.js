@@ -7,6 +7,7 @@
   const pendingPanel = $("pending-panel");
   const notificationsPanel = $("notifications-panel");
   const overviewPanel = $("overview-panel");
+  const quickActionBar = $("quick-action-bar");
   const apiInput = $("api-base");
   const userInput = $("username");
   const passInput = $("password");
@@ -61,6 +62,18 @@
   let authHeader = "";
   let categoriesCache = [];
   let lastPushStats = { active: 0 };
+  let lastCampaignCount = 0;
+
+  function setSparkline(id, value) {
+    const el = $(id);
+    if (!el) return;
+    const base = Math.max(Number(value) || 0, 1);
+    Array.from(el.children).forEach((bar, index) => {
+      const wave = Math.sin(index * 1.1 + base * 0.17);
+      const height = Math.max(18, Math.min(94, 32 + wave * 20 + Math.log10(base + 1) * 18 + index * 4));
+      bar.style.setProperty("--spark-h", `${height}%`);
+    });
+  }
 
   function renderStatusPill(value, fallbackClass = "") {
     const raw = String(value || "").trim();
@@ -69,10 +82,68 @@
   }
 
   function updateOverviewCards() {
-    if (overviewContacts) overviewContacts.textContent = String(contactsTbody?.children?.length || 0);
-    if (overviewPending) overviewPending.textContent = String(pendingTbody?.children?.length || 0);
-    if (overviewDevices) overviewDevices.textContent = String(lastPushStats.active || 0);
-    if (overviewCampaigns) overviewCampaigns.textContent = String(pushCampaignsBody?.children?.length || 0);
+    const contactsCount = contactsTbody?.children?.length || 0;
+    const pendingCount = pendingTbody?.children?.length || 0;
+    const devicesCount = lastPushStats.active || 0;
+    const campaignsCount = lastCampaignCount;
+    if (overviewContacts) overviewContacts.textContent = String(contactsCount);
+    if (overviewPending) overviewPending.textContent = String(pendingCount);
+    if (overviewDevices) overviewDevices.textContent = String(devicesCount);
+    if (overviewCampaigns) overviewCampaigns.textContent = String(campaignsCount);
+    setSparkline("spark-contacts", contactsCount);
+    setSparkline("spark-pending", pendingCount);
+    setSparkline("spark-devices", devicesCount);
+    setSparkline("spark-campaigns", campaignsCount);
+  }
+
+  async function refreshWorkspace() {
+    await loadContacts();
+    await loadPending();
+    await loadPushStats();
+    await loadPushDevices();
+    await loadPushCampaigns();
+  }
+
+  function scrollToPanel(panelId) {
+    const target = $(panelId);
+    if (!target) return;
+    target.hidden = false;
+    target.classList.remove("panel-collapsed");
+    const toggle = target.querySelector(".panel-toggle");
+    if (toggle) {
+      toggle.textContent = "Collapse";
+      toggle.setAttribute("aria-expanded", "true");
+    }
+    target.scrollIntoView({ behavior: "smooth", block: "start" });
+  }
+
+  function setupCollapsiblePanels() {
+    document.querySelectorAll(".panel-toggle").forEach((button) => {
+      button.addEventListener("click", () => {
+        const panel = button.closest(".panel");
+        if (!panel) return;
+        const collapsed = panel.classList.toggle("panel-collapsed");
+        button.textContent = collapsed ? "Expand" : "Collapse";
+        button.setAttribute("aria-expanded", String(!collapsed));
+      });
+    });
+  }
+
+  function setupQuickActions() {
+    document.querySelectorAll("[data-scroll-target]").forEach((button) => {
+      button.addEventListener("click", () => scrollToPanel(button.dataset.scrollTarget));
+    });
+    const refreshAll = $("quick-refresh-all");
+    if (refreshAll) {
+      refreshAll.addEventListener("click", async () => {
+        try {
+          await refreshWorkspace();
+          setStatus("Workspace refreshed", true);
+        } catch (err) {
+          setStatus(err.message || "Refresh failed", false);
+        }
+      });
+    }
   }
 
   function setupSidebarNav() {
@@ -299,8 +370,10 @@
     if (!pushCampaignsBody) return;
     const res = await authFetch("/api/admin/push/campaigns?limit=20");
     const rows = await res.json();
+    lastCampaignCount = rows.length;
     if (!rows.length) {
       pushCampaignsBody.innerHTML = `<tr><td colspan="8">No notification history yet.</td></tr>`;
+      updateOverviewCards();
       return;
     }
     pushCampaignsBody.innerHTML = rows
@@ -408,6 +481,7 @@
         await loadPushDevices();
         await loadPushCampaigns();
         loginPanel.hidden = true;
+        if (quickActionBar) quickActionBar.hidden = false;
         if (overviewPanel) overviewPanel.hidden = false;
         contactsPanel.hidden = false;
         addPanel.hidden = false;
@@ -498,6 +572,8 @@
     wireLogoUpload(editLogoFile, editLogo, () => editName.value || "logo");
     wireLogoUpload(pendingLogoFile, pendingLogo, () => pendingName.value || "logo");
     setupSidebarNav();
+    setupCollapsiblePanels();
+    setupQuickActions();
     updateOverviewCards();
     if (pushTargetGroup) pushTargetGroup.disabled = true;
     if (pushTargetCategory) pushTargetCategory.disabled = true;

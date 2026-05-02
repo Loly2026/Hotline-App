@@ -58,34 +58,48 @@
     </div>
   </section>
 
+  <section class="quick-action-bar" id="quick-action-bar" hidden>
+    <button type="button" class="quick-action" data-scroll-target="add-panel">New contact</button>
+    <button type="button" class="quick-action" data-scroll-target="pending-panel">Review queue</button>
+    <button type="button" class="quick-action" data-scroll-target="notifications-panel">Send notification</button>
+    <button type="button" class="quick-action ghost" id="quick-refresh-all">Refresh workspace</button>
+  </section>
+
   <section class="panel panel-wide" id="overview-panel" hidden>
     <div class="panel-head">
       <div>
         <div class="section-kicker">Overview</div>
         <h3>Workspace snapshot</h3>
       </div>
+      <button type="button" class="panel-toggle" aria-expanded="true">Collapse</button>
     </div>
+    <div class="panel-body">
     <div class="overview-grid">
       <article class="overview-card overview-contacts">
         <div class="overview-label">Visible contacts</div>
         <div class="overview-value" id="overview-contacts">0</div>
         <div class="overview-meta">Loaded in current directory view</div>
+        <div class="sparkline" id="spark-contacts"><span></span><span></span><span></span><span></span><span></span><span></span></div>
       </article>
       <article class="overview-card overview-pending">
         <div class="overview-label">Pending requests</div>
         <div class="overview-value" id="overview-pending">0</div>
         <div class="overview-meta">Open support queue items</div>
+        <div class="sparkline" id="spark-pending"><span></span><span></span><span></span><span></span><span></span><span></span></div>
       </article>
       <article class="overview-card overview-devices">
         <div class="overview-label">Active devices</div>
         <div class="overview-value" id="overview-devices">0</div>
         <div class="overview-meta">Push-ready users right now</div>
+        <div class="sparkline" id="spark-devices"><span></span><span></span><span></span><span></span><span></span><span></span></div>
       </article>
       <article class="overview-card overview-campaigns">
         <div class="overview-label">Campaigns</div>
         <div class="overview-value" id="overview-campaigns">0</div>
         <div class="overview-meta">Recent notification activity</div>
+        <div class="sparkline" id="spark-campaigns"><span></span><span></span><span></span><span></span><span></span><span></span></div>
       </article>
+    </div>
     </div>
   </section>
 
@@ -98,8 +112,10 @@
       <div class="actions">
         <input id="search" type="search" placeholder="Search name/phone/category" />
         <button id="refresh-btn">Refresh</button>
+        <button type="button" class="panel-toggle" aria-expanded="true">Collapse</button>
       </div>
     </div>
+    <div class="panel-body">
     <div class="filters">
       <label>Category
         <select id="cat-filter"><option value="">All</option></select>
@@ -111,11 +127,18 @@
         <tbody></tbody>
       </table>
     </div>
+    </div>
   </section>
 
   <section class="panel" id="add-panel" hidden>
-    <div class="section-kicker">Content</div>
-    <h3>Add Contact</h3>
+    <div class="panel-head">
+      <div>
+        <div class="section-kicker">Content</div>
+        <h3>Add Contact</h3>
+      </div>
+      <button type="button" class="panel-toggle" aria-expanded="true">Collapse</button>
+    </div>
+    <div class="panel-body">
     <p class="section-copy">Create a new hotline entry with category, visual identity, notes, and quality flags.</p>
     <form id="add-form">
       <div class="grid">
@@ -136,6 +159,7 @@
       </div>
       <button type="submit">Add</button>
     </form>
+    </div>
   </section>
 
   <section class="panel panel-wide" id="pending-panel" hidden>
@@ -144,13 +168,18 @@
         <div class="section-kicker">Support Queue</div>
         <h3>Pending Requests</h3>
       </div>
-      <button id="refresh-req">Refresh</button>
+      <div class="actions">
+        <button id="refresh-req">Refresh</button>
+        <button type="button" class="panel-toggle" aria-expanded="true">Collapse</button>
+      </div>
     </div>
+    <div class="panel-body">
     <div class="table-wrapper">
       <table id="pending-table">
         <thead><tr><th>ID</th><th>Name</th><th>Phone</th><th>Category</th><th>Message</th><th>Created</th><th></th></tr></thead>
         <tbody></tbody>
       </table>
+    </div>
     </div>
   </section>
 
@@ -160,8 +189,12 @@
         <div class="section-kicker">Engagement</div>
         <h3>Send Notification</h3>
       </div>
-      <button id="refresh-push-stats" type="button">Refresh stats</button>
+      <div class="actions">
+        <button id="refresh-push-stats" type="button">Refresh stats</button>
+        <button type="button" class="panel-toggle" aria-expanded="true">Collapse</button>
+      </div>
     </div>
+    <div class="panel-body">
     <div class="stats-grid" id="push-stats">
       <span>Active devices: 0</span>
       <span>Android: 0</span>
@@ -267,6 +300,7 @@
           <tr><td colspan="8">No notification history yet.</td></tr>
         </tbody>
       </table>
+    </div>
     </div>
   </section>
 
