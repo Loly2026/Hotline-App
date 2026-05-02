@@ -332,6 +332,17 @@ function createSqliteStore() {
         .get();
     },
 
+    async getRecentPushTokens(limit = 20) {
+      return sqliteDb
+        .prepare(
+          `SELECT token, platform, device_id, ui_language, screen_size, enabled, updated_at
+           FROM push_tokens
+           ORDER BY updated_at DESC
+           LIMIT ?`
+        )
+        .all(limit);
+    },
+
     async listActivePushTokens() {
       return sqliteDb
         .prepare("SELECT token FROM push_tokens WHERE enabled = 1 ORDER BY updated_at DESC")
@@ -767,6 +778,17 @@ function createPostgresStore() {
          FROM push_tokens`
       );
       return rows[0];
+    },
+
+    async getRecentPushTokens(limit = 20) {
+      const { rows } = await query(
+        `SELECT token, platform, device_id, ui_language, screen_size, enabled, updated_at
+         FROM push_tokens
+         ORDER BY updated_at DESC
+         LIMIT $1`,
+        [limit]
+      );
+      return rows;
     },
 
     async listActivePushTokens() {

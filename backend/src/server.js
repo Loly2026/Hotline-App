@@ -379,6 +379,23 @@ app.get("/api/admin/push/stats", adminAuth, async (_req, res) => {
   });
 });
 
+app.get("/api/admin/push/recent", adminAuth, async (req, res) => {
+  const rawLimit = Number.parseInt(String(req.query.limit || "20"), 10);
+  const limit = Math.min(Math.max(rawLimit || 20, 1), 100);
+  const rows = await store.getRecentPushTokens(limit);
+  res.json(
+    rows.map((row) => ({
+      token_preview: String(row.token || "").slice(0, 20),
+      platform: row.platform || "-",
+      device_id: row.device_id || "-",
+      ui_language: row.ui_language || "-",
+      screen_size: row.screen_size || "-",
+      enabled: Boolean(row.enabled),
+      updated_at: row.updated_at || "-"
+    }))
+  );
+});
+
 app.post("/api/admin/push/send", adminAuth, async (req, res) => {
   try {
     const title = String(req.body?.title || "").trim();

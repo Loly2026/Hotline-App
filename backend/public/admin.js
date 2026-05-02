@@ -14,6 +14,7 @@
   const catSelect = $("cat-select");
   const pushStats = $("push-stats");
   const pushForm = $("push-form");
+  const pushDevicesBody = $("push-devices-body");
   const contactsTbody = document.querySelector("#contacts-table tbody");
   const pendingTbody = document.querySelector("#pending-table tbody");
   const editModal = document.getElementById("edit-modal");
@@ -209,6 +210,30 @@
     `;
   }
 
+  async function loadPushDevices() {
+    if (!pushDevicesBody) return;
+    const res = await authFetch("/api/admin/push/recent?limit=20");
+    const rows = await res.json();
+    if (!rows.length) {
+      pushDevicesBody.innerHTML = `<tr><td colspan="7">No registered devices yet.</td></tr>`;
+      return;
+    }
+    pushDevicesBody.innerHTML = rows
+      .map(
+        (row) => `
+          <tr>
+            <td>${row.platform || "-"}</td>
+            <td>${row.device_id || "-"}</td>
+            <td>${row.ui_language || "-"}</td>
+            <td>${row.screen_size || "-"}</td>
+            <td>${row.enabled ? "Active" : "Disabled"}</td>
+            <td>${row.updated_at || "-"}</td>
+            <td><code>${row.token_preview || "-"}</code></td>
+          </tr>`
+      )
+      .join("");
+  }
+
   async function sendPushNotification(form) {
     const fd = new FormData(form);
     const title = String(fd.get("title") || "").trim();
@@ -221,6 +246,7 @@
     const result = await res.json();
     form.reset();
     await loadPushStats();
+    await loadPushDevices();
     return result;
   }
 
@@ -278,6 +304,7 @@
         await loadContacts();
         await loadPending();
         await loadPushStats();
+        await loadPushDevices();
         loginPanel.hidden = true;
         contactsPanel.hidden = false;
         addPanel.hidden = false;
@@ -292,7 +319,10 @@
 
     $("refresh-btn").onclick = () => loadContacts();
     $("refresh-req").onclick = () => loadPending();
-    $("refresh-push-stats").onclick = () => loadPushStats();
+    $("refresh-push-stats").onclick = async () => {
+      await loadPushStats();
+      await loadPushDevices();
+    };
     searchInput.oninput = () => loadContacts();
     catFilter.onchange = () => loadContacts();
 
