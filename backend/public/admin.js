@@ -13,6 +13,8 @@
   const searchInput = $("search");
   const catFilter = $("cat-filter");
   const catSelect = $("cat-select");
+  const pushTargetGroup = $("push-target-group");
+  const pushTargetCategory = $("push-target-category");
   const pushStats = $("push-stats");
   const pushForm = $("push-form");
   const pushDevicesBody = $("push-devices-body");
@@ -198,6 +200,9 @@
     catSelect.innerHTML = options;
     editCat.innerHTML = options;
     pendingCat.innerHTML = '<option value="">Select category</option>' + options;
+    if (pushTargetCategory) {
+      pushTargetCategory.innerHTML = '<option value="">Choose category</option>' + options;
+    }
   }
 
   async function loadContacts() {
@@ -424,6 +429,7 @@
     };
     searchInput.oninput = () => loadContacts();
     catFilter.onchange = () => loadContacts();
+    document.getElementById("push-target-screen").onchange = syncPushTargetInputs;
 
     pushForm.onsubmit = async (e) => {
       e.preventDefault();
@@ -493,6 +499,19 @@
     wireLogoUpload(pendingLogoFile, pendingLogo, () => pendingName.value || "logo");
     setupSidebarNav();
     updateOverviewCards();
+    if (pushTargetGroup) pushTargetGroup.disabled = true;
+    if (pushTargetCategory) pushTargetCategory.disabled = true;
+  }
+
+  function syncPushTargetInputs() {
+    if (!pushTargetGroup || !pushTargetCategory) return;
+    const isGroupTarget = document.getElementById("push-target-screen")?.value === "group";
+    pushTargetGroup.disabled = !isGroupTarget;
+    pushTargetCategory.disabled = !isGroupTarget;
+    if (!isGroupTarget) {
+      pushTargetGroup.value = "";
+      pushTargetCategory.value = "";
+    }
   }
 
   function openEdit(row) {

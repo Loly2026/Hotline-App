@@ -223,11 +223,23 @@
             <option value="group">Specific section</option>
           </select>
         </label>
-        <label>Target group key (optional)
-          <input name="target_group" id="push-target-group" placeholder="gov / health / food / finance ..." />
+        <label>Target section (for specific section)
+          <select name="target_group" id="push-target-group">
+            <option value="">Choose section</option>
+            <option value="gov">Emergency</option>
+            <option value="health">Hospital</option>
+            <option value="food">Food & Malls</option>
+            <option value="finance">Finance & Estate</option>
+            <option value="mobility">Cars & Travel</option>
+            <option value="retail">Services Hub</option>
+            <option value="sports">Sports</option>
+            <option value="foreign">Foreign Services</option>
+          </select>
         </label>
-        <label>Target category slug (optional)
-          <input name="target_category_slug" id="push-target-category" placeholder="emergency / hospitals / banks ..." />
+        <label>Target category (optional)
+          <select name="target_category_slug" id="push-target-category">
+            <option value="">Choose category</option>
+          </select>
         </label>
         <label>Send later (optional)
           <input type="datetime-local" name="scheduled_at" id="push-scheduled-at" />

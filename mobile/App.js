@@ -5225,7 +5225,7 @@ function AppContent() {
       </Modal>
 
       {showIntro ? (
-        <TouchableOpacity activeOpacity={1} style={styles.introOverlay} onPress={handleIntroContinue}>
+        <Pressable style={styles.introOverlay} onPress={handleIntroContinue}>
           <ImageBackground pointerEvents="none" source={introLocal} style={[styles.introImage, introImageResponsive]} resizeMode={introResizeMode}>
             <View pointerEvents="none" style={[styles.introTint, introTintResponsive]} />
             {showIntroBrandOverlay ? (
@@ -5240,11 +5240,11 @@ function AppContent() {
               </View>
             ) : null}
           </ImageBackground>
-        </TouchableOpacity>
+        </Pressable>
       ) : null}
 
       {showSuggestHint ? (
-        <View style={[styles.hintOverlay, hintOverlayResponsive]} pointerEvents="box-none">
+        <Pressable style={[styles.hintOverlay, hintOverlayResponsive]} onPress={dismissSuggestHint}>
           <Pressable style={styles.hintBackdropFill} onPress={dismissSuggestHint} />
           <TouchableOpacity activeOpacity={0.98} style={[styles.hintCard, hintCardResponsive, themeStyles.modalCard]} onPress={dismissSuggestHint}>
             <View style={styles.hintBadge}>
@@ -5294,7 +5294,7 @@ function AppContent() {
             <View style={styles.hintArrowStem} />
             <Text style={styles.hintArrow}>⌄</Text>
           </View>
-        </View>
+        </Pressable>
       ) : null}
     </SafeAreaView>
   );
