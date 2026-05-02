@@ -19,6 +19,24 @@
   </header>
 
   <main class="dashboard-shell">
+  <div class="dashboard-layout">
+  <aside class="sidebar" id="portal-sidebar">
+    <div class="sidebar-card">
+      <div class="section-kicker">Navigation</div>
+      <div class="sidebar-title">Admin Workspace</div>
+      <div class="sidebar-copy">Move quickly between content, support, and engagement operations.</div>
+      <nav class="sidebar-nav">
+        <a class="nav-link" href="#login-panel">Connect</a>
+        <a class="nav-link" href="#overview-panel">Overview</a>
+        <a class="nav-link" href="#contacts-panel">Contacts</a>
+        <a class="nav-link" href="#add-panel">Add Contact</a>
+        <a class="nav-link" href="#pending-panel">Pending Requests</a>
+        <a class="nav-link" href="#notifications-panel">Notifications</a>
+      </nav>
+    </div>
+  </aside>
+
+  <div class="dashboard-main">
   <section class="panel login-panel" id="login-panel">
     <div class="section-kicker">Secure Access</div>
     <h3>Connect to the admin environment</h3>
@@ -37,6 +55,37 @@
     <div class="actions split">
       <div class="hint">Uses Basic Auth to call `/api/admin/*` endpoints.</div>
       <button id="connect-btn">Connect</button>
+    </div>
+  </section>
+
+  <section class="panel panel-wide" id="overview-panel" hidden>
+    <div class="panel-head">
+      <div>
+        <div class="section-kicker">Overview</div>
+        <h3>Workspace snapshot</h3>
+      </div>
+    </div>
+    <div class="overview-grid">
+      <article class="overview-card overview-contacts">
+        <div class="overview-label">Visible contacts</div>
+        <div class="overview-value" id="overview-contacts">0</div>
+        <div class="overview-meta">Loaded in current directory view</div>
+      </article>
+      <article class="overview-card overview-pending">
+        <div class="overview-label">Pending requests</div>
+        <div class="overview-value" id="overview-pending">0</div>
+        <div class="overview-meta">Open support queue items</div>
+      </article>
+      <article class="overview-card overview-devices">
+        <div class="overview-label">Active devices</div>
+        <div class="overview-value" id="overview-devices">0</div>
+        <div class="overview-meta">Push-ready users right now</div>
+      </article>
+      <article class="overview-card overview-campaigns">
+        <div class="overview-label">Campaigns</div>
+        <div class="overview-value" id="overview-campaigns">0</div>
+        <div class="overview-meta">Recent notification activity</div>
+      </article>
     </div>
   </section>
 
@@ -277,6 +326,8 @@
   </div>
 
   <script src="admin.js"></script>
+  </div>
+  </div>
   </main>
 </body>
 </html>

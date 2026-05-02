@@ -6,6 +6,7 @@
   const addPanel = $("add-panel");
   const pendingPanel = $("pending-panel");
   const notificationsPanel = $("notifications-panel");
+  const overviewPanel = $("overview-panel");
   const apiInput = $("api-base");
   const userInput = $("username");
   const passInput = $("password");
@@ -16,8 +17,13 @@
   const pushForm = $("push-form");
   const pushDevicesBody = $("push-devices-body");
   const pushCampaignsBody = $("push-campaigns-body");
+  const overviewContacts = $("overview-contacts");
+  const overviewPending = $("overview-pending");
+  const overviewDevices = $("overview-devices");
+  const overviewCampaigns = $("overview-campaigns");
   const contactsTbody = document.querySelector("#contacts-table tbody");
   const pendingTbody = document.querySelector("#pending-table tbody");
+  const navLinks = Array.from(document.querySelectorAll(".nav-link"));
   const editModal = document.getElementById("edit-modal");
   const editForm = document.getElementById("edit-form");
   const editCat = document.getElementById("edit-cat");
@@ -52,6 +58,49 @@
   let apiBase = window.location.origin;
   let authHeader = "";
   let categoriesCache = [];
+  let lastPushStats = { active: 0 };
+
+  function renderStatusPill(value, fallbackClass = "") {
+    const raw = String(value || "").trim();
+    const slug = raw.toLowerCase().replace(/[^a-z0-9]+/g, "-") || fallbackClass || "neutral";
+    return `<span class="status-pill ${slug}">${raw || "-"}</span>`;
+  }
+
+  function updateOverviewCards() {
+    if (overviewContacts) overviewContacts.textContent = String(contactsTbody?.children?.length || 0);
+    if (overviewPending) overviewPending.textContent = String(pendingTbody?.children?.length || 0);
+    if (overviewDevices) overviewDevices.textContent = String(lastPushStats.active || 0);
+    if (overviewCampaigns) overviewCampaigns.textContent = String(pushCampaignsBody?.children?.length || 0);
+  }
+
+  function setupSidebarNav() {
+    if (!navLinks.length) return;
+    const sections = navLinks
+      .map((link) => {
+        const href = link.getAttribute("href") || "";
+        return href.startsWith("#")
+          ? { link, section: document.querySelector(href) }
+          : null;
+      })
+      .filter(Boolean);
+
+    const observer = new IntersectionObserver(
+      (entries) => {
+        const visible = entries
+          .filter((entry) => entry.isIntersecting)
+          .sort((a, b) => b.intersectionRatio - a.intersectionRatio)[0];
+        if (!visible) return;
+        navLinks.forEach((link) => link.classList.remove("active"));
+        const match = sections.find((item) => item.section === visible.target);
+        if (match) match.link.classList.add("active");
+      },
+      { rootMargin: "-15% 0px -65% 0px", threshold: [0.2, 0.45, 0.7] }
+    );
+
+    sections.forEach(({ section }) => {
+      if (section) observer.observe(section);
+    });
+  }
 
   function sanitizeFileName(name = "logo") {
     return String(name)
@@ -177,6 +226,7 @@
         </tr>`
       )
       .join("");
+    updateOverviewCards();
   }
 
   async function loadPending() {
@@ -199,18 +249,21 @@
         </tr>`
       )
       .join("");
+    updateOverviewCards();
   }
 
   async function loadPushStats() {
     if (!pushStats) return;
     const res = await authFetch("/api/admin/push/stats");
     const stats = await res.json();
+    lastPushStats = stats || { active: 0 };
     pushStats.innerHTML = `
       <span>Active devices: ${stats.active || 0}</span>
       <span>Android: ${stats.android || 0}</span>
       <span>iOS: ${stats.ios || 0}</span>
       <span>Total saved: ${stats.total || 0}</span>
     `;
+    updateOverviewCards();
   }
 
   async function loadPushDevices() {
@@ -229,7 +282,7 @@
             <td>${row.device_id || "-"}</td>
             <td>${row.ui_language || "-"}</td>
             <td>${row.screen_size || "-"}</td>
-            <td>${row.enabled ? "Active" : "Disabled"}</td>
+            <td>${renderStatusPill(row.enabled ? "Active" : "Disabled")}</td>
             <td>${row.updated_at || "-"}</td>
             <td><code>${row.token_preview || "-"}</code></td>
           </tr>`
@@ -257,13 +310,14 @@
             <td>${row.message_type || "-"}</td>
             <td>${audience}</td>
             <td>${target}</td>
-            <td>${row.status || "-"}</td>
+            <td>${renderStatusPill(row.status || "-", "pending")}</td>
             <td>${row.sent_count ?? 0}</td>
             <td>${row.failed_count ?? 0}</td>
             <td>${row.scheduled_at || "-"}</td>
           </tr>`;
       })
       .join("");
+    updateOverviewCards();
   }
 
   async function sendPushNotification(form) {
@@ -349,6 +403,7 @@
         await loadPushDevices();
         await loadPushCampaigns();
         loginPanel.hidden = true;
+        if (overviewPanel) overviewPanel.hidden = false;
         contactsPanel.hidden = false;
         addPanel.hidden = false;
         pendingPanel.hidden = false;
@@ -436,6 +491,8 @@
     wireLogoUpload(document.getElementById("add-logo-file"), document.querySelector('#add-form input[name="logo_url"]'), () => document.querySelector('#add-form input[name="name_ar"]')?.value || "logo");
     wireLogoUpload(editLogoFile, editLogo, () => editName.value || "logo");
     wireLogoUpload(pendingLogoFile, pendingLogo, () => pendingName.value || "logo");
+    setupSidebarNav();
+    updateOverviewCards();
   }
 
   function openEdit(row) {
