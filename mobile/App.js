@@ -437,14 +437,14 @@ const ICONS = {
   foreign: { set: "ion", name: "globe-outline", color: "#0f766e" }
 };
 const GROUP_COLORS = {
-  gov: { accent: "#ef4444", card: "#fde2e2", cardActive: "#f9c9c9", darkCard: "#4a1f28", darkCardActive: "#642536" },
-  health: { accent: "#ec4899", card: "#fde1ef", cardActive: "#f9c7e0", darkCard: "#4d2039", darkCardActive: "#67284a" },
-  food: { accent: "#f59e0b", card: "#feedd1", cardActive: "#f9ddb0", darkCard: "#4b3417", darkCardActive: "#67461d" },
-  finance: { accent: "#0ea5e9", card: "#dcedfb", cardActive: "#c2e2fb", darkCard: "#18394b", darkCardActive: "#1f4c63" },
-  mobility: { accent: "#22c55e", card: "#deefe0", cardActive: "#cae8d0", darkCard: "#1d4034", darkCardActive: "#255647" },
-  retail: { accent: "#8b5cf6", card: "#ebe0ff", cardActive: "#dbcafc", darkCard: "#33244f", darkCardActive: "#433066" },
-  sports: { accent: "#f97316", card: "#ffe7d6", cardActive: "#ffd3b5", darkCard: "#4a2b1f", darkCardActive: "#613729" },
-  foreign: { accent: "#0f766e", card: "#dbf4ef", cardActive: "#c4eae2", darkCard: "#173e3a", darkCardActive: "#1d514c" }
+  gov: { accent: "#ef4444", card: "#fde2e2", cardActive: "#f9c9c9", darkCard: "#5a2632", darkCardActive: "#743041" },
+  health: { accent: "#ec4899", card: "#fde1ef", cardActive: "#f9c7e0", darkCard: "#5d2743", darkCardActive: "#783258" },
+  food: { accent: "#f59e0b", card: "#feedd1", cardActive: "#f9ddb0", darkCard: "#5b401f", darkCardActive: "#755327" },
+  finance: { accent: "#0ea5e9", card: "#dcedfb", cardActive: "#c2e2fb", darkCard: "#22475d", darkCardActive: "#2a5f79" },
+  mobility: { accent: "#22c55e", card: "#deefe0", cardActive: "#cae8d0", darkCard: "#275244", darkCardActive: "#316a58" },
+  retail: { accent: "#8b5cf6", card: "#ebe0ff", cardActive: "#dbcafc", darkCard: "#40305f", darkCardActive: "#523d7a" },
+  sports: { accent: "#f97316", card: "#ffe7d6", cardActive: "#ffd3b5", darkCard: "#5a3426", darkCardActive: "#754332" },
+  foreign: { accent: "#0f766e", card: "#dbf4ef", cardActive: "#c4eae2", darkCard: "#23514b", darkCardActive: "#2d6961" }
 };
 const CATEGORY_GROUP_OVERRIDES = {
   emergency: "gov",
@@ -1951,16 +1951,16 @@ function AppContent() {
             glowTop: "rgba(217,70,239,0.12)",
             glowBottom: "rgba(99,102,241,0.14)",
             glowMid: "rgba(255,255,255,0.05)",
-            surface: "rgba(31,25,44,0.94)",
-            surfaceSoft: "rgba(43,34,58,0.92)",
-            surfaceStrong: "rgba(20,16,30,0.98)",
-            border: "rgba(255,255,255,0.10)",
-            borderStrong: "rgba(255,255,255,0.16)",
+            surface: "rgba(38,31,52,0.96)",
+            surfaceSoft: "rgba(51,42,69,0.94)",
+            surfaceStrong: "rgba(28,23,40,0.985)",
+            border: "rgba(255,255,255,0.16)",
+            borderStrong: "rgba(255,255,255,0.24)",
             text: "#f8fafc",
             mutedText: "#cbd5e1",
-            softText: "#a7b0c2",
+            softText: "#b6c0d2",
             placeholder: "#9ca3af",
-            chip: "rgba(255,255,255,0.08)"
+            chip: "rgba(255,255,255,0.12)"
           }
         : {
             background: "#f7e8f3",
@@ -2034,12 +2034,12 @@ function AppContent() {
         borderColor: isDarkTheme ? "rgba(255,255,255,0.12)" : "rgba(240,190,225,0.9)"
       },
       priorityPhoneCard: {
-        backgroundColor: isDarkTheme ? "#211f2f" : "#fdf2f8",
-        borderColor: isDarkTheme ? "rgba(255,255,255,0.08)" : "rgba(217,70,239,0.12)"
+        backgroundColor: isDarkTheme ? "#31293d" : "#fdf2f8",
+        borderColor: isDarkTheme ? "rgba(255,255,255,0.16)" : "rgba(217,70,239,0.12)"
       },
       contactMetaTile: {
-        backgroundColor: isDarkTheme ? "#262334" : "rgba(255,255,255,0.86)",
-        borderColor: isDarkTheme ? "rgba(255,255,255,0.08)" : "rgba(179,15,127,0.10)"
+        backgroundColor: isDarkTheme ? "#342d43" : "rgba(255,255,255,0.86)",
+        borderColor: isDarkTheme ? "rgba(255,255,255,0.14)" : "rgba(179,15,127,0.10)"
       }
     }),
     [isDarkTheme, themePalette]
@@ -6010,14 +6010,15 @@ const styles = StyleSheet.create({
   subCard: {
     backgroundColor: "#ffffff",
     borderRadius: 14,
-    borderWidth: 1,
+    borderWidth: 1.2,
     borderColor: "#e5e7f0",
     padding: 10,
     gap: 8,
-    shadowOpacity: 0,
-    shadowRadius: 0,
-    shadowOffset: { width: 0, height: 0 },
-    elevation: 0
+    shadowColor: "#12091f",
+    shadowOpacity: 0.12,
+    shadowRadius: 12,
+    shadowOffset: { width: 0, height: 7 },
+    elevation: 2
   },
   subHeader: {
     flexDirection: "row",
@@ -6128,10 +6129,10 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     marginBottom: 12,
     borderWidth: 1,
-    shadowOpacity: 0,
-    shadowRadius: 0,
-    shadowOffset: { width: 0, height: 0 },
-    elevation: 0
+    shadowOpacity: 0.14,
+    shadowRadius: 14,
+    shadowOffset: { width: 0, height: 8 },
+    elevation: 3
   },
   hotlineCardFeatured: {
     shadowOpacity: 0,
