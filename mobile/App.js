@@ -437,14 +437,14 @@ const ICONS = {
   foreign: { set: "ion", name: "globe-outline", color: "#0f766e" }
 };
 const GROUP_COLORS = {
-  gov: { accent: "#ef4444", card: "#fde2e2", cardActive: "#f9c9c9", darkCard: "#5a2632", darkCardActive: "#743041" },
-  health: { accent: "#ec4899", card: "#fde1ef", cardActive: "#f9c7e0", darkCard: "#5d2743", darkCardActive: "#783258" },
-  food: { accent: "#f59e0b", card: "#feedd1", cardActive: "#f9ddb0", darkCard: "#5b401f", darkCardActive: "#755327" },
-  finance: { accent: "#0ea5e9", card: "#dcedfb", cardActive: "#c2e2fb", darkCard: "#22475d", darkCardActive: "#2a5f79" },
-  mobility: { accent: "#22c55e", card: "#deefe0", cardActive: "#cae8d0", darkCard: "#275244", darkCardActive: "#316a58" },
-  retail: { accent: "#8b5cf6", card: "#ebe0ff", cardActive: "#dbcafc", darkCard: "#40305f", darkCardActive: "#523d7a" },
-  sports: { accent: "#f97316", card: "#ffe7d6", cardActive: "#ffd3b5", darkCard: "#5a3426", darkCardActive: "#754332" },
-  foreign: { accent: "#0f766e", card: "#dbf4ef", cardActive: "#c4eae2", darkCard: "#23514b", darkCardActive: "#2d6961" }
+  gov: { accent: "#ff6b6b", card: "#fde2e2", cardActive: "#f9c9c9", darkCard: "#242730", darkCardActive: "#2f333d" },
+  health: { accent: "#ff7ab6", card: "#fde1ef", cardActive: "#f9c7e0", darkCard: "#242730", darkCardActive: "#2f333d" },
+  food: { accent: "#f6c45f", card: "#feedd1", cardActive: "#f9ddb0", darkCard: "#25282f", darkCardActive: "#31343c" },
+  finance: { accent: "#6cc7f2", card: "#dcedfb", cardActive: "#c2e2fb", darkCard: "#222832", darkCardActive: "#2d343f" },
+  mobility: { accent: "#65d68a", card: "#deefe0", cardActive: "#cae8d0", darkCard: "#222a29", darkCardActive: "#2d3735" },
+  retail: { accent: "#a998ff", card: "#ebe0ff", cardActive: "#dbcafc", darkCard: "#252733", darkCardActive: "#303340" },
+  sports: { accent: "#f7a56b", card: "#ffe7d6", cardActive: "#ffd3b5", darkCard: "#28272e", darkCardActive: "#34323a" },
+  foreign: { accent: "#5ed2c8", card: "#dbf4ef", cardActive: "#c4eae2", darkCard: "#222b2d", darkCardActive: "#2d383a" }
 };
 const CATEGORY_GROUP_OVERRIDES = {
   emergency: "gov",
@@ -1947,20 +1947,20 @@ function AppContent() {
     () =>
       isDarkTheme
         ? {
-            background: "#130f1c",
-            glowTop: "rgba(217,70,239,0.12)",
-            glowBottom: "rgba(99,102,241,0.14)",
-            glowMid: "rgba(255,255,255,0.05)",
-            surface: "rgba(38,31,52,0.96)",
-            surfaceSoft: "rgba(51,42,69,0.94)",
-            surfaceStrong: "rgba(28,23,40,0.985)",
-            border: "rgba(255,255,255,0.16)",
-            borderStrong: "rgba(255,255,255,0.24)",
+            background: "#0b0d10",
+            glowTop: "rgba(255,255,255,0.035)",
+            glowBottom: "rgba(120,133,150,0.055)",
+            glowMid: "rgba(255,255,255,0.025)",
+            surface: "rgba(29,32,38,0.98)",
+            surfaceSoft: "rgba(36,39,47,0.96)",
+            surfaceStrong: "rgba(19,21,26,0.99)",
+            border: "rgba(255,255,255,0.115)",
+            borderStrong: "rgba(255,255,255,0.18)",
             text: "#f8fafc",
-            mutedText: "#cbd5e1",
-            softText: "#b6c0d2",
-            placeholder: "#9ca3af",
-            chip: "rgba(255,255,255,0.12)"
+            mutedText: "#d3dae4",
+            softText: "#aeb7c5",
+            placeholder: "#98a2b3",
+            chip: "rgba(255,255,255,0.085)"
           }
         : {
             background: "#f7e8f3",
@@ -1987,13 +1987,13 @@ function AppContent() {
       appGlowBottom: { backgroundColor: themePalette.glowBottom },
       appGlowMid: { backgroundColor: themePalette.glowMid },
       searchBar: {
-        backgroundColor: isDarkTheme ? "rgba(255,255,255,0.13)" : "rgba(255,255,255,0.82)",
-        borderColor: isDarkTheme ? "rgba(255,255,255,0.18)" : "rgba(255,255,255,0.92)"
+        backgroundColor: isDarkTheme ? "rgba(255,255,255,0.075)" : "rgba(255,255,255,0.82)",
+        borderColor: isDarkTheme ? "rgba(255,255,255,0.14)" : "rgba(255,255,255,0.92)"
       },
       searchInput: { color: isDarkTheme ? "#ffffff" : "#111827" },
       searchIconBadge: {
-        backgroundColor: isDarkTheme ? "rgba(255,255,255,0.15)" : "#ffffff",
-        borderColor: isDarkTheme ? "rgba(255,255,255,0.16)" : "#f1d6ea"
+        backgroundColor: isDarkTheme ? "rgba(255,255,255,0.10)" : "#ffffff",
+        borderColor: isDarkTheme ? "rgba(255,255,255,0.12)" : "#f1d6ea"
       },
       clearSearchBtn: { backgroundColor: isDarkTheme ? "rgba(255,255,255,0.12)" : "rgba(255,255,255,0.46)" },
       clearSearchText: { color: isDarkTheme ? "#f8fafc" : "#334155" },
@@ -2030,16 +2030,16 @@ function AppContent() {
         color: themePalette.text
       },
       chatBotBubble: {
-        backgroundColor: isDarkTheme ? "rgba(255,255,255,0.08)" : "rgba(255,240,248,0.96)",
-        borderColor: isDarkTheme ? "rgba(255,255,255,0.12)" : "rgba(240,190,225,0.9)"
+        backgroundColor: isDarkTheme ? "rgba(255,255,255,0.075)" : "rgba(255,240,248,0.96)",
+        borderColor: isDarkTheme ? "rgba(255,255,255,0.11)" : "rgba(240,190,225,0.9)"
       },
       priorityPhoneCard: {
-        backgroundColor: isDarkTheme ? "#31293d" : "#fdf2f8",
-        borderColor: isDarkTheme ? "rgba(255,255,255,0.16)" : "rgba(217,70,239,0.12)"
+        backgroundColor: isDarkTheme ? "#1d2027" : "#fdf2f8",
+        borderColor: isDarkTheme ? "rgba(255,255,255,0.13)" : "rgba(217,70,239,0.12)"
       },
       contactMetaTile: {
-        backgroundColor: isDarkTheme ? "#342d43" : "rgba(255,255,255,0.86)",
-        borderColor: isDarkTheme ? "rgba(255,255,255,0.14)" : "rgba(179,15,127,0.10)"
+        backgroundColor: isDarkTheme ? "#1d2026" : "rgba(255,255,255,0.86)",
+        borderColor: isDarkTheme ? "rgba(255,255,255,0.12)" : "rgba(179,15,127,0.10)"
       }
     }),
     [isDarkTheme, themePalette]
@@ -4585,7 +4585,7 @@ function AppContent() {
                               : (GROUP_COLORS[cat.group] || {}).darkCard || "#2b2438")
                             : (GROUP_COLORS[cat.group] || {}).cardActive || (GROUP_COLORS[cat.group] || {}).card || "#ffffff",
                           borderColor: isDarkTheme
-                            ? applyHexAlpha((GROUP_COLORS[cat.group] || {}).accent || "#b30f7f", "88")
+                            ? (opened ? "rgba(255,255,255,0.18)" : "rgba(255,255,255,0.11)")
                             : applyHexAlpha((GROUP_COLORS[cat.group] || {}).accent || "#b30f7f", "55")
                         }
                       ]}
@@ -4644,14 +4644,14 @@ function AppContent() {
                                     {
                                       backgroundColor: isDarkTheme
                                         ? item.is_featured
-                                          ? palette.darkCardActive || palette.darkCard || "#2b2438"
-                                          : palette.darkCard || "#2b2438"
+                                          ? "#2b2f38"
+                                          : "#20242b"
                                         : item.is_featured
                                           ? palette.cardActive || palette.card
                                           : palette.card,
                                       shadowColor: palette.accent,
                                       borderColor: isDarkTheme
-                                        ? applyHexAlpha(palette.accent, "88")
+                                        ? (item.is_featured ? "rgba(255,255,255,0.20)" : "rgba(255,255,255,0.12)")
                                         : applyHexAlpha(palette.accent, item.is_featured ? "66" : "44")
                                     },
                                     item.is_featured && styles.hotlineCardFeatured
@@ -6009,15 +6009,15 @@ const styles = StyleSheet.create({
   },
   subCard: {
     backgroundColor: "#ffffff",
-    borderRadius: 14,
+    borderRadius: 18,
     borderWidth: 1.2,
     borderColor: "#e5e7f0",
-    padding: 10,
+    padding: 11,
     gap: 8,
-    shadowColor: "#12091f",
-    shadowOpacity: 0.12,
-    shadowRadius: 12,
-    shadowOffset: { width: 0, height: 7 },
+    shadowColor: "#000",
+    shadowOpacity: 0.2,
+    shadowRadius: 18,
+    shadowOffset: { width: 0, height: 10 },
     elevation: 2
   },
   subHeader: {
@@ -6124,20 +6124,20 @@ const styles = StyleSheet.create({
     marginBottom: 8
   },
   hotlineCard: {
-    borderRadius: 24,
+    borderRadius: 22,
     padding: 18,
     flexDirection: "row",
     marginBottom: 12,
     borderWidth: 1,
-    shadowOpacity: 0.14,
-    shadowRadius: 14,
-    shadowOffset: { width: 0, height: 8 },
+    shadowOpacity: 0.22,
+    shadowRadius: 18,
+    shadowOffset: { width: 0, height: 10 },
     elevation: 3
   },
   hotlineCardFeatured: {
-    shadowOpacity: 0,
-    shadowRadius: 0,
-    elevation: 0
+    shadowOpacity: 0.26,
+    shadowRadius: 20,
+    elevation: 4
   },
   hotlineBody: {
     flex: 1
@@ -6306,7 +6306,7 @@ const styles = StyleSheet.create({
     backgroundColor: "#fdf2f8",
     borderWidth: 1,
     borderColor: "rgba(217,70,239,0.12)",
-    shadowColor: "#d946ef",
+    shadowColor: "#000",
     shadowOpacity: 0.08,
     shadowRadius: 12,
     shadowOffset: { width: 0, height: 6 },
@@ -6371,7 +6371,7 @@ const styles = StyleSheet.create({
     backgroundColor: "rgba(255,255,255,0.86)",
     borderWidth: 1,
     borderColor: "rgba(179,15,127,0.10)",
-    shadowColor: "#b30f7f",
+    shadowColor: "#000",
     shadowOpacity: 0.04,
     shadowRadius: 8,
     shadowOffset: { width: 0, height: 4 },
