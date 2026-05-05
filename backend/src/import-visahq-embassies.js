@@ -6,6 +6,7 @@ import { db, initSchema as initSqliteSchema } from "./db.js";
 const INDEX_URL = "https://www.visahq.com.eg/en/embassies/";
 const CATEGORY = { slug: "embassies", name_ar: "سفارات" };
 const TODAY = new Date().toISOString().slice(0, 10);
+const DEFAULT_IMPORT_DELAY_MS = Number.parseInt(process.env.EMBASSY_IMPORT_DELAY_MS || "1400", 10);
 const ENGLISH_GOVERNORATE_MAP = {
   cairo: "CAI",
   alexandria: "ALX",
@@ -43,6 +44,71 @@ function normalizePhone(text) {
   return stripTags(text).replace(/\s+/g, " ").trim();
 }
 
+class AntiBotError extends Error {
+  constructor(url) {
+    super(`VisaHQ anti-bot page returned for ${url}`);
+    this.name = "AntiBotError";
+  }
+}
+
+function isAntiBotPage(html) {
+  return /<title>\s*Anti bot system\s*<\/title>|anti_bot_captcha|unusually large amount of queries/i.test(
+    html || ""
+  );
+}
+
+function sleep(ms) {
+  return new Promise((resolve) => setTimeout(resolve, ms));
+}
+
+function htmlToLines(html) {
+  return decodeHtml(
+    String(html || "")
+      .replace(/<script[\s\S]*?<\/script>/gi, "\n")
+      .replace(/<style[\s\S]*?<\/style>/gi, "\n")
+      .replace(/<br\s*\/?>/gi, "\n")
+      .replace(/<\/(p|div|section|article|header|footer|h1|h2|h3|h4|li|ul|ol|dl|dt|dd|tr|td|th|strong|span|a)>/gi, "\n")
+      .replace(/<[^>]+>/g, "")
+  )
+    .split("\n")
+    .map((line) => line.replace(/\s+/g, " ").trim())
+    .filter(Boolean);
+}
+
+function findLabelValue(lines, label, stopLabels) {
+  const labelIndex = lines.findIndex((line) => line.toLowerCase() === label.toLowerCase());
+  if (labelIndex === -1) return "";
+
+  const values = [];
+  for (let index = labelIndex + 1; index < lines.length; index += 1) {
+    const line = lines[index];
+    if (stopLabels.some((stopLabel) => line.toLowerCase() === stopLabel.toLowerCase())) break;
+    if (/^(report changes|×|need help\?|share|apply for visa)$/i.test(line)) break;
+    values.push(line);
+  }
+
+  return values.join("\n").trim();
+}
+
+function embassyNameFromUrl(url) {
+  const slug = new URL(url).pathname.match(/^\/en\/([^/]+)\/embassy\/egypt\//)?.[1] || "";
+  if (!slug) return "";
+  return `${slug
+    .split("-")
+    .filter(Boolean)
+    .map((part) => part.charAt(0).toUpperCase() + part.slice(1))
+    .join(" ")} Embassy`;
+}
+
+function extractEmbassyNameFromLines(lines, url) {
+  const candidates = lines.filter(
+    (line) =>
+      / embassy$/i.test(line) &&
+      !/(list|faq|faqs|provided|presence|of afghanistan)/i.test(line)
+  );
+  return candidates.at(-1) || embassyNameFromUrl(url);
+}
+
 function buildNotes({ email, website, mapUrl }) {
   const parts = [];
   if (email) parts.push(email);
@@ -71,7 +137,7 @@ function extractFirstEmbassyRecord(html, url) {
   const blockMatch = html.match(
     /<h2 class="embassy__name">([^<]+)<\/h2><div class="embassy__list__wrap">([\s\S]*?)<a href="" class="notify_us"/i
   );
-  if (!blockMatch) return null;
+  if (!blockMatch) return extractModernEmbassyRecord(html, url);
 
   const [, rawName, block] = blockMatch;
   const addressMatch = block.match(/<span class="adr">([\s\S]*?)<\/span>/i);
@@ -100,6 +166,29 @@ function extractFirstEmbassyRecord(html, url) {
   };
 }
 
+function extractModernEmbassyRecord(html, url) {
+  const lines = htmlToLines(html);
+  const name = extractEmbassyNameFromLines(lines, url);
+  const address = findLabelValue(lines, "Address", ["Phone", "Fax", "Email", "Website", "Map link"]);
+  const phone = normalizePhone(findLabelValue(lines, "Phone", ["Fax", "Email", "Website", "Map link"]));
+  const email = stripTags(findLabelValue(lines, "Email", ["Website", "Map link", "Report changes"]));
+  const website = stripTags(findLabelValue(lines, "Website", ["Map link", "Report changes"]));
+  const mapMatch = html.match(/href="([^"]+)"[^>]*>\s*Map link\s*</i);
+  const mapUrl = mapMatch ? decodeHtml(mapMatch[1]) : "";
+
+  if (!name || !phone) return null;
+
+  return {
+    name_ar: name,
+    phone,
+    address,
+    notes: buildNotes({ email, website, mapUrl }),
+    source_url: url,
+    last_verified: TODAY,
+    governorate_code: extractGovernorateCode(address)
+  };
+}
+
 async function fetchText(url) {
   const response = await fetch(url, {
     headers: {
@@ -109,7 +198,11 @@ async function fetchText(url) {
   if (!response.ok) {
     throw new Error(`Failed ${response.status} for ${url}`);
   }
-  return response.text();
+  const html = await response.text();
+  if (isAntiBotPage(html)) {
+    throw new AntiBotError(url);
+  }
+  return html;
 }
 
 function createSqliteImporter() {
@@ -139,6 +232,9 @@ function createSqliteImporter() {
     async ensureCategory() {
       ensureCategoryStmt.run(CATEGORY.slug, CATEGORY.name_ar);
       return categoryBySlugStmt.get(CATEGORY.slug)?.id || null;
+    },
+    async hasContactSource(sourceUrl) {
+      return !!existingBySourceStmt.get(sourceUrl)?.id;
     },
     async upsertContact(categoryId, record) {
       const governorateId = record.governorate_code
@@ -196,6 +292,9 @@ function createPostgresImporter() {
       );
       const { rows } = await query("SELECT id FROM categories WHERE slug = $1", [CATEGORY.slug]);
       return rows[0]?.id || null;
+    },
+    async hasContactSource(sourceUrl) {
+      return !!(await query("SELECT id FROM contacts WHERE source_url = $1 LIMIT 1", [sourceUrl])).rows[0]?.id;
     },
     async upsertContact(categoryId, record) {
       const governorateRows = record.governorate_code
@@ -262,7 +361,7 @@ function createPostgresImporter() {
   };
 }
 
-export async function importEmbassies() {
+export async function importEmbassies(options = {}) {
   const importer = process.env.DATABASE_URL ? createPostgresImporter() : createSqliteImporter();
   const categoryId = await importer.ensureCategory();
   if (!categoryId) {
@@ -271,13 +370,28 @@ export async function importEmbassies() {
 
   const indexHtml = await fetchText(INDEX_URL);
   const embassyUrls = extractEmbassyUrls(indexHtml);
+  const maxPages = Number.parseInt(String(options.maxPages || process.env.EMBASSY_IMPORT_MAX_PAGES || "0"), 10) || 0;
+  const delayMs = Math.max(
+    0,
+    Number.parseInt(String(options.delayMs ?? process.env.EMBASSY_IMPORT_DELAY_MS ?? DEFAULT_IMPORT_DELAY_MS), 10) || 0
+  );
+  const skipExisting = options.skipExisting ?? process.env.EMBASSY_IMPORT_SKIP_EXISTING !== "0";
 
   let inserted = 0;
   let updated = 0;
   let skipped = 0;
+  let skippedExisting = 0;
+  let processed = 0;
+  let rateLimited = false;
 
   for (const url of embassyUrls) {
+    if (maxPages && processed >= maxPages) break;
     try {
+      if (skipExisting && (await importer.hasContactSource(url))) {
+        skippedExisting += 1;
+        continue;
+      }
+      processed += 1;
       const html = await fetchText(url);
       const record = extractFirstEmbassyRecord(html, url);
       if (!record) {
@@ -288,8 +402,17 @@ export async function importEmbassies() {
       if (result === "inserted") inserted += 1;
       if (result === "updated") updated += 1;
     } catch (error) {
+      if (error instanceof AntiBotError) {
+        rateLimited = true;
+        console.warn(error.message);
+        break;
+      }
       skipped += 1;
       console.warn(`Skipped ${url}: ${error.message}`);
+    } finally {
+      if (delayMs > 0) {
+        await sleep(delayMs);
+      }
     }
   }
 
@@ -301,6 +424,9 @@ export async function importEmbassies() {
     inserted,
     updated,
     skipped,
+    skippedExisting,
+    processed,
+    rateLimited,
     totalPages: embassyUrls.length
   };
 }
@@ -308,7 +434,7 @@ export async function importEmbassies() {
 async function main() {
   const result = await importEmbassies();
   console.log(
-    `Embassy import complete. Inserted: ${result.inserted}, Updated: ${result.updated}, Skipped: ${result.skipped}, Total pages: ${result.totalPages}`
+    `Embassy import complete. Inserted: ${result.inserted}, Updated: ${result.updated}, Skipped: ${result.skipped}, Existing: ${result.skippedExisting}, Processed: ${result.processed}, Rate limited: ${result.rateLimited}, Total pages: ${result.totalPages}`
   );
 }
 

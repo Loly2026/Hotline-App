@@ -4690,7 +4690,7 @@ function AppContent() {
         ) : null}
           </Animated.ScrollView>
 
-          {!showSuggestHint && isAndroid && adMobReady && BannerAdComponent && resolvedBannerSize ? (
+          {isAndroid && adMobReady && BannerAdComponent && resolvedBannerSize ? (
         <View style={bannerShellResponsive} pointerEvents="box-none">
           <View style={[styles.bannerCard, bannerCardResponsive, themeStyles.surfaceStrong]}>
             <BannerAdComponent

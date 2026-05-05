@@ -751,9 +751,13 @@ app.delete("/api/admin/requests/:id", adminAuth, async (req, res) => {
   res.json({ ok: true });
 });
 
-app.post("/api/admin/import/embassies", adminAuth, async (_req, res) => {
+app.post("/api/admin/import/embassies", adminAuth, async (req, res) => {
   try {
-    const result = await importEmbassies();
+    const result = await importEmbassies({
+      maxPages: req.body?.maxPages,
+      delayMs: req.body?.delayMs,
+      skipExisting: req.body?.skipExisting
+    });
     res.json({ ok: true, ...result });
   } catch (error) {
     console.error("embassy import error:", error);
