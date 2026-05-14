@@ -31,6 +31,7 @@ export function initSchema() {
       category_id INTEGER NOT NULL,
       governorate_id INTEGER,
       phone TEXT NOT NULL,
+      phone_labels TEXT,
       logo_url TEXT,
       address TEXT,
       notes TEXT,
@@ -133,6 +134,10 @@ export function initSchema() {
   const hasLogoUrl = contactColumns.some((c) => c.name === "logo_url");
   if (!hasLogoUrl) {
     db.exec("ALTER TABLE contacts ADD COLUMN logo_url TEXT;");
+  }
+  const hasPhoneLabels = contactColumns.some((c) => c.name === "phone_labels");
+  if (!hasPhoneLabels) {
+    db.exec("ALTER TABLE contacts ADD COLUMN phone_labels TEXT;");
   }
 
   const campaignColumns = db.prepare("PRAGMA table_info(notification_campaigns)").all();

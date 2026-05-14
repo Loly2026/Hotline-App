@@ -34,6 +34,10 @@ const cloudinaryCloudName = process.env.CLOUDINARY_CLOUD_NAME || "";
 const cloudinaryApiKey = process.env.CLOUDINARY_API_KEY || "";
 const cloudinaryApiSecret = process.env.CLOUDINARY_API_SECRET || "";
 const cloudinaryConfigured = !!cloudinaryCloudName && !!cloudinaryApiKey && !!cloudinaryApiSecret;
+const paidAiAssistantEnabled = String(process.env.ENABLE_PAID_AI_ASSISTANT || "false") === "true";
+const openaiApiKey = process.env.OPENAI_API_KEY || "";
+const openaiModel = process.env.OPENAI_MODEL || "gpt-5.2";
+const openaiReasoningEffort = process.env.OPENAI_REASONING_EFFORT || "low";
 
 const smtpConfigured =
   !!process.env.SMTP_HOST &&
@@ -117,6 +121,7 @@ function buildContactPayload(body, categoryId, governorateId) {
   return {
     name_ar: String(body.name_ar || "").trim(),
     phone: String(body.phone || "").trim(),
+    phone_labels: String(body.phone_labels || "").trim(),
     logo_url: String(body.logo_url || "").trim(),
     address: String(body.address || "").trim(),
     notes: String(body.notes || "").trim(),
@@ -206,6 +211,61 @@ function applyNotificationTemplate(value, service) {
     .replace(/\{service\}/gi, String(service.name_ar || "").trim())
     .replace(/\{phone\}/gi, String(service.phone || "").trim())
     .replace(/\{category\}/gi, String(service.category_name_ar || "").trim());
+}
+
+function extractOpenAIText(payload) {
+  if (typeof payload?.output_text === "string") return payload.output_text;
+  const chunks = [];
+  const output = Array.isArray(payload?.output) ? payload.output : [];
+  output.forEach((item) => {
+    const content = Array.isArray(item?.content) ? item.content : [];
+    content.forEach((part) => {
+      if (typeof part?.text === "string") chunks.push(part.text);
+      if (typeof part?.content === "string") chunks.push(part.content);
+    });
+  });
+  return chunks.join("\n").trim();
+}
+
+function parseAssistantJson(rawText) {
+  const text = String(rawText || "")
+    .trim()
+    .replace(/^```(?:json)?/i, "")
+    .replace(/```$/i, "")
+    .trim();
+  try {
+    return JSON.parse(text);
+  } catch {
+    const jsonMatch = text.match(/\{[\s\S]*\}/);
+    if (!jsonMatch) return null;
+    try {
+      return JSON.parse(jsonMatch[0]);
+    } catch {
+      return null;
+    }
+  }
+}
+
+async function getAssistantContactContext(message) {
+  const compactQuery = String(message || "")
+    .replace(/[^\p{L}\p{N}\s&-]/gu, " ")
+    .replace(/\s+/g, " ")
+    .trim()
+    .slice(0, 80);
+  if (!compactQuery) return [];
+
+  try {
+    return await store.searchContacts({
+      q: compactQuery,
+      category: "",
+      governorate: "",
+      limit: 8,
+      offset: 0
+    });
+  } catch (err) {
+    console.error("assistant contact context error:", err);
+    return [];
+  }
 }
 
 async function executeNotificationCampaign(campaign) {
@@ -388,6 +448,99 @@ app.post("/api/push/register", async (req, res) => {
   }
 });
 
+app.post("/api/assistant/chat", async (req, res) => {
+  try {
+    if (!paidAiAssistantEnabled) {
+      return res.status(503).json({ error: "Paid AI assistant is disabled" });
+    }
+
+    if (!openaiApiKey) {
+      return res.status(503).json({ error: "AI assistant is not configured" });
+    }
+
+    const message = String(req.body?.message || "").trim().slice(0, 1200);
+    if (!message) return res.status(400).json({ error: "message is required" });
+
+    const language = String(req.body?.language || req.body?.app_language || "ar").trim() === "en" ? "en" : "ar";
+    const contactContext = await getAssistantContactContext(message);
+    const contactContextText = contactContext.length
+      ? contactContext
+          .map((item, index) => {
+            const name = String(item.name_ar || "").trim();
+            const phone = String(item.phone || "").trim();
+            const category = String(item.category_name_ar || item.category_slug || "").trim();
+            return `${index + 1}. ${name}${phone ? ` - ${phone}` : ""}${category ? ` (${category})` : ""}`;
+          })
+          .join("\n")
+      : "No matching verified contact rows were provided.";
+
+    const systemPrompt = `
+You are the smart assistant inside Hotline Egypt, a mobile app for finding hotlines and useful service numbers in Egypt.
+Answer with warmth, clarity, and practical steps. Prefer ${language === "ar" ? "Arabic" : "English"} unless the user clearly uses another language.
+You can help with app navigation, finding categories, adding a number, business promotion, support requests, and general service guidance.
+When giving phone numbers, use only the verified contact rows provided below. Never invent phone numbers, addresses, prices, legal advice, medical advice, or embassy details.
+If the user needs the app team, tell them to press Send request and include the needed details.
+Return only valid JSON with this shape:
+{"answerAr":"...","answerEn":"...","action":"","actionLabelAr":"","actionLabelEn":""}
+Allowed action values are "", "focus-message", "add-number", "promote", "send-support".
+
+Verified contact rows available for this message:
+${contactContextText}
+`.trim();
+
+    const openaiRes = await fetch("https://api.openai.com/v1/responses", {
+      method: "POST",
+      headers: {
+        Authorization: `Bearer ${openaiApiKey}`,
+        "Content-Type": "application/json"
+      },
+      body: JSON.stringify({
+        model: openaiModel,
+        input: [
+          {
+            role: "system",
+            content: [{ type: "input_text", text: systemPrompt }]
+          },
+          {
+            role: "user",
+            content: [{ type: "input_text", text: message }]
+          }
+        ],
+        reasoning: { effort: openaiReasoningEffort },
+        max_output_tokens: 650
+      })
+    });
+
+    const payload = await openaiRes.json().catch(() => ({}));
+    if (!openaiRes.ok) {
+      console.error("openai assistant error:", payload);
+      return res.status(502).json({ error: "AI assistant failed to respond" });
+    }
+
+    const rawText = extractOpenAIText(payload);
+    const parsed = parseAssistantJson(rawText);
+    const answerAr = String(parsed?.answerAr || "").trim();
+    const answerEn = String(parsed?.answerEn || "").trim();
+    const action = String(parsed?.action || "").trim();
+
+    if (!answerAr && !answerEn) {
+      return res.status(502).json({ error: "AI assistant returned an empty response" });
+    }
+
+    res.json({
+      ok: true,
+      answerAr: answerAr || answerEn,
+      answerEn: answerEn || answerAr,
+      action: ["focus-message", "add-number", "promote", "send-support"].includes(action) ? action : "",
+      actionLabelAr: String(parsed?.actionLabelAr || "").trim(),
+      actionLabelEn: String(parsed?.actionLabelEn || "").trim()
+    });
+  } catch (err) {
+    console.error("assistant chat error:", err);
+    res.status(500).json({ error: "Failed to answer with AI assistant" });
+  }
+});
+
 app.post("/api/feedback", async (req, res) => {
   const {
     type = "",
@@ -521,6 +674,18 @@ app.get("/api/admin/push/campaigns", adminAuth, async (req, res) => {
   const limit = Math.min(Math.max(rawLimit || 20, 1), 100);
   const rows = await store.getRecentNotificationCampaigns(limit);
   res.json(rows);
+});
+
+app.delete("/api/admin/push/campaigns/:id", adminAuth, async (req, res) => {
+  const campaignId = Number.parseInt(String(req.params.id || "0"), 10);
+  if (!Number.isInteger(campaignId) || campaignId <= 0) return res.status(400).json({ error: "Invalid campaign id" });
+  const timer = scheduledCampaignTimers.get(campaignId);
+  if (timer) {
+    clearTimeout(timer);
+    scheduledCampaignTimers.delete(campaignId);
+  }
+  await store.deleteNotificationCampaign(campaignId);
+  res.json({ ok: true });
 });
 
 app.post("/api/admin/push/send", adminAuth, async (req, res) => {

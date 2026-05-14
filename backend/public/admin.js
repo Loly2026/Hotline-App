@@ -38,6 +38,7 @@
   const editId = document.getElementById("edit-id");
   const editName = document.getElementById("edit-name");
   const editPhone = document.getElementById("edit-phone");
+  const editPhoneLabels = document.getElementById("edit-phone-labels");
   const editLogo = document.getElementById("edit-logo");
   const editLogoFile = document.getElementById("edit-logo-file");
   const editGov = document.getElementById("edit-gov");
@@ -52,6 +53,7 @@
   const pendingId = document.getElementById("pending-id");
   const pendingName = document.getElementById("pending-name");
   const pendingPhone = document.getElementById("pending-phone");
+  const pendingPhoneLabels = document.getElementById("pending-phone-labels");
   const pendingLogo = document.getElementById("pending-logo");
   const pendingLogoFile = document.getElementById("pending-logo-file");
   const pendingCat = document.getElementById("pending-cat");
@@ -304,6 +306,7 @@
           <td>${row.id}</td>
           <td>${row.name_ar}</td>
           <td>${row.phone || "-"}</td>
+          <td>${row.phone_labels || "-"}</td>
           <td>${row.category_name_ar}</td>
           <td>${row.governorate_code || "-"}</td>
           <td>${row.is_featured ? "⭐" : "-"}</td>
@@ -427,7 +430,7 @@
     const rows = await res.json();
     lastCampaignCount = rows.length;
     if (!rows.length) {
-      pushCampaignsBody.innerHTML = `<tr><td colspan="9">No notification history yet.</td></tr>`;
+      pushCampaignsBody.innerHTML = `<tr><td colspan="10">No notification history yet.</td></tr>`;
       updateOverviewCards();
       return;
     }
@@ -451,6 +454,7 @@
             <td>${row.sent_count ?? 0}</td>
             <td>${row.failed_count ?? 0}</td>
             <td>${row.scheduled_at || "-"}</td>
+            <td><button class="small ghost" data-campaign-hide="${row.id}">Hide</button></td>
           </tr>`;
       })
       .join("");
@@ -502,6 +506,11 @@
   async function deletePending(id) {
     await authFetch(`/api/admin/requests/${id}`, { method: "DELETE" });
     await loadPending();
+  }
+
+  async function hidePushCampaign(id) {
+    await authFetch(`/api/admin/push/campaigns/${id}`, { method: "DELETE" });
+    await loadPushCampaigns();
   }
 
   async function approvePending(payload) {
@@ -627,6 +636,19 @@
         openPending(JSON.parse(pendingPayload));
       }
     });
+
+    if (pushCampaignsBody) {
+      pushCampaignsBody.addEventListener("click", async (e) => {
+        const id = e.target.dataset.campaignHide;
+        if (!id) return;
+        try {
+          await hidePushCampaign(id);
+          setStatus("Notification hidden from history", true);
+        } catch (err) {
+          setStatus(err.message || "Hide failed", false);
+        }
+      });
+    }
   }
 
   function initDefaults() {
@@ -671,6 +693,7 @@
     editId.value = row.id;
     editName.value = row.name_ar || "";
     editPhone.value = row.phone || "";
+    editPhoneLabels.value = row.phone_labels || "";
     editLogo.value = row.logo_url || "";
     editGov.value = row.governorate_code || "";
     editAddress.value = row.address || "";
@@ -693,6 +716,7 @@
     pendingId.value = row.id;
     pendingName.value = row.name_ar || "";
     pendingPhone.value = row.phone || "";
+    pendingPhoneLabels.value = row.phone_labels || "";
     pendingLogo.value = row.logo_url || "";
     pendingCat.value = row.category_slug || "";
     pendingGov.value = "";
@@ -778,6 +802,7 @@
         body: JSON.stringify({
           name_ar: payload.name_ar,
           phone: payload.phone,
+          phone_labels: payload.phone_labels,
           category_slug: payload.category_slug,
           message: payload.notes
         })

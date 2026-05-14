@@ -123,7 +123,7 @@
     </div>
     <div class="table-wrapper">
       <table id="contacts-table">
-        <thead><tr><th>ID</th><th>Name (AR)</th><th>Phone</th><th>Category</th><th>Gov</th><th>Featured</th><th>Verified</th><th>Priority</th><th>Non-phone</th><th></th></tr></thead>
+        <thead><tr><th>ID</th><th>Name (AR)</th><th>Phone</th><th>Phone labels</th><th>Category</th><th>Gov</th><th>Featured</th><th>Verified</th><th>Priority</th><th>Non-phone</th><th></th></tr></thead>
         <tbody></tbody>
       </table>
     </div>
@@ -144,6 +144,7 @@
       <div class="grid">
         <label>Name (AR)<input required name="name_ar" /></label>
         <label>Phone<input name="phone" placeholder="01000000000 | 0222222222" /></label>
+        <label>Phone labels<textarea name="phone_labels" placeholder="Sales | Customer service | Reservations"></textarea></label>
         <label>Logo URL<input name="logo_url" placeholder="https://example.com/logo.png" /></label>
         <label>Upload logo image<input type="file" id="add-logo-file" accept="image/png,image/jpeg,image/webp,image/svg+xml" /></label>
         <label>Category
@@ -311,10 +312,11 @@
             <th>Sent</th>
             <th>Failed</th>
             <th>Scheduled</th>
+            <th></th>
           </tr>
         </thead>
         <tbody id="push-campaigns-body">
-          <tr><td colspan="9">No notification history yet.</td></tr>
+          <tr><td colspan="10">No notification history yet.</td></tr>
         </tbody>
       </table>
     </div>
@@ -332,6 +334,7 @@
         <div class="grid">
           <label>Name (AR)<input required name="name_ar" id="edit-name" /></label>
           <label>Phone<input name="phone" id="edit-phone" placeholder="01000000000 | 0222222222" /></label>
+          <label>Phone labels<textarea name="phone_labels" id="edit-phone-labels" placeholder="Sales | Customer service | Reservations"></textarea></label>
           <label>Logo URL<input name="logo_url" id="edit-logo" placeholder="https://example.com/logo.png" /></label>
           <label>Upload logo image<input type="file" id="edit-logo-file" accept="image/png,image/jpeg,image/webp,image/svg+xml" /></label>
           <label>Category
@@ -364,6 +367,7 @@
         <div class="grid">
           <label>Name (AR)<input name="name_ar" id="pending-name" /></label>
           <label>Phone<input name="phone" id="pending-phone" placeholder="01000000000 | 0222222222" /></label>
+          <label>Phone labels<textarea name="phone_labels" id="pending-phone-labels" placeholder="Sales | Customer service | Reservations"></textarea></label>
           <label>Logo URL<input name="logo_url" id="pending-logo" placeholder="https://example.com/logo.png" /></label>
           <label>Upload logo image<input type="file" id="pending-logo-file" accept="image/png,image/jpeg,image/webp,image/svg+xml" /></label>
           <label>Category

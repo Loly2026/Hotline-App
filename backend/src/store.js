@@ -93,6 +93,7 @@ function createSqliteStore() {
              c.id,
              c.name_ar,
              c.phone,
+             c.phone_labels,
              c.logo_url,
              c.address,
              c.notes,
@@ -132,6 +133,7 @@ function createSqliteStore() {
                c.id,
                c.name_ar,
                c.phone,
+               c.phone_labels,
                c.logo_url,
                c.address,
                c.notes,
@@ -175,6 +177,7 @@ function createSqliteStore() {
         where.push(`(
           c.name_ar LIKE @q OR
           c.phone LIKE @q OR
+          IFNULL(c.phone_labels, '') LIKE @q OR
           IFNULL(c.address, '') LIKE @q OR
           IFNULL(c.notes, '') LIKE @q OR
           cat.name_ar LIKE @q
@@ -188,6 +191,7 @@ function createSqliteStore() {
              c.id,
              c.name_ar,
              c.phone,
+             c.phone_labels,
              c.logo_url,
              c.address,
              c.notes,
@@ -247,8 +251,8 @@ function createSqliteStore() {
     async createContact(payload) {
       const result = sqliteDb
         .prepare(
-          `INSERT INTO contacts (name_ar, phone, logo_url, address, notes, is_non_phone, is_featured, is_verified, priority_rank, category_id, governorate_id)
-           VALUES (@name_ar, @phone, @logo_url, @address, @notes, @is_non_phone, @is_featured, @is_verified, @priority_rank, @category_id, @governorate_id)`
+          `INSERT INTO contacts (name_ar, phone, phone_labels, logo_url, address, notes, is_non_phone, is_featured, is_verified, priority_rank, category_id, governorate_id)
+           VALUES (@name_ar, @phone, @phone_labels, @logo_url, @address, @notes, @is_non_phone, @is_featured, @is_verified, @priority_rank, @category_id, @governorate_id)`
         )
         .run(payload);
       return { id: result.lastInsertRowid };
@@ -264,7 +268,7 @@ function createSqliteStore() {
       };
       if (params.category) where.push("cat.slug = @category");
       if (String(q).trim()) {
-        where.push("(c.name_ar LIKE @q OR c.phone LIKE @q OR IFNULL(c.notes,'') LIKE @q OR cat.name_ar LIKE @q)");
+        where.push("(c.name_ar LIKE @q OR c.phone LIKE @q OR IFNULL(c.phone_labels,'') LIKE @q OR IFNULL(c.notes,'') LIKE @q OR cat.name_ar LIKE @q)");
       }
       const whereSql = where.length ? `WHERE ${where.join(" AND ")}` : "";
 
@@ -274,6 +278,7 @@ function createSqliteStore() {
              c.id,
              c.name_ar,
              c.phone,
+             c.phone_labels,
              c.logo_url,
              c.address,
              c.notes,
@@ -300,7 +305,7 @@ function createSqliteStore() {
       sqliteDb
         .prepare(
           `UPDATE contacts
-           SET name_ar=@name_ar, phone=@phone, logo_url=@logo_url, address=@address, notes=@notes,
+           SET name_ar=@name_ar, phone=@phone, phone_labels=@phone_labels, logo_url=@logo_url, address=@address, notes=@notes,
                is_non_phone=@is_non_phone, is_featured=@is_featured, is_verified=@is_verified,
                priority_rank=@priority_rank, category_id=@category_id, governorate_id=@governorate_id
            WHERE id=@id`
@@ -447,6 +452,10 @@ function createSqliteStore() {
         .all(limit);
     },
 
+    async deleteNotificationCampaign(id) {
+      sqliteDb.prepare("DELETE FROM notification_campaigns WHERE id = ?").run(id);
+    },
+
     async disablePushTokens(tokens = []) {
       const uniqueTokens = [...new Set(tokens.filter(Boolean))];
       if (!uniqueTokens.length) return;
@@ -487,6 +496,7 @@ function createPostgresStore() {
           category_id INTEGER NOT NULL REFERENCES categories (id) ON DELETE CASCADE,
           governorate_id INTEGER REFERENCES governorates (id) ON DELETE SET NULL,
           phone TEXT NOT NULL,
+          phone_labels TEXT,
           logo_url TEXT,
           address TEXT,
           notes TEXT,
@@ -566,6 +576,7 @@ function createPostgresStore() {
         CREATE INDEX IF NOT EXISTS idx_notification_campaigns_scheduled_at ON notification_campaigns (scheduled_at);
       `);
       await query(`ALTER TABLE contacts ADD COLUMN IF NOT EXISTS logo_url TEXT`);
+      await query(`ALTER TABLE contacts ADD COLUMN IF NOT EXISTS phone_labels TEXT`);
       await query(`ALTER TABLE notification_campaigns ADD COLUMN IF NOT EXISTS service_contact_id INTEGER`);
       await query(`ALTER TABLE notification_campaigns ADD COLUMN IF NOT EXISTS service_name TEXT`);
       await query(`ALTER TABLE notification_campaigns ADD COLUMN IF NOT EXISTS service_phone TEXT`);
@@ -633,6 +644,7 @@ function createPostgresStore() {
            c.id,
            c.name_ar,
            c.phone,
+           c.phone_labels,
            c.logo_url,
            c.address,
            c.notes,
@@ -686,6 +698,7 @@ function createPostgresStore() {
         where.push(`(
           c.name_ar ILIKE $${index} OR
           c.phone ILIKE $${index} OR
+          COALESCE(c.phone_labels, '') ILIKE $${index} OR
           COALESCE(c.address, '') ILIKE $${index} OR
           COALESCE(c.notes, '') ILIKE $${index} OR
           cat.name_ar ILIKE $${index}
@@ -701,6 +714,7 @@ function createPostgresStore() {
            c.id,
            c.name_ar,
            c.phone,
+           c.phone_labels,
            c.logo_url,
            c.address,
            c.notes,
@@ -762,12 +776,13 @@ function createPostgresStore() {
     async createContact(payload) {
       const { rows } = await query(
         `INSERT INTO contacts
-           (name_ar, phone, logo_url, address, notes, is_non_phone, is_featured, is_verified, priority_rank, category_id, governorate_id)
-         VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11)
+           (name_ar, phone, phone_labels, logo_url, address, notes, is_non_phone, is_featured, is_verified, priority_rank, category_id, governorate_id)
+         VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12)
          RETURNING id`,
         [
           payload.name_ar,
           payload.phone,
+          payload.phone_labels,
           payload.logo_url,
           payload.address,
           payload.notes,
@@ -795,6 +810,7 @@ function createPostgresStore() {
         where.push(`(
           c.name_ar ILIKE $${index} OR
           c.phone ILIKE $${index} OR
+          COALESCE(c.phone_labels, '') ILIKE $${index} OR
           COALESCE(c.notes, '') ILIKE $${index} OR
           cat.name_ar ILIKE $${index}
         )`);
@@ -809,6 +825,7 @@ function createPostgresStore() {
            c.id,
            c.name_ar,
            c.phone,
+           c.phone_labels,
            c.logo_url,
            c.address,
            c.notes,
@@ -835,15 +852,16 @@ function createPostgresStore() {
       await query(
         `UPDATE contacts
          SET name_ar = $1, phone = $2, logo_url = $3, address = $4, notes = $5,
-             is_non_phone = $6, is_featured = $7, is_verified = $8,
-             priority_rank = $9, category_id = $10, governorate_id = $11
-         WHERE id = $12`,
+             phone_labels = $6, is_non_phone = $7, is_featured = $8, is_verified = $9,
+             priority_rank = $10, category_id = $11, governorate_id = $12
+         WHERE id = $13`,
         [
           payload.name_ar,
           payload.phone,
           payload.logo_url,
           payload.address,
           payload.notes,
+          payload.phone_labels,
           !!payload.is_non_phone,
           !!payload.is_featured,
           !!payload.is_verified,
@@ -1003,6 +1021,10 @@ function createPostgresStore() {
       return rows;
     },
 
+    async deleteNotificationCampaign(id) {
+      await query("DELETE FROM notification_campaigns WHERE id = $1", [id]);
+    },
+
     async disablePushTokens(tokens = []) {
       const uniqueTokens = [...new Set(tokens.filter(Boolean))];
       if (!uniqueTokens.length) return;
@@ -1015,6 +1037,7 @@ function createPostgresStore() {
            c.id,
            c.name_ar,
            c.phone,
+           c.phone_labels,
            c.logo_url,
            c.address,
            c.notes,

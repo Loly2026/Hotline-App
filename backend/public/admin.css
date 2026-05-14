@@ -467,6 +467,12 @@ button.danger {
   background: linear-gradient(135deg, #ef4444, #be123c);
 }
 
+button.ghost {
+  color: var(--text);
+  background: rgba(255,255,255,0.07);
+  border: 1px solid var(--border);
+}
+
 .hint {
   color: var(--soft);
   font-size: 0.84rem;
