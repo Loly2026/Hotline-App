@@ -16,8 +16,10 @@
   const catSelect = $("cat-select");
   const pushTargetGroup = $("push-target-group");
   const pushTargetCategory = $("push-target-category");
+  const pushPlatform = $("push-platform");
   const pushServiceContact = $("push-service-contact");
   const pushServicePreview = $("push-service-preview");
+  const pushStorePreview = $("push-store-preview");
   const pushServiceImage = $("push-service-image");
   const pushServiceName = $("push-service-name");
   const pushServicePhone = $("push-service-phone");
@@ -96,6 +98,14 @@
       .replace(/\{service\}/gi, String(service.name_ar || "").trim())
       .replace(/\{phone\}/gi, String(service.phone || "").trim())
       .replace(/\{category\}/gi, String(service.category_name_ar || "").trim());
+  }
+
+  function getPushTargetSummary(row) {
+    const targetScreen = String(row.target_screen || "home").trim() || "home";
+    if (targetScreen === "store-update") return "store-update / Google Play";
+    return [targetScreen, row.target_group || row.target_category_slug || "-"]
+      .filter(Boolean)
+      .join(" / ");
   }
 
   function updateOverviewCards() {
@@ -437,9 +447,7 @@
     pushCampaignsBody.innerHTML = rows
       .map((row) => {
         const audience = `${row.audience_platform || "all"} / ${row.audience_language || "all"}`;
-        const target = [row.target_screen || "home", row.target_group || row.target_category_slug || "-"]
-          .filter(Boolean)
-          .join(" / ");
+        const target = getPushTargetSummary(row);
         const serviceMarkup = row.service_name
           ? `<div>${row.service_name}</div><div class="service-preview-note">${row.service_phone || "-"}</div>`
           : "-";
@@ -474,6 +482,10 @@
       target_screen: service ? "service" : String(fd.get("target_screen") || "home").trim(),
       target_group: String(fd.get("target_group") || "").trim(),
       target_category_slug: String(fd.get("target_category_slug") || "").trim(),
+      target_store_url:
+        !service && String(fd.get("target_screen") || "home").trim() === "store-update"
+          ? "https://play.google.com/store/apps/details?id=com.hotline.egypt"
+          : "",
       service_contact_id: service?.id || null,
       scheduled_at: String(fd.get("scheduled_at") || "").trim()
     };
@@ -665,11 +677,13 @@
     updateOverviewCards();
     if (pushTargetGroup) pushTargetGroup.disabled = true;
     if (pushTargetCategory) pushTargetCategory.disabled = true;
+    if (pushStorePreview) pushStorePreview.hidden = true;
     updatePushServicePreview();
   }
 
   function syncPushTargetInputs() {
     if (!pushTargetGroup || !pushTargetCategory) return;
+    const targetScreenValue = document.getElementById("push-target-screen")?.value || "home";
     const hasService = !!updatePushServicePreview();
     if (hasService) {
       const targetScreen = document.getElementById("push-target-screen");
@@ -678,14 +692,20 @@
       pushTargetCategory.disabled = true;
       pushTargetGroup.value = "";
       pushTargetCategory.value = "";
+      if (pushStorePreview) pushStorePreview.hidden = true;
       return;
     }
-    const isGroupTarget = document.getElementById("push-target-screen")?.value === "group";
+    const isStoreUpdateTarget = targetScreenValue === "store-update";
+    const isGroupTarget = targetScreenValue === "group";
     pushTargetGroup.disabled = !isGroupTarget;
     pushTargetCategory.disabled = !isGroupTarget;
     if (!isGroupTarget) {
       pushTargetGroup.value = "";
       pushTargetCategory.value = "";
+    }
+    if (pushStorePreview) pushStorePreview.hidden = !isStoreUpdateTarget;
+    if (pushPlatform && isStoreUpdateTarget && pushPlatform.value === "all") {
+      pushPlatform.value = "android";
     }
   }
 

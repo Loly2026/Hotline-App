@@ -38,6 +38,17 @@ const paidAiAssistantEnabled = String(process.env.ENABLE_PAID_AI_ASSISTANT || "f
 const openaiApiKey = process.env.OPENAI_API_KEY || "";
 const openaiModel = process.env.OPENAI_MODEL || "gpt-5.2";
 const openaiReasoningEffort = process.env.OPENAI_REASONING_EFFORT || "low";
+const androidLatestVersion = String(process.env.ANDROID_LATEST_VERSION || "1.0.2").trim() || "1.0.2";
+const androidLatestBuild = String(process.env.ANDROID_LATEST_BUILD || "57").trim() || "57";
+const iosLatestVersion = String(process.env.IOS_LATEST_VERSION || "1.0.2").trim() || "1.0.2";
+const iosLatestBuild = String(process.env.IOS_LATEST_BUILD || "1").trim() || "1";
+const androidStoreUrl =
+  String(
+    process.env.ANDROID_STORE_URL ||
+      "https://play.google.com/store/apps/details?id=com.hotline.egypt"
+  ).trim() || "https://play.google.com/store/apps/details?id=com.hotline.egypt";
+const iosStoreUrl = String(process.env.IOS_STORE_URL || "").trim();
+const updateRequired = String(process.env.UPDATE_REQUIRED || "false") === "true";
 
 const smtpConfigured =
   !!process.env.SMTP_HOST &&
@@ -197,10 +208,18 @@ async function sendExpoPushNotifications(tokens, notification) {
 }
 
 function normalizeNotificationTarget(body) {
+  const targetScreen = String(body?.target_screen || "home").trim() || "home";
+  const requestedStoreUrl = String(body?.target_store_url || "").trim();
+  const targetStoreUrl =
+    targetScreen === "store-update"
+      ? requestedStoreUrl || androidStoreUrl
+      : requestedStoreUrl;
+
   return {
-    target_screen: String(body?.target_screen || "home").trim() || "home",
+    target_screen: targetScreen,
     target_group: String(body?.target_group || "").trim(),
-    target_category_slug: String(body?.target_category_slug || "").trim()
+    target_category_slug: String(body?.target_category_slug || "").trim(),
+    target_store_url: targetStoreUrl
   };
 }
 
@@ -276,7 +295,8 @@ async function executeNotificationCampaign(campaign) {
   const target = {
     target_screen: String(campaign.target_screen || "home").trim() || "home",
     target_group: String(campaign.target_group || "").trim(),
-    target_category_slug: String(campaign.target_category_slug || "").trim()
+    target_category_slug: String(campaign.target_category_slug || "").trim(),
+    target_store_url: String(campaign.target_store_url || "").trim()
   };
   const service = campaign.service_contact_id
     ? {
@@ -310,6 +330,7 @@ async function executeNotificationCampaign(campaign) {
       targetScreen: target.target_screen,
       targetGroup: target.target_group,
       targetCategorySlug: target.target_category_slug,
+      targetStoreUrl: target.target_store_url,
       serviceContactId: service?.id || null,
       serviceName: service?.name_ar || "",
       servicePhone: service?.phone || "",
@@ -371,6 +392,28 @@ async function bootstrapScheduledNotificationCampaigns() {
 
 app.get("/health", (_req, res) => {
   res.json({ ok: true, service: "hotline-backend" });
+});
+
+app.get("/api/app-update", (req, res) => {
+  const platform = String(req.query.platform || "android").trim().toLowerCase();
+  const payload =
+    platform === "ios"
+      ? {
+          platform: "ios",
+          latestVersion: iosLatestVersion,
+          latestBuild: iosLatestBuild,
+          storeUrl: iosStoreUrl,
+          required: updateRequired
+        }
+      : {
+          platform: "android",
+          latestVersion: androidLatestVersion,
+          latestBuild: androidLatestBuild,
+          storeUrl: androidStoreUrl,
+          required: updateRequired
+        };
+
+  res.json(payload);
 });
 
 app.get("/api/governorates", async (_req, res) => {
@@ -719,6 +762,7 @@ app.post("/api/admin/push/send", adminAuth, async (req, res) => {
       target_screen: target.target_screen,
       target_group: target.target_group,
       target_category_slug: target.target_category_slug,
+      target_store_url: target.target_store_url,
       service_contact_id: serviceContact?.id || null,
       service_name: serviceContact?.name_ar || "",
       service_phone: serviceContact?.phone || "",
@@ -740,6 +784,7 @@ app.post("/api/admin/push/send", adminAuth, async (req, res) => {
       target_screen: target.target_screen,
       target_group: target.target_group,
       target_category_slug: target.target_category_slug,
+      target_store_url: target.target_store_url,
       service_contact_id: serviceContact?.id || null,
       service_name: serviceContact?.name_ar || "",
       service_phone: serviceContact?.phone || "",

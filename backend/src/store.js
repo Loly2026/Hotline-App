@@ -401,13 +401,13 @@ function createSqliteStore() {
         .prepare(
           `INSERT INTO notification_campaigns (
              title, body, message_type, audience_platform, audience_language,
-             target_screen, target_group, target_category_slug, service_contact_id,
+             target_screen, target_group, target_category_slug, target_store_url, service_contact_id,
              service_name, service_phone, service_logo_url, scheduled_at,
              status, sent_count, failed_count, disabled_count, updated_at
            )
            VALUES (
              @title, @body, @message_type, @audience_platform, @audience_language,
-             @target_screen, @target_group, @target_category_slug, @service_contact_id,
+             @target_screen, @target_group, @target_category_slug, @target_store_url, @service_contact_id,
              @service_name, @service_phone, @service_logo_url, @scheduled_at,
              @status, @sent_count, @failed_count, @disabled_count, datetime('now')
            )`
@@ -547,6 +547,7 @@ function createPostgresStore() {
           target_screen TEXT,
           target_group TEXT,
           target_category_slug TEXT,
+          target_store_url TEXT,
           service_contact_id INTEGER,
           service_name TEXT,
           service_phone TEXT,
@@ -577,6 +578,7 @@ function createPostgresStore() {
       `);
       await query(`ALTER TABLE contacts ADD COLUMN IF NOT EXISTS logo_url TEXT`);
       await query(`ALTER TABLE contacts ADD COLUMN IF NOT EXISTS phone_labels TEXT`);
+      await query(`ALTER TABLE notification_campaigns ADD COLUMN IF NOT EXISTS target_store_url TEXT`);
       await query(`ALTER TABLE notification_campaigns ADD COLUMN IF NOT EXISTS service_contact_id INTEGER`);
       await query(`ALTER TABLE notification_campaigns ADD COLUMN IF NOT EXISTS service_name TEXT`);
       await query(`ALTER TABLE notification_campaigns ADD COLUMN IF NOT EXISTS service_phone TEXT`);
@@ -958,11 +960,11 @@ function createPostgresStore() {
       const { rows } = await query(
         `INSERT INTO notification_campaigns (
            title, body, message_type, audience_platform, audience_language,
-           target_screen, target_group, target_category_slug, service_contact_id,
+           target_screen, target_group, target_category_slug, target_store_url, service_contact_id,
            service_name, service_phone, service_logo_url, scheduled_at,
            status, sent_count, failed_count, disabled_count, updated_at
          )
-         VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, NOW())
+         VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18, NOW())
          RETURNING id`,
         [
           payload.title,
@@ -973,6 +975,7 @@ function createPostgresStore() {
           payload.target_screen,
           payload.target_group,
           payload.target_category_slug,
+          payload.target_store_url,
           payload.service_contact_id,
           payload.service_name,
           payload.service_phone,

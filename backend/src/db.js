@@ -92,6 +92,7 @@ export function initSchema() {
       target_screen TEXT,
       target_group TEXT,
       target_category_slug TEXT,
+      target_store_url TEXT,
       service_contact_id INTEGER,
       service_name TEXT,
       service_phone TEXT,
@@ -143,6 +144,9 @@ export function initSchema() {
   const campaignColumns = db.prepare("PRAGMA table_info(notification_campaigns)").all();
   if (!campaignColumns.some((c) => c.name === "service_contact_id")) {
     db.exec("ALTER TABLE notification_campaigns ADD COLUMN service_contact_id INTEGER;");
+  }
+  if (!campaignColumns.some((c) => c.name === "target_store_url")) {
+    db.exec("ALTER TABLE notification_campaigns ADD COLUMN target_store_url TEXT;");
   }
   if (!campaignColumns.some((c) => c.name === "service_name")) {
     db.exec("ALTER TABLE notification_campaigns ADD COLUMN service_name TEXT;");
