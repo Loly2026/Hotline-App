@@ -32,6 +32,7 @@
         <a class="nav-link" href="#add-panel">Add Contact</a>
         <a class="nav-link" href="#pending-panel">Pending Requests</a>
         <a class="nav-link" href="#notifications-panel">Notifications</a>
+        <a class="nav-link" href="#updates-panel">Update Center</a>
       </nav>
     </div>
   </aside>
@@ -62,6 +63,7 @@
     <button type="button" class="quick-action" data-scroll-target="add-panel">New contact</button>
     <button type="button" class="quick-action" data-scroll-target="pending-panel">Review queue</button>
     <button type="button" class="quick-action" data-scroll-target="notifications-panel">Send notification</button>
+    <button type="button" class="quick-action" data-scroll-target="updates-panel">Internal update</button>
     <button type="button" class="quick-action ghost" id="quick-refresh-all">Refresh workspace</button>
   </section>
 
@@ -287,7 +289,9 @@
             <option value="health">Hospital</option>
             <option value="food">Food & Malls</option>
             <option value="finance">Finance & Estate</option>
+            <option value="mobile">Mobile & Internet</option>
             <option value="mobility">Cars & Travel</option>
+            <option value="hotels">Hotels</option>
             <option value="retail">Services Hub</option>
             <option value="sports">Sports</option>
             <option value="foreign">Foreign Services</option>
@@ -327,6 +331,91 @@
         </tbody>
       </table>
     </div>
+    </div>
+  </section>
+
+  <section class="panel panel-wide" id="updates-panel" hidden>
+    <div class="panel-head">
+      <div>
+        <div class="section-kicker">In-app Updates</div>
+        <h3>Update Center</h3>
+        <p class="section-copy">Add, edit, or delete internal updates that appear inside the app without sending a push notification.</p>
+      </div>
+      <div class="actions">
+        <button id="refresh-app-updates" type="button">Refresh updates</button>
+        <button type="button" class="panel-toggle" aria-expanded="true">Collapse</button>
+      </div>
+    </div>
+    <div class="panel-body">
+      <form id="app-update-form">
+        <input type="hidden" name="id" id="app-update-id" />
+        <div class="grid">
+          <label>Update title
+            <input required name="title" id="app-update-title" maxlength="120" placeholder="New feature available" />
+          </label>
+          <label>Platform
+            <select name="audience_platform" id="app-update-platform">
+              <option value="all">All platforms</option>
+              <option value="android">Android only</option>
+              <option value="ios">iOS only</option>
+            </select>
+          </label>
+          <label>Language
+            <select name="audience_language" id="app-update-language">
+              <option value="all">All languages</option>
+              <option value="ar">Arabic only</option>
+              <option value="en">English only</option>
+            </select>
+          </label>
+          <label>Open screen on tap
+            <select name="target_screen" id="app-update-target-screen">
+              <option value="updates">Updates</option>
+              <option value="home">Home</option>
+              <option value="group">Specific section</option>
+              <option value="store-update">Google Play update</option>
+            </select>
+          </label>
+          <label>Target section
+            <select name="target_group" id="app-update-target-group">
+              <option value="">No specific section</option>
+              <option value="gov">Emergency</option>
+              <option value="health">Hospital</option>
+              <option value="food">Food & Malls</option>
+              <option value="finance">Finance & Estate</option>
+              <option value="mobile">Mobile & Internet</option>
+              <option value="mobility">Cars & Travel</option>
+              <option value="hotels">Hotels</option>
+              <option value="retail">Services Hub</option>
+              <option value="sports">Sports</option>
+              <option value="foreign">Foreign Services</option>
+            </select>
+          </label>
+          <label>Update message
+            <textarea required name="body" id="app-update-body" maxlength="500" placeholder="اكتب التحديث الذي سيظهر داخل التطبيق فقط"></textarea>
+          </label>
+        </div>
+        <div class="actions right">
+          <button type="button" class="ghost" id="app-update-reset">New internal update</button>
+          <button type="submit">Save internal update</button>
+        </div>
+      </form>
+      <div class="table-wrap">
+        <table>
+          <thead>
+            <tr>
+              <th>Title</th>
+              <th>Message</th>
+              <th>Audience</th>
+              <th>Target</th>
+              <th>Updated</th>
+              <th></th>
+            </tr>
+          </thead>
+          <tbody id="app-updates-body">
+            <tr><td colspan="6">No internal updates yet.</td></tr>
+          </tbody>
+        </table>
+      </div>
     </div>
   </section>
 

@@ -6,6 +6,7 @@
   const addPanel = $("add-panel");
   const pendingPanel = $("pending-panel");
   const notificationsPanel = $("notifications-panel");
+  const updatesPanel = $("updates-panel");
   const overviewPanel = $("overview-panel");
   const quickActionBar = $("quick-action-bar");
   const apiInput = $("api-base");
@@ -27,6 +28,15 @@
   const pushForm = $("push-form");
   const pushDevicesBody = $("push-devices-body");
   const pushCampaignsBody = $("push-campaigns-body");
+  const appUpdateForm = $("app-update-form");
+  const appUpdateId = $("app-update-id");
+  const appUpdateTitle = $("app-update-title");
+  const appUpdateBody = $("app-update-body");
+  const appUpdatePlatform = $("app-update-platform");
+  const appUpdateLanguage = $("app-update-language");
+  const appUpdateTargetScreen = $("app-update-target-screen");
+  const appUpdateTargetGroup = $("app-update-target-group");
+  const appUpdatesBody = $("app-updates-body");
   const overviewContacts = $("overview-contacts");
   const overviewPending = $("overview-pending");
   const overviewDevices = $("overview-devices");
@@ -91,6 +101,15 @@
     return `<span class="status-pill ${slug}">${raw || "-"}</span>`;
   }
 
+  function escapeHtml(value = "") {
+    return String(value)
+      .replace(/&/g, "&amp;")
+      .replace(/</g, "&lt;")
+      .replace(/>/g, "&gt;")
+      .replace(/"/g, "&quot;")
+      .replace(/'/g, "&#039;");
+  }
+
   function applyServiceTemplate(value, service) {
     const raw = String(value || "");
     if (!service) return raw;
@@ -129,6 +148,7 @@
     await loadPushStats();
     await loadPushDevices();
     await loadPushCampaigns();
+    await loadAppUpdates();
   }
 
   function scrollToPanel(panelId) {
@@ -469,6 +489,88 @@
     updateOverviewCards();
   }
 
+  async function loadAppUpdates() {
+    if (!appUpdatesBody) return;
+    const res = await authFetch("/api/admin/updates?limit=50");
+    const rows = await res.json();
+    if (!rows.length) {
+      appUpdatesBody.innerHTML = `<tr><td colspan="6">No internal updates yet.</td></tr>`;
+      return;
+    }
+    appUpdatesBody.innerHTML = rows
+      .map((row) => {
+        const audience = `${row.audience_platform || "all"} / ${row.audience_language || "all"}`;
+        const target = [row.target_screen || "updates", row.target_group || row.target_category_slug || ""]
+          .filter(Boolean)
+          .join(" / ");
+        const encoded = encodeURIComponent(JSON.stringify(row));
+        return `
+          <tr>
+            <td>${escapeHtml(row.title || "-")}</td>
+            <td>${escapeHtml(row.body || "-")}</td>
+            <td>${escapeHtml(audience)}</td>
+            <td>${escapeHtml(target || "-")}</td>
+            <td>${escapeHtml(row.updated_at || row.created_at || "-")}</td>
+            <td>
+              <button class="small" data-update-edit="${encoded}">Edit</button>
+              <button class="small danger" data-update-delete="${row.id}">Delete</button>
+            </td>
+          </tr>`;
+      })
+      .join("");
+  }
+
+  function resetAppUpdateForm() {
+    if (!appUpdateForm) return;
+    appUpdateForm.reset();
+    if (appUpdateId) appUpdateId.value = "";
+    if (appUpdateTargetScreen) appUpdateTargetScreen.value = "updates";
+    if (appUpdatePlatform) appUpdatePlatform.value = "all";
+    if (appUpdateLanguage) appUpdateLanguage.value = "all";
+    if (appUpdateTargetGroup) appUpdateTargetGroup.value = "";
+  }
+
+  function openAppUpdateEdit(row) {
+    if (!appUpdateForm) return;
+    appUpdateId.value = row.id || "";
+    appUpdateTitle.value = row.title || "";
+    appUpdateBody.value = row.body || "";
+    appUpdatePlatform.value = row.audience_platform || "all";
+    appUpdateLanguage.value = row.audience_language || "all";
+    appUpdateTargetScreen.value = row.target_screen || "updates";
+    appUpdateTargetGroup.value = row.target_group || "";
+    scrollToPanel("updates-panel");
+  }
+
+  async function saveAppUpdate(form) {
+    const fd = new FormData(form);
+    const id = String(fd.get("id") || "").trim();
+    const targetScreen = String(fd.get("target_screen") || "updates").trim();
+    const payload = {
+      title: String(fd.get("title") || "").trim(),
+      body: String(fd.get("body") || "").trim(),
+      audience_platform: String(fd.get("audience_platform") || "all").trim(),
+      audience_language: String(fd.get("audience_language") || "all").trim(),
+      target_screen: targetScreen,
+      target_group: targetScreen === "group" ? String(fd.get("target_group") || "").trim() : "",
+      target_category_slug: "",
+      target_store_url: targetScreen === "store-update" ? "https://play.google.com/store/apps/details?id=com.hotline.egypt" : ""
+    };
+    const res = await authFetch(id ? `/api/admin/updates/${id}` : "/api/admin/updates", {
+      method: id ? "PUT" : "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(payload)
+    });
+    await res.json();
+    resetAppUpdateForm();
+    await loadAppUpdates();
+  }
+
+  async function deleteAppUpdate(id) {
+    await authFetch(`/api/admin/updates/${id}`, { method: "DELETE" });
+    await loadAppUpdates();
+  }
+
   async function sendPushNotification(form) {
     const fd = new FormData(form);
     const selectedServiceId = Number.parseInt(String(fd.get("service_contact_id") || "0"), 10) || 0;
@@ -566,6 +668,7 @@
         await loadPushStats();
         await loadPushDevices();
         await loadPushCampaigns();
+        await loadAppUpdates();
         loginPanel.hidden = true;
         if (quickActionBar) quickActionBar.hidden = false;
         if (overviewPanel) overviewPanel.hidden = false;
@@ -573,6 +676,7 @@
         addPanel.hidden = false;
         pendingPanel.hidden = false;
         notificationsPanel.hidden = false;
+        if (updatesPanel) updatesPanel.hidden = false;
         setStatus(`Connected ${apiBase}`, true);
       } catch (err) {
         console.error(err);
@@ -587,6 +691,10 @@
       await loadPushDevices();
       await loadPushCampaigns();
     };
+    const refreshAppUpdates = $("refresh-app-updates");
+    if (refreshAppUpdates) refreshAppUpdates.onclick = () => loadAppUpdates();
+    const appUpdateReset = $("app-update-reset");
+    if (appUpdateReset) appUpdateReset.onclick = resetAppUpdateForm;
     searchInput.oninput = () => loadContacts();
     catFilter.onchange = () => loadContacts();
     document.getElementById("push-target-screen").onchange = syncPushTargetInputs;
@@ -605,6 +713,18 @@
         setStatus(err.message || "Notification failed", false);
       }
     };
+
+    if (appUpdateForm) {
+      appUpdateForm.onsubmit = async (e) => {
+        e.preventDefault();
+        try {
+          await saveAppUpdate(e.target);
+          setStatus("Internal update saved", true);
+        } catch (err) {
+          setStatus(err.message || "Internal update failed", false);
+        }
+      };
+    }
 
     $("add-form").onsubmit = async (e) => {
       e.preventDefault();
@@ -661,6 +781,25 @@
         }
       });
     }
+
+    if (appUpdatesBody) {
+      appUpdatesBody.addEventListener("click", async (e) => {
+        const editPayload = e.target.dataset.updateEdit;
+        const deleteId = e.target.dataset.updateDelete;
+        if (editPayload) {
+          openAppUpdateEdit(JSON.parse(decodeURIComponent(editPayload)));
+          return;
+        }
+        if (!deleteId) return;
+        if (!confirm(`Delete internal update ${deleteId}?`)) return;
+        try {
+          await deleteAppUpdate(deleteId);
+          setStatus("Internal update deleted", true);
+        } catch (err) {
+          setStatus(err.message || "Delete failed", false);
+        }
+      });
+    }
   }
 
   function initDefaults() {
@@ -679,6 +818,7 @@
     if (pushTargetCategory) pushTargetCategory.disabled = true;
     if (pushStorePreview) pushStorePreview.hidden = true;
     updatePushServicePreview();
+    resetAppUpdateForm();
   }
 
   function syncPushTargetInputs() {

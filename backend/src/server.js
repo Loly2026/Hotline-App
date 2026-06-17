@@ -416,6 +416,29 @@ app.get("/api/app-update", (req, res) => {
   res.json(payload);
 });
 
+app.get("/api/updates", async (req, res) => {
+  const rawLimit = Number.parseInt(String(req.query.limit || "30"), 10);
+  const limit = Math.min(Math.max(rawLimit || 30, 1), 100);
+  const platform = String(req.query.platform || "all").trim().toLowerCase() || "all";
+  const language = String(req.query.language || "all").trim().toLowerCase() || "all";
+  const rows = await store.listAppUpdates({ limit, platform, language });
+  res.json(
+    rows.map((row) => ({
+      id: row.id,
+      title: row.title || "",
+      body: row.body || "",
+      type: "update",
+      icon: "megaphone-outline",
+      target_screen: row.target_screen || "updates",
+      target_group: row.target_group || "",
+      target_category_slug: row.target_category_slug || "",
+      target_store_url: row.target_store_url || "",
+      created_at: row.created_at || "",
+      updated_at: row.updated_at || ""
+    }))
+  );
+});
+
 app.get("/api/governorates", async (_req, res) => {
   const rows = await store.getGovernorates();
   res.json(rows);
@@ -728,6 +751,56 @@ app.delete("/api/admin/push/campaigns/:id", adminAuth, async (req, res) => {
     scheduledCampaignTimers.delete(campaignId);
   }
   await store.deleteNotificationCampaign(campaignId);
+  res.json({ ok: true });
+});
+
+app.get("/api/admin/updates", adminAuth, async (req, res) => {
+  const rawLimit = Number.parseInt(String(req.query.limit || "50"), 10);
+  const limit = Math.min(Math.max(rawLimit || 50, 1), 100);
+  const rows = await store.listAppUpdates({ limit, platform: "all", language: "all" });
+  res.json(rows);
+});
+
+app.post("/api/admin/updates", adminAuth, async (req, res) => {
+  const title = String(req.body?.title || "").trim();
+  const body = String(req.body?.body || "").trim();
+  if (!title || !body) return res.status(400).json({ error: "title and body are required" });
+  const id = await store.createAppUpdate({
+    title: title.slice(0, 120),
+    body: body.slice(0, 500),
+    audience_platform: String(req.body?.audience_platform || "all").trim() || "all",
+    audience_language: String(req.body?.audience_language || "all").trim() || "all",
+    target_screen: String(req.body?.target_screen || "updates").trim() || "updates",
+    target_group: String(req.body?.target_group || "").trim(),
+    target_category_slug: String(req.body?.target_category_slug || "").trim(),
+    target_store_url: String(req.body?.target_store_url || "").trim()
+  });
+  res.json({ ok: true, id });
+});
+
+app.put("/api/admin/updates/:id", adminAuth, async (req, res) => {
+  const updateId = Number.parseInt(String(req.params.id || "0"), 10);
+  if (!Number.isInteger(updateId) || updateId <= 0) return res.status(400).json({ error: "Invalid update id" });
+  const title = String(req.body?.title || "").trim();
+  const body = String(req.body?.body || "").trim();
+  if (!title || !body) return res.status(400).json({ error: "title and body are required" });
+  await store.updateAppUpdate(updateId, {
+    title: title.slice(0, 120),
+    body: body.slice(0, 500),
+    audience_platform: String(req.body?.audience_platform || "all").trim() || "all",
+    audience_language: String(req.body?.audience_language || "all").trim() || "all",
+    target_screen: String(req.body?.target_screen || "updates").trim() || "updates",
+    target_group: String(req.body?.target_group || "").trim(),
+    target_category_slug: String(req.body?.target_category_slug || "").trim(),
+    target_store_url: String(req.body?.target_store_url || "").trim()
+  });
+  res.json({ ok: true });
+});
+
+app.delete("/api/admin/updates/:id", adminAuth, async (req, res) => {
+  const updateId = Number.parseInt(String(req.params.id || "0"), 10);
+  if (!Number.isInteger(updateId) || updateId <= 0) return res.status(400).json({ error: "Invalid update id" });
+  await store.deleteAppUpdate(updateId);
   res.json({ ok: true });
 });
 

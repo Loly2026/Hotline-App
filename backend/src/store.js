@@ -452,6 +452,86 @@ function createSqliteStore() {
         .all(limit);
     },
 
+    async listAppUpdates(filters = {}) {
+      const limit = Math.min(Math.max(Number.parseInt(String(filters.limit || "30"), 10) || 30, 1), 100);
+      const where = ["status = 'internal'", "message_type = 'update_center'"];
+      const params = { limit };
+      if (filters.platform && filters.platform !== "all") {
+        where.push("(audience_platform IS NULL OR audience_platform = '' OR audience_platform = 'all' OR audience_platform = @platform)");
+        params.platform = filters.platform;
+      }
+      if (filters.language && filters.language !== "all") {
+        where.push("(audience_language IS NULL OR audience_language = '' OR audience_language = 'all' OR audience_language = @language)");
+        params.language = filters.language;
+      }
+      return sqliteDb
+        .prepare(
+          `SELECT *
+           FROM notification_campaigns
+           WHERE ${where.join(" AND ")}
+           ORDER BY updated_at DESC, created_at DESC
+           LIMIT @limit`
+        )
+        .all(params);
+    },
+
+    async createAppUpdate(payload) {
+      return this.createNotificationCampaign({
+        title: payload.title,
+        body: payload.body,
+        message_type: "update_center",
+        audience_platform: payload.audience_platform || "all",
+        audience_language: payload.audience_language || "all",
+        target_screen: payload.target_screen || "updates",
+        target_group: payload.target_group || "",
+        target_category_slug: payload.target_category_slug || "",
+        target_store_url: payload.target_store_url || "",
+        service_contact_id: null,
+        service_name: "",
+        service_phone: "",
+        service_logo_url: "",
+        scheduled_at: null,
+        status: "internal",
+        sent_count: 0,
+        failed_count: 0,
+        disabled_count: 0
+      });
+    },
+
+    async updateAppUpdate(id, payload) {
+      sqliteDb
+        .prepare(
+          `UPDATE notification_campaigns
+           SET title = @title,
+               body = @body,
+               audience_platform = @audience_platform,
+               audience_language = @audience_language,
+               target_screen = @target_screen,
+               target_group = @target_group,
+               target_category_slug = @target_category_slug,
+               target_store_url = @target_store_url,
+               updated_at = datetime('now')
+           WHERE id = @id AND status = 'internal' AND message_type = 'update_center'`
+        )
+        .run({
+          id,
+          title: payload.title,
+          body: payload.body,
+          audience_platform: payload.audience_platform || "all",
+          audience_language: payload.audience_language || "all",
+          target_screen: payload.target_screen || "updates",
+          target_group: payload.target_group || "",
+          target_category_slug: payload.target_category_slug || "",
+          target_store_url: payload.target_store_url || ""
+        });
+    },
+
+    async deleteAppUpdate(id) {
+      sqliteDb
+        .prepare("DELETE FROM notification_campaigns WHERE id = ? AND status = 'internal' AND message_type = 'update_center'")
+        .run(id);
+    },
+
     async deleteNotificationCampaign(id) {
       sqliteDb.prepare("DELETE FROM notification_campaigns WHERE id = ?").run(id);
     },
@@ -1022,6 +1102,88 @@ function createPostgresStore() {
         [limit]
       );
       return rows;
+    },
+
+    async listAppUpdates(filters = {}) {
+      const values = [];
+      let index = 1;
+      const limit = Math.min(Math.max(Number.parseInt(String(filters.limit || "30"), 10) || 30, 1), 100);
+      const where = ["status = 'internal'", "message_type = 'update_center'"];
+      if (filters.platform && filters.platform !== "all") {
+        where.push(`(audience_platform IS NULL OR audience_platform = '' OR audience_platform = 'all' OR audience_platform = $${index++})`);
+        values.push(filters.platform);
+      }
+      if (filters.language && filters.language !== "all") {
+        where.push(`(audience_language IS NULL OR audience_language = '' OR audience_language = 'all' OR audience_language = $${index++})`);
+        values.push(filters.language);
+      }
+      values.push(limit);
+      const { rows } = await query(
+        `SELECT *
+         FROM notification_campaigns
+         WHERE ${where.join(" AND ")}
+         ORDER BY updated_at DESC, created_at DESC
+         LIMIT $${index}`,
+        values
+      );
+      return rows;
+    },
+
+    async createAppUpdate(payload) {
+      return this.createNotificationCampaign({
+        title: payload.title,
+        body: payload.body,
+        message_type: "update_center",
+        audience_platform: payload.audience_platform || "all",
+        audience_language: payload.audience_language || "all",
+        target_screen: payload.target_screen || "updates",
+        target_group: payload.target_group || "",
+        target_category_slug: payload.target_category_slug || "",
+        target_store_url: payload.target_store_url || "",
+        service_contact_id: null,
+        service_name: "",
+        service_phone: "",
+        service_logo_url: "",
+        scheduled_at: null,
+        status: "internal",
+        sent_count: 0,
+        failed_count: 0,
+        disabled_count: 0
+      });
+    },
+
+    async updateAppUpdate(id, payload) {
+      await query(
+        `UPDATE notification_campaigns
+         SET title = $1,
+             body = $2,
+             audience_platform = $3,
+             audience_language = $4,
+             target_screen = $5,
+             target_group = $6,
+             target_category_slug = $7,
+             target_store_url = $8,
+             updated_at = NOW()
+         WHERE id = $9 AND status = 'internal' AND message_type = 'update_center'`,
+        [
+          payload.title,
+          payload.body,
+          payload.audience_platform || "all",
+          payload.audience_language || "all",
+          payload.target_screen || "updates",
+          payload.target_group || "",
+          payload.target_category_slug || "",
+          payload.target_store_url || "",
+          id
+        ]
+      );
+    },
+
+    async deleteAppUpdate(id) {
+      await query(
+        "DELETE FROM notification_campaigns WHERE id = $1 AND status = 'internal' AND message_type = 'update_center'",
+        [id]
+      );
     },
 
     async deleteNotificationCampaign(id) {
