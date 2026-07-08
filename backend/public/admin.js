@@ -83,6 +83,7 @@
   let contactsCache = [];
   let lastPushStats = { active: 0 };
   let lastCampaignCount = 0;
+  const ADMIN_CONTACTS_LIMIT = 10000;
 
   function setSparkline(id, value) {
     const el = $(id);
@@ -325,6 +326,7 @@
 
   async function loadContacts() {
     const params = new URLSearchParams();
+    params.set("limit", String(ADMIN_CONTACTS_LIMIT));
     if (searchInput.value.trim()) params.set("q", searchInput.value.trim());
     if (catFilter.value) params.set("category", catFilter.value);
     const res = await authFetch(`/api/admin/contacts?${params.toString()}`);

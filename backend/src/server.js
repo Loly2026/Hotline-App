@@ -696,8 +696,8 @@ app.get("/api/admin/categories", adminAuth, async (_req, res) => {
 });
 
 app.get("/api/admin/contacts", adminAuth, async (req, res) => {
-  const { q = "", category = "", limit = "200", offset = "0" } = req.query;
-  const parsedLimit = Math.min(Math.max(Number.parseInt(limit, 10) || 50, 1), 500);
+  const { q = "", category = "", limit = "10000", offset = "0" } = req.query;
+  const parsedLimit = Math.min(Math.max(Number.parseInt(limit, 10) || 10000, 1), 10000);
   const parsedOffset = Math.max(Number.parseInt(offset, 10) || 0, 0);
   const rows = await store.getAdminContacts({
     q: String(q).trim(),

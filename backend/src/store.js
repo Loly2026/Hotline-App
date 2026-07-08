@@ -258,7 +258,7 @@ function createSqliteStore() {
       return { id: result.lastInsertRowid };
     },
 
-    async getAdminContacts({ q = "", category = "", limit = 200, offset = 0 }) {
+    async getAdminContacts({ q = "", category = "", limit = 10000, offset = 0 }) {
       const where = [];
       const params = {
         q: `%${String(q).trim()}%`,
@@ -879,7 +879,7 @@ function createPostgresStore() {
       return { id: rows[0].id };
     },
 
-    async getAdminContacts({ q = "", category = "", limit = 200, offset = 0 }) {
+    async getAdminContacts({ q = "", category = "", limit = 10000, offset = 0 }) {
       const where = [];
       const values = [];
       let index = 1;

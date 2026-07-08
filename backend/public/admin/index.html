@@ -124,6 +124,7 @@
     const loadContacts = async () => {
       listMsg.textContent = "Loading...";
       const params = new URLSearchParams();
+      params.set("limit", "10000");
       const q = document.getElementById("q").value.trim();
       if (q) params.append("q", q);
       const qc = filterCat.value;
